@@ -1317,7 +1317,7 @@ int do_rk(mu, psi1, psi2, H, v, rsp, constant)
   
   int	calc_bombed=1;
   int 	i;
-  int	isnan();
+  /* int	isnan(); */
   double	alpha,arg;
   double	J[5], K[5], M[5];
   double	w_psi1, w_psi2, w_mu;

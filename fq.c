@@ -14,7 +14,7 @@ rate_state_mod(disp_col, vstep_row, vstep_end, mod_disp_col, mod_mu_col, k, sig_
      double	k, sig_n, muo, muf, vo, vf, A, B1, B2, dc1, dc2;
 {
   int	i,j,n_data,end, init_pts, init_write_pt;
-  int	isnan();
+  /* int	isnan(); */
   double	psi1, psi2, h, H, K, K1, K2, K3, K4, L;
   double	x, x_inc, fin_disp_inc, init_disp_inc, init_disp, mu, v;
   double  M1, M2, M3, M4, Vo_dc1, Vo_dc2, w_psi1, w_mu, time, alpha;
@@ -164,7 +164,7 @@ double simp_rate_state_mod()
 
   char	inc_pt = FALSE, adjust_H = TRUE;
   int	i, j, k, total_added_pts, row_num, calc_bombed = 0;
-  int	isnan();
+  /* int	isnan(); */
   double	*disp_ptr, *mu_ptr, *model_mu_ptr;
   double	psi1, psi2, h, H, K, K1, K2, K3, K4;
   double	close, not_close, mu, v, x;
