@@ -128,8 +128,7 @@ void redraw_proc(canvas, paint_window, dpy, win, area)
       break;
     case 1:
       xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
-             FRAME_LEFT_FOOTER, "Draw Line Mode: left button picks 1st point, middle picks
-2nd, right button quits mode", NULL);
+             FRAME_LEFT_FOOTER, "Draw Line Mode: left button picks 1st point, middle picks 2nd, right button quits mode", NULL);
       break;
     case 2:
       xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
@@ -141,8 +140,7 @@ void redraw_proc(canvas, paint_window, dpy, win, area)
       break;
     case 4:
       xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
-             FRAME_LEFT_FOOTER, "Zoom Mode: left button picks 1st point, middle picks 2nd,
-right button commits zoom", NULL);
+             FRAME_LEFT_FOOTER, "Zoom Mode: left button picks 1st point, middle picks 2nd, right button commits zoom", NULL);
       break;
    }
 }
