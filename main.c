@@ -10,7 +10,6 @@
 #include <xview/font.h>
 #include <xview/scrollbar.h>
 #include <xview/cursor.h>
-#include <X11/olcursor.h>
 #include "global.h"
 
 int active_window = -1;

@@ -10,7 +10,7 @@ OBJECTS = main.o event.o can.o menus.o drawwin.o cmds.o \
 	look_funcs.o lookio.o simplexl.o strcmd.o cmds1.o \
 	mouse.o rs_fric_tool.o qi_look.o notices.o messages.o 
 
-LIBS = -lm -lX11 -lXm -lxview -lolgx
+LIBS = -lm -lX11 -lxview -lolgx
 
 CFLAGS = -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED
 

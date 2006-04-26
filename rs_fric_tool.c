@@ -20,7 +20,6 @@ around 850
 #include <xview/xv_xrect.h>
 #include <xview/font.h>
 #include <xview/cursor.h>
-#include <X11/olcursor.h>
 #include <string.h>
 #include <sys/file.h>
 #include "global.h"

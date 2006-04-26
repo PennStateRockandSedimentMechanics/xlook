@@ -6,7 +6,6 @@
 #include <xview/xv_xrect.h>
 #include <xview/font.h>
 #include <xview/cursor.h>
-#include <X11/olcursor.h>
 
 #include "global.h"
 
