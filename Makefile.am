@@ -10,8 +10,8 @@ xlook_SOURCES = main.c event.c can.c menus.c drawwin.c cmds.c \
 
 noinst_HEADERS = global.h
     
-LIBS = -lm -lX11 -lxview -lolgx
+LDADD = -lm -lX11 -lxview -lolgx
 
-CFLAGS = -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED
+AM_CFLAGS = -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED
 
-LDFLAGS = -L/usr/openwin/lib -L/usr/X11R6/lib
+AM_LDFLAGS = -L/usr/openwin/lib -L/usr/X11R6/lib
