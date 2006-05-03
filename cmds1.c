@@ -9,7 +9,7 @@
 #include <xview/panel.h>
 #include <xview/xview.h>
 #ifdef HAVE_ERRNO_H
-#include <errno.h>
+# include <errno.h>
 #endif
 
 char pathname[10][80];
