@@ -11,14 +11,15 @@ last modified
 	14/8/94 changed to allow data table to be written automatically
 
 */
+#include <config.h>
 #include "global.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/timeb.h>
 #include <strings.h>
-#include <malloc.h>
 #define CLOSE(a,b) (fabs((a-(int)a) - b) < 0.01)
 
 extern char msg[MSG_LENGTH];
