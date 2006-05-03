@@ -1,3 +1,4 @@
+#include <config.h>
 #include "global.h"
 #include <string.h>
 #include <sys/file.h>
@@ -7,6 +8,9 @@
 #include <xview/xv_xrect.h>
 #include <xview/panel.h>
 #include <xview/xview.h>
+#ifdef HAVE_ERRNO_H
+#include <errno.h>
+#endif
 
 char pathname[10][80];
 char default_path[80];

@@ -10,6 +10,7 @@ AC_HEADER_STDC
 
 AC_LANG_C
 
-AC_CHECK_HEADERS(malloc,,)
+AC_CHECK_HEADERS(errno.h,,)
+AC_CHECK_HEADERS(malloc.h,,)
 
 AC_OUTPUT(Makefile)
