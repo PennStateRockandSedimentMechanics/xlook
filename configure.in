@@ -1,18 +1,15 @@
 AC_INIT(main.c)
-AC_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(xlook,0.0.1)
+AM_CONFIG_HEADER(config.h)
 
-dnl Find and test the C compiler
 AC_PROG_CC
-AC_LANG_C
-
-dnl Locate X includes and libraries
-AC_PATH_XTRA
-
+AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
 AC_HEADER_STDC
 
-CFLAGS="$CFLAGS $x_includes"
+AC_LANG_C
 
-dnl Read Makefile.in and write Makefile
+AC_CHECK_HEADERS(malloc,,)
+
 AC_OUTPUT(Makefile)
