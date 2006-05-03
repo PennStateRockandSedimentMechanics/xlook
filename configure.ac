@@ -5,15 +5,23 @@ VERSION="WAC-r$SVN_REVISION"
 AM_INIT_AUTOMAKE(xlook,$VERSION)
 AM_CONFIG_HEADER(config.h)
 
+# Check for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
-AC_HEADER_STDC
-
 AC_LANG_C
 
-AC_CHECK_HEADERS(errno.h,,)
-AC_CHECK_HEADERS(malloc.h,,)
+CFLAGS="-I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED"
+LDFLAGS="-L/usr/openwin/lib -L/usr/X11R6/lib"
+
+# Check for libraries.
+AC_CHECK_LIB(xview,xv_init,,[AC_MSG_ERROR([couldn't find xview libraries. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])])
+
+# Check for headers.
+AC_CHECK_HEADERS(errno.h)
+AC_CHECK_HEADERS(malloc.h)
+AC_CHECK_HEADERS(xview/xview.h,,
+                [AC_MSG_ERROR([couldn't find xview header files. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])])
 
 AC_OUTPUT(Makefile)

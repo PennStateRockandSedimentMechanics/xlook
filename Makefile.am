@@ -13,7 +13,3 @@ noinst_HEADERS = global.h nr.h
 EXTRA_DIST = canvas.ico xlook.ico 
 
 LDADD = -lm -lX11 -lxview -lolgx
-
-AM_CFLAGS = -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED
-
-AM_LDFLAGS = -L/usr/openwin/lib -L/usr/X11R6/lib
