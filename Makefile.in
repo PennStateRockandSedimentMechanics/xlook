@@ -16,10 +16,10 @@ CFLAGS = -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED
 
 LDFLAGS = -L/usr/openwin/lib -L/usr/X11R6/lib
 
-CC = cc
+CC = @CC@
 
 xlook: $(OBJECTS) global.h
-	cc -o xlook $(OBJECTS) $(LDFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) -o xlook $(OBJECTS) $(LDFLAGS) $(LIBS)
 
 clean: 
 	rm -f *.o xlook
