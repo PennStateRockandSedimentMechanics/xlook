@@ -1,5 +1,8 @@
 AC_INIT(main.c)
-AM_INIT_AUTOMAKE(xlook,0.0.1)
+
+SVN_REVISION=`svnversion -n .`
+VERSION="WAC-r$SVN_REVISION"
+AM_INIT_AUTOMAKE(xlook,$VERSION)
 AM_CONFIG_HEADER(config.h)
 
 AC_PROG_CC
