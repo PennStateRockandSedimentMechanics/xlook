@@ -12,4 +12,3 @@ noinst_HEADERS = global.h nr.h
 
 EXTRA_DIST = canvas.ico xlook.ico 
 
-LDADD = -lm -lX11 -lxview -lolgx

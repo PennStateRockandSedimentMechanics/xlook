@@ -13,7 +13,9 @@ AC_PROG_MAKE_SET
 AC_LANG_C
 
 CFLAGS="-I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED"
+CPPFLAGS="-I/usr/openwin/include"
 LDFLAGS="-L/usr/openwin/lib -L/usr/X11R6/lib"
+LIBS="-lm -lX11 -lxview -lolgx"
 
 # Check for libraries.
 AC_CHECK_LIB(xview,xv_init,,[AC_MSG_ERROR([couldn't find xview libraries. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])])
