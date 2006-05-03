@@ -8,8 +8,10 @@ xlook_SOURCES = main.c event.c can.c menus.c drawwin.c cmds.c \
 	look_funcs.c lookio.c simplexl.c strcmd.c cmds1.c \
 	mouse.c rs_fric_tool.c qi_look.c notices.c messages.c
 
-noinst_HEADERS = global.h
-    
+noinst_HEADERS = global.h nr.h
+
+EXTRA_DIST = canvas.ico xlook.ico 
+
 LDADD = -lm -lX11 -lxview -lolgx
 
 AM_CFLAGS = -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED
