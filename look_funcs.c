@@ -349,6 +349,7 @@ void msg_p_vision(firstrow,lastrow,firstcol,lastcol)
 
   for ( i = *firstrow; i <= *lastrow ; ++i)
     {
+      msg[0] = '\0';
       for ( j = *firstcol; j <= *lastcol; ++j)
 	{
 	  if(strncmp(&(head.ch[j].name[0]),"no_val",5) != 0)
