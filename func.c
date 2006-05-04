@@ -1,6 +1,4 @@
 #include "global.h"
-#define TWOPI 6.283185308
-#define PI 3.141592654
 #define SRTWO 1.414213562
 
 double power1(x,A,B)	/* y = pow(x,A) + B */

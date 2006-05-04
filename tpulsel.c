@@ -9,7 +9,6 @@
 /*									      */
 
 #include "global.h"
-#define PI 3.141592654
 
 double tpulse(perm,sstor,length,vol,time)
 double perm,sstor,length,vol,time;
