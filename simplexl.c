@@ -45,7 +45,7 @@
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-extern do_scm_2();
+extern void do_scm_2();
 
 
 extern int action;
@@ -70,7 +70,25 @@ char	buf[80];
 int max_iter;
 
 
-do_simp_func()
+void do_simp_func(void);
+void do_get_initial_values(char arg[256]);
+void simp_func_final(void);
+void init_values_write(double errormax[], FILE *outf);
+void get_starting_simplex(char funcname[], float first_step[], int p_xch[], int *p_ych, int ndata, int first);
+void solution_write(int n, double scm_err[], FILE *outf, char f_name[]);
+void printSimplex(FILE *outf, char function_name[]);
+void order(int high[], int low[]);
+void find_centroid(double centre[], int h);
+void reflect_worst(double centre[], int h);
+void expand_reflection(double centre[], int h);
+void contract_worst(double centre[], int h);
+void contract_all(char funcname[], double centre[], int l, int p_xch[], int *p_ych, int ndata, int first);
+void saveAs_new_vertex(int h);
+double error(char name[], int p_xch[], int *p_ych, int nd, int first);
+
+
+
+void do_simp_func()
      /*(infile,free,xch,ych,funcname,first,last,max_iter)
        FILE *infile;
        int free, xch[], *ych;
@@ -161,7 +179,7 @@ do_simp_func()
 }
 
 
-do_get_initial_values(arg)
+void do_get_initial_values(arg)
      char arg[256];
 {
   static int i;
@@ -185,14 +203,14 @@ do_get_initial_values(arg)
       sscanf(arg, " %f",&first_step[i]); 
     }
 
-  init_values_write( errormax,stdout);
+  init_values_write(errormax,stdout);
 	
   for ( i=0; i<n_param; ++i)  simp[0][i] = temp[i]; 
 }
 
   
 
-simp_func_final()
+void simp_func_final()
 {
   
   simp[0][n_param] = error( t_string, simp_xch, simp_ych, ndata, first);
@@ -382,9 +400,9 @@ simp_func_final()
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-init_values_write( errormax,outf)
-     FILE	*outf;
+void init_values_write( errormax,outf)
      double	errormax[];
+     FILE	*outf;
 {
   int     i;
   
@@ -419,11 +437,10 @@ init_values_write( errormax,outf)
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-get_starting_simplex(funcname, first_step,p_xch,p_ych,ndata,first)
+void get_starting_simplex(funcname, first_step,p_xch,p_ych,ndata,first)
      char funcname[];
-     int	ndata, p_xch[], *p_ych;
      float	first_step[];
-     int first;
+     int p_xch[], *p_ych, ndata, first;
 {
   int	i,j;
   float	p[MAX_PARAM],q[MAX_PARAM];
@@ -450,14 +467,13 @@ get_starting_simplex(funcname, first_step,p_xch,p_ych,ndata,first)
 }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-solution_write(n, scm_err, outf, f_name)
-     
-     FILE	*outf;
+void solution_write(n, scm_err, outf, f_name)
      int	n;
-     double	scm_err[];
+     double	scm_err[];     
+     FILE	*outf;
      char	f_name[];
 {
-  static int	i,j;
+  static int	i;
   
   if (outf == stdout)
     {
@@ -514,7 +530,7 @@ solution_write(n, scm_err, outf, f_name)
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-printSimplex(outf, function_name)
+void printSimplex(outf, function_name)
      FILE	*outf;
      char 	function_name[];
 {
@@ -543,7 +559,7 @@ printSimplex(outf, function_name)
 }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-order ( high, low)
+void order ( high, low)
      int	high[], low[];
 {
   int     i, j;
@@ -560,7 +576,7 @@ order ( high, low)
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-find_centroid(centre,h)
+void find_centroid(centre,h)
      int	h;
      double	centre[];
 {
@@ -580,7 +596,7 @@ find_centroid(centre,h)
 }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-reflect_worst(centre,h)
+void reflect_worst(centre,h)
      int	h;
      double	centre[];
 {
@@ -593,7 +609,7 @@ reflect_worst(centre,h)
 }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-expand_reflection(centre,h)
+void expand_reflection(centre,h)
      int	h;
      double	centre[];
 {
@@ -606,7 +622,7 @@ expand_reflection(centre,h)
 }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-contract_worst(centre,h)
+void contract_worst(centre,h)
      int	h;
      double	centre[];
 {
@@ -619,7 +635,7 @@ contract_worst(centre,h)
 }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-contract_all(funcname,centre,l,p_xch,p_ych,ndata,first)
+void contract_all(funcname,centre,l,p_xch,p_ych,ndata,first)
      char	funcname[];
      int	l,ndata;
      int	p_xch[], *p_ych;
@@ -640,7 +656,7 @@ contract_all(funcname,centre,l,p_xch,p_ych,ndata,first)
 }
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-saveAs_new_vertex (h)
+void saveAs_new_vertex (h)
      int	h;
 {
   int    i;
