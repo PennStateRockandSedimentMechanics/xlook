@@ -14,6 +14,10 @@ extern void zoom_plot_proc();
 int CLEAR_FLAG = 0;
   
 
+void clr_ap(void);
+void draw_xhair(float, float);
+void draw_crosshair(int, int);
+
 
 /******************************** point plot ******************************/
 void point_plot_proc(item, event)
@@ -47,29 +51,7 @@ void point_plot_proc(item, event)
 
 /******************************** line plot ******************************/
 
-void line_plot_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  int can_num = xv_get(menu, MENU_CLIENT_DATA);
-  canvasinfo *can_info;
-  int ap;
-  
-  set_active_window(can_num);
-  can_info = wininfo.canvases[active_window];
-  ap = can_info->active_plot;
-
-  if (can_info->active_plot == -1)
-  {
-      sprintf(msg, "There is no plot in this window.\n");
-      print_msg(msg);
-      return;
-  }
-
-  set_line_plot(); 
-}
-
-set_line_plot()
+void set_line_plot()
 {
   canvasinfo *can_info;
 
@@ -95,7 +77,29 @@ set_line_plot()
 	 FRAME_LEFT_FOOTER, "Draw Line Mode: left button picks first point, middle picks 2nd, right button quits", NULL);
 }
 
-do_line_plot()
+void line_plot_proc(menu, item)
+     Menu menu;
+     Menu_item item;
+{
+  int can_num = xv_get(menu, MENU_CLIENT_DATA);
+  canvasinfo *can_info;
+  int ap;
+  
+  set_active_window(can_num);
+  can_info = wininfo.canvases[active_window];
+  ap = can_info->active_plot;
+
+  if (can_info->active_plot == -1)
+  {
+      sprintf(msg, "There is no plot in this window.\n");
+      print_msg(msg);
+      return;
+  }
+
+  set_line_plot(); 
+}
+
+void do_line_plot()
 {
   canvasinfo *can_info;
   int ap;
@@ -118,7 +122,7 @@ do_line_plot()
   
   canvas = can_info->canvas;
   
-  XDrawLine(xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctick, 
+  XDrawLine((Display *)xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctick, 
 	    data->x1, data->y1,
 	    data->x2, data->y2);
 
@@ -133,7 +137,7 @@ do_line_plot()
   sprintf(msg, "line plot: x1,y1:(%f, %f), x2,y2:(%f, %f)\nslope: %g, int.: %g\n", x1, y1, x2, y2, slope, intercept);
   print_msg(msg);
   
-  sprintf(rowstring, ""); 
+  rowstring[0] = '\0'; 
   xv_set(xv_get(canvas, XV_KEY_DATA, CAN_ROW), PANEL_LABEL_STRING, rowstring, NULL);	      
   sprintf(xstring, "Slope: %.5g", slope); 
   xv_set(xv_get(canvas, XV_KEY_DATA, CAN_X), PANEL_LABEL_STRING, xstring, NULL);	      
@@ -144,29 +148,7 @@ do_line_plot()
 
 
 /************************** mouse mu **********************************/
-void mouse_mu_proc(menu, item)		/*draw vertical line on plot at chosen position*/
-     Menu menu;
-     Menu_item item;
-{
-  int can_num = xv_get(menu, MENU_CLIENT_DATA);
-  canvasinfo *can_info;
-  int ap;
-  
-  set_active_window(can_num);
-  can_info = wininfo.canvases[active_window];
-  ap = can_info->active_plot;
-
-  if (can_info->active_plot == -1)
-  {
-      sprintf(msg, "There is no plot in this window.\n");
-      print_msg(msg);
-      return;
-  }
-
-  set_mouse_mu_proc(); 
-}
-
-set_mouse_mu_proc()
+void set_mouse_mu_proc()
 {
    canvasinfo *can_info;
 
@@ -193,7 +175,29 @@ set_mouse_mu_proc()
 	 FRAME_LEFT_FOOTER, "Vertical Line Mode: left & middle buttons draw vertical line, right button quits mode", NULL);
 }
 
-do_mouse_mu()
+void mouse_mu_proc(menu, item)		/*draw vertical line on plot at chosen position*/
+     Menu menu;
+     Menu_item item;
+{
+  int can_num = xv_get(menu, MENU_CLIENT_DATA);
+  canvasinfo *can_info;
+  int ap;
+  
+  set_active_window(can_num);
+  can_info = wininfo.canvases[active_window];
+  ap = can_info->active_plot;
+
+  if (can_info->active_plot == -1)
+  {
+      sprintf(msg, "There is no plot in this window.\n");
+      print_msg(msg);
+      return;
+  }
+
+  set_mouse_mu_proc(); 
+}
+
+void do_mouse_mu()
 { 
   canvasinfo *can_info;
   int ap;
@@ -211,7 +215,7 @@ do_mouse_mu()
 
   data = can_info->plots[ap];
     
-  XDrawLine(xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctick, 
+  XDrawLine((Display *)xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctick, 
 	    data->x1, can_info->start_y,
 	    data->x1, can_info->end_y);
 }
@@ -219,29 +223,7 @@ do_mouse_mu()
 
 
 /*******************************  dist *********************************/
-void dist_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  int can_num, ap;
-  canvasinfo *can_info;
-  
-  can_num = xv_get(menu, MENU_CLIENT_DATA);
-  set_active_window(can_num);
-  can_info = wininfo.canvases[active_window];
-  ap = can_info->active_plot;
-
-  if (can_info->active_plot == -1)
-  {
-      sprintf(msg, "There is no plot in this window.\n");
-      print_msg(msg);
-      return;
-  }
-
-  set_dist_proc(); 
-}
-
-set_dist_proc()
+void set_dist_proc()
 {
   canvasinfo *can_info;
 
@@ -267,7 +249,29 @@ set_dist_proc()
 	 FRAME_LEFT_FOOTER, "Distance Mode: left button picks 1st point, middle picks 2nd, right button quits mode", NULL);
 }
 
-do_dist()
+void dist_proc(menu, item)
+     Menu menu;
+     Menu_item item;
+{
+  int can_num, ap;
+  canvasinfo *can_info;
+  
+  can_num = xv_get(menu, MENU_CLIENT_DATA);
+  set_active_window(can_num);
+  can_info = wininfo.canvases[active_window];
+  ap = can_info->active_plot;
+
+  if (can_info->active_plot == -1)
+  {
+      sprintf(msg, "There is no plot in this window.\n");
+      print_msg(msg);
+      return;
+  }
+
+  set_dist_proc(); 
+}
+
+void do_dist()
 {
   canvasinfo *can_info;
   int ap;
@@ -312,36 +316,7 @@ do_dist()
 
 /******************************** zoom ********************************/
 
-void zoom_clr_all_plots_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{ 
-  CLEAR_FLAG = 1;
-  zoom_plot_proc(menu,item);
-}
-
-void zoom_plot_proc(menu,item)
-     Menu menu; 
-     Menu_item item;
-{
-  int can_num, ap;
-  canvasinfo *can_info;
-  
-  set_active_window(xv_get(menu, MENU_CLIENT_DATA));
-  can_info = wininfo.canvases[active_window];
-  ap = can_info->active_plot;
-
-  if(can_info->active_plot == -1)
-  {
-      sprintf(msg, "There is no plot in this window.\n");
-      print_msg(msg);
-      return;
-  }
-
-  set_zoom(); 
-}
-
-set_zoom()
+void set_zoom()
 {
   canvasinfo *can_info;
 
@@ -367,7 +342,38 @@ set_zoom()
 }
 
 
-zoom_get_pt(xloc, yloc, p)
+void zoom_plot_proc(menu,item)
+     Menu menu; 
+     Menu_item item;
+{
+  int ap;
+  canvasinfo *can_info;
+  
+  set_active_window(xv_get(menu, MENU_CLIENT_DATA));
+  can_info = wininfo.canvases[active_window];
+  ap = can_info->active_plot;
+
+  if(can_info->active_plot == -1)
+  {
+      sprintf(msg, "There is no plot in this window.\n");
+      print_msg(msg);
+      return;
+  }
+
+  set_zoom(); 
+}
+
+
+void zoom_clr_all_plots_proc(menu, item)
+     Menu menu;
+     Menu_item item;
+{ 
+  CLEAR_FLAG = 1;
+  zoom_plot_proc(menu,item);
+}
+
+
+void zoom_get_pt(xloc, yloc, p)
      int xloc, yloc, p;
 {
   float xval, yval;
@@ -405,9 +411,8 @@ zoom_get_pt(xloc, yloc, p)
 }
 
 
-zoom()
+void zoom()
 {
-  int row_num;
   canvasinfo *can_info;
   plotarray *data;
   int begin, end;
@@ -452,7 +457,7 @@ print_msg(msg);
 
    
  
-print_xy(xloc, yloc)
+void print_xy(xloc, yloc)
      int xloc, yloc;
 {
   canvasinfo *can_info;
@@ -478,7 +483,7 @@ print_xy(xloc, yloc)
   xval = (xloc - can_info->start_x)/data->scale_x + data->xmin;
   yval = (can_info->start_y - yloc)/data->scale_y + data->ymin;
   
-  sprintf(rowstring, "");
+  rowstring[0] = '\0';
   xv_set(xv_get(canvas, XV_KEY_DATA, CAN_ROW), 
 	 PANEL_LABEL_STRING, rowstring, NULL);
   
@@ -497,7 +502,7 @@ print_xy(xloc, yloc)
 }
 
 
-print_xyrow(xloc, yloc, draw_string)
+void print_xyrow(xloc, yloc, draw_string)
      int xloc, yloc, draw_string;
 {
   canvasinfo *can_info;
@@ -560,7 +565,7 @@ print_xyrow(xloc, yloc, draw_string)
 /*
 print the x and y coord on the info panel and msg window
 
-draw_xy(xloc, yloc)
+void draw_xy(xloc, yloc)
      int xloc, yloc;
 {
   canvasinfo *can_info;
@@ -609,10 +614,9 @@ int get_row_number(nrow, x1, y1)
      int nrow;
      float x1, y1;
 {
-  int   ii, j, stop;
+  int   ii, j;
   int	*list;
   float	xmax,xmin,ymax,ymin;
-  float	dist1, dist2;
   double min_dist, dist;
   canvasinfo *can_info;
   plotarray *data;
@@ -624,7 +628,7 @@ int get_row_number(nrow, x1, y1)
   {
       sprintf(msg, "There is no plot in this window.\n");
       print_msg(msg);
-      return;
+      return -1;
   }
   data = can_info->plots[can_info->active_plot];
   
@@ -676,7 +680,7 @@ int get_row_number(nrow, x1, y1)
 
 
 
-draw_xhair(xval, yval)
+void draw_xhair(xval, yval)
      float xval, yval;
 {
   canvasinfo *can_info;
@@ -704,12 +708,12 @@ draw_xhair(xval, yval)
   xloc = (xval-xmin)*scale_x;
   yloc = (yval-ymin)*scale_y;
   
-  XDrawLine(xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctitle, 
+  XDrawLine((Display *)xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctitle, 
 	    (start_x + xloc - 5),
 	    (start_y - yloc),
 	    (start_x + xloc + 5),
 	    (start_y - yloc));
-  XDrawLine(xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctitle, 
+  XDrawLine((Display *)xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctitle, 
 	    start_x + xloc,
 	    start_y - yloc - 5,
 	    start_x + xloc,
@@ -717,29 +721,28 @@ draw_xhair(xval, yval)
 
 }
 
-draw_crosshair(xloc, yloc)
+void draw_crosshair(xloc, yloc)
      int xloc, yloc;
 {
   canvasinfo *can_info;
 
   can_info = wininfo.canvases[active_window];
   
-  XDrawLine(xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctitle, 
+  XDrawLine((Display *)xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctitle, 
 	    xloc-5, yloc, 
 	    xloc+5, yloc);
   
-  XDrawLine(xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctitle, 
+  XDrawLine((Display *)xv_get(can_info->canvas, XV_DISPLAY), can_info->win, gctitle, 
 	    xloc, yloc-5,
 	    xloc, yloc+5);
   
 }
 
-int clr_ap(void)
+void clr_ap()
 {
   
 canvasinfo *can_info;
   int i;
-  int can_num;
   
   can_info = wininfo.canvases[active_window];
 
@@ -760,7 +763,6 @@ canvasinfo *can_info;
   clear_canvas_proc(can_info->canvas);
   display_active_window(active_window+1);
   display_active_plot(-1);
-  return 0;
 }
 
 /*void zoom_clr_plots_notify_proc(item, event)
