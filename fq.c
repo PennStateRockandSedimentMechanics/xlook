@@ -8,15 +8,15 @@
 extern char msg[MSG_LENGTH];
 
 
-
-rate_state_mod(disp_col, vstep_row, vstep_end, mod_disp_col, mod_mu_col, k, sig_n, muo, muf, vo, vf, A, B1, B2, dc1, dc2)
+/* This function is currently not being used. -- WAC 3 May 2006 */
+int rate_state_mod(disp_col, vstep_row, vstep_end, mod_disp_col, mod_mu_col, k, sig_n, muo, muf, vo, vf, A, B1, B2, dc1, dc2)
      int	disp_col, vstep_row, vstep_end, mod_disp_col, mod_mu_col;
      double	k, sig_n, muo, muf, vo, vf, A, B1, B2, dc1, dc2;
 {
-  int	i,j,n_data,end, init_pts, init_write_pt;
+  int	i,j, init_pts, init_write_pt;
   /* int	isnan(); */
-  double	psi1, psi2, h, H, K, K1, K2, K3, K4, L;
-  double	x, x_inc, fin_disp_inc, init_disp_inc, init_disp, mu, v;
+  double	psi1, psi2, h, H, K1, K2, K3, K4;
+  double	x, x_inc, fin_disp_inc, mu, v;
   double  M1, M2, M3, M4, Vo_dc1, Vo_dc2, w_psi1, w_mu, time, alpha;
   double	J1, J2, J3, J4, w_psi2;
   double  wmu_muf_on_A, B1_on_A, B2_on_A, omB1_on_A, omB2_on_A, K_s_vf;
@@ -149,7 +149,7 @@ rate_state_mod(disp_col, vstep_row, vstep_end, mod_disp_col, mod_mu_col, k, sig_
   
   sprintf(msg, "%d points written before the vel. step and %d points written after.\n", (vstep_row > 100) ? 100 : vstep_row, i-vstep_row-1); 	
   print_msg(msg);
-  
+  return 0;
 }
 /*********************************************************************/
 
@@ -166,7 +166,7 @@ double simp_rate_state_mod()
   int	i, j, k, total_added_pts, row_num, calc_bombed = 0;
   /* int	isnan(); */
   double	*disp_ptr, *mu_ptr, *model_mu_ptr;
-  double	psi1, psi2, h, H, K, K1, K2, K3, K4;
+  double	psi1, psi2, h, H, K1, K2, K3, K4;
   double	close, not_close, mu, v, x;
   double  M1, M2, M3, M4, Vo_dc1, Vo_dc2, w_psi1, w_mu, alpha;
   double	J1, J2, J3, J4, w_psi2;
