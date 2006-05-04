@@ -160,7 +160,7 @@ int stdasc(pfile, cr, fi)
      FILE *pfile ;
      char cr[20], fi[20];
 {
-  int i , j , temp_int;
+  int i , j;
   char headline[20];
   float samp;
   float tmax, tmin;
@@ -289,7 +289,6 @@ int tasc(pfile, float_flag)
     
   int i , j , temp_int , rec , chan;
   char junk ;
-  float xtra[5] ;
   char  end_head[5] , title[20];
   /* char *strcat() , *strcmp() ;*/
   float temp_float;
