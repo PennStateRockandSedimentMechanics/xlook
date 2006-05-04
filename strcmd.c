@@ -9,7 +9,7 @@ extern char msg[MSG_LENGTH];
 
 
 
-nocom(str)
+void nocom(str)
      char *str;
 {
   int n=0;
@@ -33,8 +33,7 @@ int getcol(str, num)
      char *str;
      int num;
 {
-  int i=0, n=0, a=0;
-  int stop = 0;
+  int i=0;
   int colnum;
   char temp_string[256];
   char buf[8];
@@ -98,7 +97,7 @@ char * strip(str, num)
 
 /* splits a string into two at a location specified by num. after num words, puts a '\0' into the input string and sends the rest of the string to command line. this procedure modifies the input string! */ 
 
-stripper(str, num)
+void stripper(str, num)
      char *str;
      int num;
 {

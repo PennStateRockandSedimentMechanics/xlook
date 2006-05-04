@@ -12,7 +12,7 @@ AC_PROG_MAKE_SET
 
 AC_LANG_C
 
-CFLAGS="-I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED"
+CFLAGS="-Wall -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED"
 CPPFLAGS="-I/usr/openwin/include"
 LDFLAGS="-L/usr/openwin/lib -L/usr/X11R6/lib"
 
