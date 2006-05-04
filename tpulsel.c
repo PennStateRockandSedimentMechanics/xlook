@@ -17,8 +17,8 @@ double perm,sstor,length,vol,time;
 	double root();
 	double ezhead, truehead, diffuse, cond, area;
 	double rhog, visc, rt[200];
-	double inc,accur,rootsq,num,denom,node,beta,por,limit,req,alpha;
-	int i,nroots,j,k,l;
+	double inc,accur,rootsq,num,denom,node,beta,por,limit;
+	int i,nroots;
 	double ehch;
 
 	nroots = 50;
@@ -58,8 +58,8 @@ double perm,sstor,length,vol,time,beta,visc;
 	double root();
 	double ezhead, truehead, diffuse, cond, area;
 	double rhog, rt[200];
-	double inc,accur,rootsq,num,denom,node,por,limit,req,alpha;
-	int i,nroots,j,k,l;
+	double inc,accur,rootsq,num,denom,node,por,limit;
+	int i,nroots;
 	double ehch;
 
 	nroots = 50;
