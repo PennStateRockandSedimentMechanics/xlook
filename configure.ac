@@ -23,7 +23,6 @@ AC_CHECK_LIB(X11,XDrawLine,,[AC_MSG_ERROR([couldn't find X11 libraries.])])
 AC_CHECK_LIB(m,floor,,[AC_MSG_ERROR([couldn't find m library.])])
 
 # Check for headers.
-AC_CHECK_HEADERS(errno.h)
 AC_CHECK_HEADERS(xview/xview.h,,
                 [AC_MSG_ERROR([couldn't find xview header files. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])])
 

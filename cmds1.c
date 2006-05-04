@@ -8,9 +8,6 @@
 #include <xview/xv_xrect.h>
 #include <xview/panel.h>
 #include <xview/xview.h>
-#ifdef HAVE_ERRNO_H
-# include <errno.h>
-#endif
 
 char pathname[10][80];
 char default_path[80];
@@ -22,7 +19,7 @@ char headline[32];
 FILE *data, *fopen(), *new;
 int reed();
 
-int doit_des, doit_f_open, meta_fd, errno;
+int doit_des, doit_f_open, meta_fd;
 int plot_error;
 int read_flag = 0; 
 int qi_flag = 0;
