@@ -24,134 +24,11 @@ extern Frame main_frame;
 
 
 
-void redraw_proc(canvas, paint_window, dpy, win, area)
-     Canvas canvas;
-     Xv_Window paint_window;
-     Display *dpy;
-     Window win;
-     Xv_xrectlist *area;
-{
-  int 	i, j;
-  float x1, x2, y1, y2;
-  canvasinfo *can_info;
-  int plot, plots;
-  plotarray *data;
-  float xmax, xmin, ymax, ymin;
-  int start_xaxis, start_yaxis, end_xaxis, end_yaxis;
-  int start_x, start_y, end_x, end_y;
-  float scale_x, scale_y;
-  char rows_string[64];    
-
-  if(active_window == -1 || total_windows == -1)
-	return;
-
-  can_info = wininfo.canvases[active_window];
-  plot = can_info->active_plot;
-  plots = can_info->total_plots;
-
-  if(plots == 0) 			/*window's been cleared, no plots*/
-  {
-  	sprintf(rows_string, "PLOT ROWS:  ");
-  	xv_set(xv_get(canvas, XV_KEY_DATA, CAN_PLOT_ROWS), PANEL_LABEL_STRING, rows_string, NULL);
-  	return;
-  }
-  display_active_plot(plot+1);
-    
-  data = can_info->plots[plot];
-
-                          /*display row numbers for active plot*/
-  sprintf(rows_string, "PLOT ROWS: %d to %d", data->begin, data->end);
-  xv_set(xv_get(canvas, XV_KEY_DATA, CAN_PLOT_ROWS), PANEL_LABEL_STRING, rows_string, NULL);
-  
-  xmin = data->xmin;
-  ymin = data->ymin;
-  xmax = data->xmax;
-  ymax = data->ymax;
-
-  start_x = can_info->start_x;
-  end_x = can_info->end_x;
-  start_y = can_info->start_y;
-  end_y = can_info->end_y;
-  
-  scale_x = (float)(end_x - start_x)/(xmax - xmin);
-  scale_y = (float)(start_y - end_y)/(ymax - ymin);
-  
-  data->scale_x = scale_x;
-  data->scale_y = scale_y;
-
-  /* print the labels */
-  if (data->label_type)
-    label_type1();
-  else
-    label_type0();
-  
-
-  /* plot each point  */
-  if (can_info->point_plot == 1)
-    {
-      /* plot the individual points */
-    
-      for (i=0; i < data->nrows_x -1; i++)
-	{
-	  x1 = data->xarray[i] - xmin;
-	  y1 = data->yarray[i] - ymin;
-	  	  
-	  XDrawPoint(dpy, win, gctitle, 
-		     start_x + (int)(x1*scale_x),
-		     start_y - (int)(y1*scale_y));
-	}
-    }
-  else
-    {
-      /* connect the points */
-      
-      for (i=0; i < data->nrows_x -1; i++)
-	{
-	  x1 = data->xarray[i] - xmin;
-	  x2 = data->xarray[i+1] - xmin;
-	  y1 = data->yarray[i] - ymin;
-	  y2 = data->yarray[i+1] - ymin;
-	  
-	  XDrawLine(dpy, win, gctitle, 
-		    start_x + (int)(x1*scale_x),
-		    start_y - (int)(y1*scale_y),
-		    start_x + (int)(x2*scale_x),
-		    start_y - (int)(y2*scale_y));
-	}
-    }
-				/*set footer info. This should be redundant since it only gets set or changed from the panel buttons  --do anyway just to be safe...*/
-   switch(can_info->plots[plot]->mouse)
-   {
-    case 0:
-      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
-             FRAME_LEFT_FOOTER, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position", NULL);
-      break;
-    case 1:
-      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
-             FRAME_LEFT_FOOTER, "Draw Line Mode: left button picks 1st point, middle picks 2nd, right button quits mode", NULL);
-      break;
-    case 2:
-      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
-             FRAME_LEFT_FOOTER, "Vertical Line Mode: left & middle buttons draw vertical line, right button quits mode", NULL);
-      break;
-    case 3:
-      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
-             FRAME_LEFT_FOOTER, "Distance Mode: left button picks 1st point, middle picks 2nd, right button quits mode", NULL);
-      break;
-    case 4:
-      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
-             FRAME_LEFT_FOOTER, "Zoom Mode: left button picks 1st point, middle picks 2nd, right button commits zoom", NULL);
-      break;
-   }
-}
-
-
-
 /* cjm, 3/19/96: I think "label_type" refers to the way ticks and tick spacing is done*/
-label_type0()
+void label_type0()
 {
   canvasinfo *can_info;
-  int plot, plots;
+  int plot;
   plotarray *data;
   int tickx, ticky;
   double ten = 10.000;
@@ -317,12 +194,12 @@ label_type0()
 }
 
 
-label_type1()
+void label_type1()
 {
   Display *dpy;
   Window win;
   canvasinfo *can_info;
-  int plot, plots;
+  int plot;
   plotarray *data;
   double ten = 10.000;
   char string[256];
@@ -334,8 +211,6 @@ label_type1()
   int a;
   float big_tickx, big_ticky;
   int tickx, ticky;
-  int 	i, j;
-  int labelx, labely;
   double diffx, diffy;
   double decx, decy;
   float stop_xmin, stop_xmax, stop_ymin, stop_ymax;
@@ -545,7 +420,129 @@ label_type1()
 
  
 
-clear_canvas_proc(canvas)
+void redraw_proc(canvas, paint_window, dpy, win, area)
+     Canvas canvas;
+     Xv_Window paint_window;
+     Display *dpy;
+     Window win;
+     Xv_xrectlist *area;
+{
+  int i;
+  float x1, x2, y1, y2;
+  canvasinfo *can_info;
+  int plot, plots;
+  plotarray *data;
+  float xmax, xmin, ymax, ymin;
+  int start_x, start_y, end_x, end_y;
+  float scale_x, scale_y;
+  char rows_string[64];    
+
+  if(active_window == -1 || total_windows == -1)
+	return;
+
+  can_info = wininfo.canvases[active_window];
+  plot = can_info->active_plot;
+  plots = can_info->total_plots;
+
+  if(plots == 0) 			/*window's been cleared, no plots*/
+  {
+  	sprintf(rows_string, "PLOT ROWS:  ");
+  	xv_set(xv_get(canvas, XV_KEY_DATA, CAN_PLOT_ROWS), PANEL_LABEL_STRING, rows_string, NULL);
+  	return;
+  }
+  display_active_plot(plot+1);
+    
+  data = can_info->plots[plot];
+
+                          /*display row numbers for active plot*/
+  sprintf(rows_string, "PLOT ROWS: %d to %d", data->begin, data->end);
+  xv_set(xv_get(canvas, XV_KEY_DATA, CAN_PLOT_ROWS), PANEL_LABEL_STRING, rows_string, NULL);
+  
+  xmin = data->xmin;
+  ymin = data->ymin;
+  xmax = data->xmax;
+  ymax = data->ymax;
+
+  start_x = can_info->start_x;
+  end_x = can_info->end_x;
+  start_y = can_info->start_y;
+  end_y = can_info->end_y;
+  
+  scale_x = (float)(end_x - start_x)/(xmax - xmin);
+  scale_y = (float)(start_y - end_y)/(ymax - ymin);
+  
+  data->scale_x = scale_x;
+  data->scale_y = scale_y;
+
+  /* print the labels */
+  if (data->label_type)
+    label_type1();
+  else
+    label_type0();
+  
+
+  /* plot each point  */
+  if (can_info->point_plot == 1)
+    {
+      /* plot the individual points */
+    
+      for (i=0; i < data->nrows_x -1; i++)
+	{
+	  x1 = data->xarray[i] - xmin;
+	  y1 = data->yarray[i] - ymin;
+	  	  
+	  XDrawPoint(dpy, win, gctitle, 
+		     start_x + (int)(x1*scale_x),
+		     start_y - (int)(y1*scale_y));
+	}
+    }
+  else
+    {
+      /* connect the points */
+      
+      for (i=0; i < data->nrows_x -1; i++)
+	{
+	  x1 = data->xarray[i] - xmin;
+	  x2 = data->xarray[i+1] - xmin;
+	  y1 = data->yarray[i] - ymin;
+	  y2 = data->yarray[i+1] - ymin;
+	  
+	  XDrawLine(dpy, win, gctitle, 
+		    start_x + (int)(x1*scale_x),
+		    start_y - (int)(y1*scale_y),
+		    start_x + (int)(x2*scale_x),
+		    start_y - (int)(y2*scale_y));
+	}
+    }
+				/*set footer info. This should be redundant since it only gets set or changed from the panel buttons  --do anyway just to be safe...*/
+   switch(can_info->plots[plot]->mouse)
+   {
+    case 0:
+      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
+             FRAME_LEFT_FOOTER, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position", NULL);
+      break;
+    case 1:
+      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
+             FRAME_LEFT_FOOTER, "Draw Line Mode: left button picks 1st point, middle picks 2nd, right button quits mode", NULL);
+      break;
+    case 2:
+      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
+             FRAME_LEFT_FOOTER, "Vertical Line Mode: left & middle buttons draw vertical line, right button quits mode", NULL);
+      break;
+    case 3:
+      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
+             FRAME_LEFT_FOOTER, "Distance Mode: left button picks 1st point, middle picks 2nd, right button quits mode", NULL);
+      break;
+    case 4:
+      xv_set(xv_get(canvas, XV_KEY_DATA, GRAF_FRAME),
+             FRAME_LEFT_FOOTER, "Zoom Mode: left button picks 1st point, middle picks 2nd, right button commits zoom", NULL);
+      break;
+   }
+}
+
+
+
+void clear_canvas_proc(canvas)
      Canvas canvas;
 {
   Display *dpy;
