@@ -1055,7 +1055,7 @@ initialize(argc, argv)
   
   plot_error = -1;
   
-  max_col = 12;			/*start with 12, 17 is MAX limit*/
+  max_col = 17;			/*start with 17, which is MAX limit*/
   max_row = 10000;
   for (i = 0; i < max_col; ++i)
     darray[i] = (float *)malloc((unsigned)(max_row*sizeof(float)));
