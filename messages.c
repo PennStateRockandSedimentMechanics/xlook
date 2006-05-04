@@ -24,9 +24,14 @@ extern int textsw_memory_limit;
 extern int textsw_saves;
 
 
+void print_msg(char *);
+void set_cmd_prompt(char []);
+void set_left_footer(char []);
+void print_info(void);
 
 
-top()
+
+void top()
 {
   /* default prompt */
 
@@ -45,7 +50,7 @@ top()
 }
 
 
-name_col(colnum)
+void name_col(colnum)
      int colnum;
 {
   /* prompt for the name and unit (for naming) */
@@ -57,7 +62,7 @@ name_col(colnum)
 
 /*print_fileinfo(txt)
      char txt[MSG_LENGTH];*/
-print_fileinfo(txt)
+void print_fileinfo(txt)
 char *txt;
 {
   /* prints the current data states in info window */
@@ -70,7 +75,7 @@ char *txt;
 
 
   			/* prints a message in the message subwindow */
-print_msg(txt)
+void print_msg(txt)
      char *txt;
 {
   int len;
@@ -112,21 +117,21 @@ print_msg(txt)
 }
 
       
-set_cmd_prompt(txt)
+void set_cmd_prompt(txt)
      char txt[256];
 {
   xv_set(cmd_panel_item, PANEL_LABEL_STRING, txt, NULL);
 }
 
 
-set_left_footer(txt)
+void set_left_footer(txt)
      char txt[256];
 {
   xv_set(main_frame, FRAME_LEFT_FOOTER, txt, NULL);
 }
 
 
-display_active_window(aw)
+void display_active_window(aw)
      int aw;
 {
   char string[20];
@@ -138,7 +143,7 @@ display_active_window(aw)
 }
 
 
-display_active_plot(ap)
+void display_active_plot(ap)
      int ap;
 {
   char string[20];
@@ -149,7 +154,7 @@ display_active_plot(ap)
   xv_set(active_plot_info, PANEL_LABEL_STRING, string, NULL);
 }
 
-display_active_file(af)
+void display_active_file(af)
      int af;
 {
   char string[50];
@@ -162,7 +167,7 @@ display_active_file(af)
 
 
 
-print_info()
+void print_info()
 {
   int i ;
   char tmp1[MSG_LENGTH];
@@ -229,35 +234,35 @@ print_info()
 
 /******************************* error messages **************************/
 
-nea()
+void nea()
 {
   global_error=TRUE;
   sprintf(msg, "Not enough arguments. Command aborted.\n");
   print_msg(msg);
 }
 
-ne()
+void ne()
 {
   global_error=TRUE;
   sprintf(msg, "Name Error! Aborted\n");
   print_msg(msg);
 }
 
-coe()
+void coe()
 {
   global_error=TRUE;
   sprintf(msg, "Error! Column not allocated. Use the \"all\" command. Note: you can use up to 17 columns.\n");
   print_msg(msg);
 }
 
-cre()
+void cre()
 {
   global_error=TRUE;
   sprintf(msg, "Error! Undefined row interval.\n");
   print_msg(msg);
 }
 
-outdated_cmd()
+void outdated_cmd()
 {
 
   global_error=TRUE;
