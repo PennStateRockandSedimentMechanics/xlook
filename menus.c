@@ -40,7 +40,6 @@ void clr_all_plots_proc(menu, menu_item)
 {
   canvasinfo *can_info;
   int i;
-  int can_num;
   
   can_info = wininfo.canvases[active_window];
 
@@ -80,7 +79,6 @@ void clr_plots_proc(menu, menu_item)
   int i;
   char labels[MAX_PLOTS][256];
   void clr_plots_done_proc(), clr_plots_cancel_proc();
-  int can_num;
   char msg_label[256];
    
   /*  can_num = xv_get(menu, MENU_CLIENT_DATA);
@@ -249,8 +247,6 @@ void clr_plots_done_proc(item, event)
 
   static char tmp_buf[20];
   int i,j, hole_index[MAX_PLOTS], n_holes; 
-  Canvas canvas;
-  Xv_Window canvas_xv_window;
   canvasinfo *can_info;
    
   can_info =  wininfo.canvases[active_window];  
@@ -408,7 +404,7 @@ void create_act_plot_menu_proc(item, event)
 		  head.ch[can_info->plots[i]->col_x].name, 
 		  head.ch[can_info->plots[i]->col_y].name);
 
-	  mi = (Menu_item)xv_create(NULL, MENUITEM,
+	  mi = (Menu_item)xv_create(XV_NULL, MENUITEM,
 				    MENU_STRING, plabel[i], 
 				    MENU_NOTIFY_PROC, get_act_item_proc,
 				    MENU_RELEASE,
@@ -448,8 +444,6 @@ int *intar2;
 {
   static char cbuf[20];
   int i,j, hole_index[MAX_PLOTS], n_holes; 
-  Canvas canvas;
-  Xv_Window canvas_xv_window;
   canvasinfo *can_info;
    
   can_info =  wininfo.canvases[active_window];  
