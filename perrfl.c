@@ -7,12 +7,11 @@ void perrf(Kamp,Kph,lgth,Vol,Per,pGperm,pGdif,psstor)
 double Kamp,Kph,lgth,Vol,Per,*pGperm,*pGdif,*psstor;
 {
 
-	static int i;
 	static double cond, area, omega, perm, diffuse;
-	static double lper,beta,por;
-	static double phi, amp, kay, rhog, visc;
+	static double beta;
+	static double kay, rhog, visc;
 	static double alpha, gamma, lambda;
-	static double Ag, Pg, Dalp, Dgam, this, last, Num, Dom;
+	static double Ag, Pg, Dalp, Dgam, Num, Dom;
 	static double sdg, efpor;
 	static double Gperm, Gdif, sstor;
 
