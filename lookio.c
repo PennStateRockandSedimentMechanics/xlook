@@ -38,7 +38,6 @@ void aschead_scrn(ph)
   struct header h ;
   int i ;
   char eoh[5] ;
-  char tmp_msg[256];
   
   h = *ph;
   sprintf(msg,"%s\n",h.title) ;
@@ -74,7 +73,6 @@ int getaschead(ph,file)
 {
   struct header h ;
   int i ;
-  int j ;
   char title[20] , eoh[5];
   int rec , chan ;
    
@@ -110,7 +108,7 @@ int getaschead(ph,file)
       return 1 ;
     }
   
-  sprintf(stderr,"Header not accepted.\n");
+  fprintf(stderr,"Header not accepted.\n");
   print_msg(msg);
   return 0 ;
 }
