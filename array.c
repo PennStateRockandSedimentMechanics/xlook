@@ -229,7 +229,7 @@ int first, last;
         n_data = last-first;
         orb = row = first;
 
-        disp = (float *) malloc(n_data*sizeof(float));   /* in case they chose s
+        disp = (float *) malloc(n_data*sizeof(float));   /* in case they chose s */
         /*disp = (float *) calloc(n_data,sizeof(float));  */ 
 
         for(i=first; i<=last;++i)
@@ -257,7 +257,6 @@ float L, h_h;
 {
  
   int i; 
-  double del_h = 0;
  
  
         /* calculate geometric thinning during direct shear test for */   
