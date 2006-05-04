@@ -24,7 +24,56 @@ short canvas0_image[] = {
 Server_image c0image;
 Icon cstate;
 
-create_canvas()
+
+
+
+void setup_canvas()
+{
+  canvasinfo *can_info;
+  Canvas canvas;
+  int start_xaxis, start_yaxis, end_xaxis, end_yaxis;
+  int canvas_width, canvas_height;
+  int start_x, start_y, end_x, end_y;
+  
+  can_info = wininfo.canvases[active_window];
+  canvas = can_info->canvas;
+  
+  canvas_width = (int) xv_get(canvas, XV_WIDTH);
+  canvas_height = (int) xv_get(canvas, XV_HEIGHT);
+  
+  /* xaxis is from 0.15 to 0.85 canvas width */
+  start_xaxis = (int)canvas_width*0.15;
+  end_xaxis = canvas_width - (int)canvas_width*0.15;
+
+/* yaxis is from 0.2 to 0.9 canvas height; 
+     make room for title at the top (4 lines),
+     make room for xaxis labels at the bottom (4 lines)
+     and also 2 pixels of space between lines */
+  start_yaxis = canvas_height - 5*tickfontheight - 10;
+  end_yaxis = titlefontheight*4 + 10; 
+
+  /* plotting area */
+  start_x = start_xaxis + canvas_width/20;
+  end_x = end_xaxis - canvas_width/20; 
+  
+  /* plotting area */
+  start_y = start_yaxis - canvas_height/20; 
+  end_y = end_yaxis;
+    
+  can_info->start_x = start_x;
+  can_info->end_x = end_x;
+  can_info->start_y = start_y;
+  can_info->end_y = end_y;
+  can_info->start_xaxis = start_xaxis;
+  can_info->end_xaxis = end_xaxis;
+  can_info->start_yaxis = start_yaxis;
+  can_info->end_yaxis = end_yaxis;
+  can_info->point_plot = 0;
+  
+}
+
+
+void create_canvas()
 {
   Frame graf_frame;
   Canvas canvas;
@@ -81,7 +130,7 @@ create_canvas()
 
   canvas_menu_panel = (Panel)xv_create(graf_frame, PANEL, XV_HEIGHT, 55, NULL);
   
-  act_plot_menu = (Menu) xv_create(NULL, MENU,
+  act_plot_menu = (Menu) xv_create(XV_NULL, MENU,
 				   NULL);
   
   (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
@@ -91,7 +140,7 @@ create_canvas()
 		   PANEL_CLIENT_DATA, win_num,
 		   NULL);
 
-  clr_plot_menu = (Menu) xv_create(NULL, MENU,
+  clr_plot_menu = (Menu) xv_create(XV_NULL, MENU,
 				   MENU_GEN_PIN_WINDOW, 
 				   graf_frame, "Clear Plots", 
 				   MENU_CLIENT_DATA, win_num,
@@ -114,7 +163,7 @@ create_canvas()
 		   PANEL_CLIENT_DATA, win_num,
 		   NULL);
 
-  zoom_menu     = (Menu) xv_create(NULL, MENU, MENU_GEN_PIN_WINDOW, 
+  zoom_menu     = (Menu) xv_create(XV_NULL, MENU, MENU_GEN_PIN_WINDOW, 
 				   main_frame, "Zoom", 
 				   MENU_CLIENT_DATA, win_num,
 				   MENU_ACTION_ITEM, 
@@ -129,7 +178,7 @@ create_canvas()
 		   NULL);			   
 		   /*PANEL_NOTIFY_PROC, zoom_clr_plots_notify_proc,*/
   
-  mouse_menu = (Menu) xv_create(NULL, MENU,
+  mouse_menu = (Menu) xv_create(XV_NULL, MENU,
 				MENU_GEN_PIN_WINDOW, 
 				main_frame, "Mouse", 
 				MENU_CLIENT_DATA, win_num,
@@ -255,7 +304,7 @@ create_canvas()
 }
 
 
-get_new_window_num()
+int get_new_window_num()
 {
   int i;
   
@@ -269,50 +318,3 @@ get_new_window_num()
   
 }
 
-
-
-
-setup_canvas()
-{
-  canvasinfo *can_info;
-  Canvas canvas;
-  int start_xaxis, start_yaxis, end_xaxis, end_yaxis;
-  int canvas_width, canvas_height;
-  int start_x, start_y, end_x, end_y;
-  
-  can_info = wininfo.canvases[active_window];
-  canvas = can_info->canvas;
-  
-  canvas_width = (int) xv_get(canvas, XV_WIDTH);
-  canvas_height = (int) xv_get(canvas, XV_HEIGHT);
-  
-  /* xaxis is from 0.15 to 0.85 canvas width */
-  start_xaxis = (int)canvas_width*0.15;
-  end_xaxis = canvas_width - (int)canvas_width*0.15;
-
-/* yaxis is from 0.2 to 0.9 canvas height; 
-     make room for title at the top (4 lines),
-     make room for xaxis labels at the bottom (4 lines)
-     and also 2 pixels of space between lines */
-  start_yaxis = canvas_height - 5*tickfontheight - 10;
-  end_yaxis = titlefontheight*4 + 10; 
-
-  /* plotting area */
-  start_x = start_xaxis + canvas_width/20;
-  end_x = end_xaxis - canvas_width/20; 
-  
-  /* plotting area */
-  start_y = start_yaxis - canvas_height/20; 
-  end_y = end_yaxis;
-    
-  can_info->start_x = start_x;
-  can_info->end_x = end_x;
-  can_info->start_y = start_y;
-  can_info->end_y = end_y;
-  can_info->start_xaxis = start_xaxis;
-  can_info->end_xaxis = end_xaxis;
-  can_info->start_yaxis = start_yaxis;
-  can_info->end_yaxis = end_yaxis;
-  can_info->point_plot = 0;
-  
-}
