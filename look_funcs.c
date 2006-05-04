@@ -221,7 +221,7 @@ int check_col(col)
 
 
 /*------------------------------------------------------------------------*/
-act_col()
+int act_col()
 {
   int numb=0 ;
   int i ;
@@ -234,7 +234,7 @@ act_col()
 
 
 /*------------------------------------------------------------------------*/
-review(file)
+void review(file)
      FILE *file ;
 {
   int i ;
@@ -277,7 +277,7 @@ review(file)
 
 
 /* -------------------------------------------------------------------------*/
-vision(file,firstrow,lastrow,firstcol,lastcol)
+void vision(file,firstrow,lastrow,firstcol,lastcol)
      int *firstrow , *lastrow , *firstcol , *lastcol ;
      FILE *file ;
 {
@@ -298,7 +298,7 @@ vision(file,firstrow,lastrow,firstcol,lastcol)
 }
 
 /* ------------------------------------------------------------------------*/
-msg_vision(firstrow,lastrow,firstcol,lastcol)
+void msg_vision(firstrow,lastrow,firstcol,lastcol)
      int *firstrow , *lastrow , *firstcol , *lastcol ;
 {
   int i , j ;
@@ -322,7 +322,7 @@ msg_vision(firstrow,lastrow,firstcol,lastcol)
 
 
 /* -------------------------------------------------------------------------*/
-p_vision(file,firstrow,lastrow,firstcol,lastcol)
+void p_vision(file,firstrow,lastrow,firstcol,lastcol)
      int *firstrow , *lastrow , *firstcol , *lastcol ;
      FILE *file ;
 {
@@ -341,7 +341,7 @@ p_vision(file,firstrow,lastrow,firstcol,lastcol)
 }
 
 /* ------------------------------------------------------------------------*/
-msg_p_vision(firstrow,lastrow,firstcol,lastcol)
+void msg_p_vision(firstrow,lastrow,firstcol,lastcol)
      int *firstrow , *lastrow , *firstcol , *lastcol ;
 {
   int i , j ;
@@ -349,7 +349,6 @@ msg_p_vision(firstrow,lastrow,firstcol,lastcol)
 
   for ( i = *firstrow; i <= *lastrow ; ++i)
     {
-      sprintf(msg, "");
       for ( j = *firstcol; j <= *lastcol; ++j)
 	{
 	  if(strncmp(&(head.ch[j].name[0]),"no_val",5) != 0)
