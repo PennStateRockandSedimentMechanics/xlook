@@ -62,8 +62,15 @@ GC gcrubber;
 Xv_Cursor xhair_cursor;
 XColor fgc, bgc;
 
+/* function prototypes */
+void quit_xlook(void);
+void goto_plot1_proc(void);
+void goto_plot2_proc(void);
+void clr_all(void);
+void initialize(int argc, char *argv[]);
 
-main(argc, argv)
+
+int main(argc, argv)
      int argc;
      char *argv[];    
 {
@@ -79,7 +86,7 @@ main(argc, argv)
   Menu file_menu, window_menu, plot_cmd_menu;
   Colormap cmap;
   int i;
-  char *arg, *bgcolor="white", *fgcolor="black";
+  char *bgcolor="white", *fgcolor="black";
   void extern write_file_proc(), read_file_proc(), exit_file_proc();
   
    for (i=1; i<argc; i++)
@@ -394,7 +401,7 @@ state = (Icon) xv_create (XV_NULL, ICON,
 
 
 
-quit_xlook()
+void quit_xlook()
 {
   extern Frame clr_plots_frame;
 
@@ -488,8 +495,6 @@ void plot1_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
-  void goto_plot1_proc();
-  
   strcpy(plot_cmd, "plotall");
   goto_plot1_proc();
 }
@@ -498,8 +503,6 @@ void plot2_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
- void goto_plot1_proc();
-
  strcpy(plot_cmd, "plotover");
  goto_plot1_proc();
 }
@@ -508,8 +511,6 @@ void plot3_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
-  void goto_plot1_proc();
-
   strcpy(plot_cmd, "plotsr");
   goto_plot1_proc();
 }
@@ -518,8 +519,6 @@ void plot4_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
-  void goto_plot2_proc();
-
   strcpy(plot_cmd, "plotauto");
   goto_plot2_proc();
 }
@@ -528,8 +527,6 @@ void plot5_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
-  void goto_plot2_proc();
-
   strcpy(plot_cmd, "plotlog");
   goto_plot2_proc();
 }
@@ -538,8 +535,6 @@ void plot6_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
-  void goto_plot2_proc();
-
   strcpy(plot_cmd, "plotsame");
   goto_plot2_proc();
 }
@@ -548,8 +543,6 @@ void plot7_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
-  void goto_plot2_proc();
-
   strcpy(plot_cmd, "plotscale");
   goto_plot2_proc();
 }
@@ -558,8 +551,6 @@ void plot8_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
-  void goto_plot2_proc();
-
   strcpy(plot_cmd, "pa");
   goto_plot2_proc();
 }
@@ -689,7 +680,7 @@ void clear_win_proc(item, event)
      Event *event;
 {
   canvasinfo *can_info;
-  int can_num, i;
+  int can_num;
    
   can_num = xv_get(item, PANEL_CLIENT_DATA);
   set_active_window(can_num);
@@ -699,7 +690,7 @@ void clear_win_proc(item, event)
   clr_all();
 }
 
-clr_all()
+void clr_all()
 {
   canvasinfo *can_info;
   int i;
@@ -726,7 +717,7 @@ void refresh_win_proc(item, event)
      Event *event;
 {
   canvasinfo *can_info;
-  int can_num, i, active_plot;
+  int can_num, active_plot;
   Canvas canvas;
   
   can_num = xv_get(item, PANEL_CLIENT_DATA);
@@ -774,18 +765,11 @@ void canvas_event_proc(xvwindow, event)
      */
 
   int xloc, yloc;
-  float yval, xval;
-  int row_num, nrows;
-  char xstring[20], ystring[20], rowstring[20];
   Canvas canvas;
   int can_num;
   canvasinfo *can_info;
   plotarray *data;
   int active_plot;
-  int start_x, start_y, end_x, end_y;
-  float scale_x, scale_y;
-  float xmin, ymin;
-  int i;
   extern void do_line_plot(), do_mouse_mu(), do_dist();
    
   
@@ -1047,11 +1031,11 @@ void resize_proc(canvas, width, height)
 }
 
 
-initialize(argc, argv)
+void initialize(argc, argv)
      int argc;
      char *argv[];
 {
-  int i,j;
+  int i;
   
   plot_error = -1;
   
