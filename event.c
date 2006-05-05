@@ -78,7 +78,7 @@ void command_handler(input)
           	intar2[intar[i]-1]=1;
 	    else
 	    {
-		sprintf(msg, "Error, plot does not exist\n",i);
+		sprintf(msg, "Error, plot does not exist\n");
 		print_msg(msg);
 		top();
 		action = MAIN;
