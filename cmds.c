@@ -91,7 +91,7 @@ void do_sort(char arg[256]);
 void do_interpolate(char arg[256]);
 void do_math(char arg[256]);
 void do_mathint(char arg[256]);
-int math_final(int name_arg, int unit_arg);
+void math_final(int name_arg, int unit_arg);
 void do_r_spike(char arg[256]);
 void do_positive(char arg[256]);
 void do_compress(char arg[256]);
@@ -130,9 +130,9 @@ void do_tasc(char arg[256]);
 void do_head(char arg[256]);
 void do_getaschead(char arg[256]);
 void do_examin(char arg[256]);
-int print_rsm_help_info(void);
+void print_rsm_help_info(void);
 void do_rsm(char arg[256]);
-int print_cm_help_info(void);
+void print_cm_help_info(void);
 void do_cm(char arg[256]);
 void do_mem(char arg[256]);
 void do_median_smooth(char arg[256]);
@@ -1702,7 +1702,7 @@ void do_mathint(arg)
   math_final(name_arg, unit_arg);
 }
 
-math_final(name_arg, unit_arg)
+void math_final(name_arg, unit_arg)
 {  
   if(type == ':' && (head.ch[col1].nelem < head.ch[(int)val2].nelem) )
     {
@@ -3323,7 +3323,7 @@ void do_examin(arg)
 
 /********************************* rsm *********************************/
 
-print_rsm_help_info()
+void print_rsm_help_info()
 {
 /*   if(desire[(strlen((char *)desire)-1)] == 'h') */
 
@@ -3363,7 +3363,7 @@ void do_rsm(arg)
 
 
 /****************************** cm ********************************/
-print_cm_help_info()
+void print_cm_help_info()
 {
   sprintf(msg, "> This function computes the Dieterich-Ruina rate/state variable friction model.\n");
   print_msg(msg);
@@ -4465,7 +4465,6 @@ void do_simp_weight_l2(arg)
      char arg[256];
 {
   /*     int l, *temp_int; */
-  int 	i , j ;
 
   nocom(arg);
   
