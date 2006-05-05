@@ -64,7 +64,7 @@ char *junkp, *strtok();
 
 
 /*************************** running average slope calculation ************************/
-do_slope(arg)
+void do_slope(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -120,7 +120,7 @@ do_slope(arg)
 }
 
 /*************************** trig ************************/
-do_trig(arg)
+void do_trig(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -202,7 +202,7 @@ do_trig(arg)
 
 
 /*************************** rcph ************************/
-do_rcph(arg)
+void do_rcph(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -244,7 +244,7 @@ do_rcph(arg)
 
 
 /*************************** col_power ************************/
-do_col_power(arg)
+void do_col_power(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -284,7 +284,7 @@ do_col_power(arg)
 
 
 /*************************** power ************************/
-do_power(arg)
+void do_power(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -324,7 +324,7 @@ do_power(arg)
 }
 
 /*************************** recip ************************/
-do_recip(arg)
+void do_recip(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -363,7 +363,7 @@ do_recip(arg)
 }
 
 /*************************** log ************************/
-do_log(arg)
+void do_log(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -396,7 +396,7 @@ do_log(arg)
 }
 
 /*************************** explin ************************/
-do_ExpLin(arg)
+void do_ExpLin(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -437,7 +437,7 @@ do_ExpLin(arg)
 
 
 /*************************** poly4 ************************/
-do_Poly4(arg)
+void do_Poly4(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -479,7 +479,7 @@ do_Poly4(arg)
 
 
 /*************************** gensin ************************/
-do_gensin(arg)
+void do_gensin(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -521,7 +521,7 @@ do_gensin(arg)
 
 
 /*************************** genexp ************************/
-do_genexp(arg)
+void do_genexp(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -563,7 +563,7 @@ do_genexp(arg)
 
 
 /*************************** rclow ************************/
-do_rclow(arg)
+void do_rclow(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -605,7 +605,7 @@ do_rclow(arg)
 
 
 /*************************** scchisqr ************************/
-do_scchisqr(arg)
+void do_scchisqr(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -647,7 +647,7 @@ do_scchisqr(arg)
 
 
 /*************************** chisqr ************************/
-do_chisqr(arg)
+void do_chisqr(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -689,7 +689,7 @@ do_chisqr(arg)
 
 
 /*************************** normal ************************/
-do_normal(arg)
+void do_normal(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -731,7 +731,7 @@ do_normal(arg)
 
 
 /*************************** power2 ************************/
-do_Power2(arg)
+void do_Power2(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -773,7 +773,7 @@ do_Power2(arg)
 
 
 /*************************** power1 ************************/
-do_Power1(arg)
+void do_Power1(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -815,7 +815,7 @@ do_Power1(arg)
 
 
 /*************************** ln ************************/
-do_ln(arg)
+void do_ln(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -855,7 +855,7 @@ do_ln(arg)
 
 
 /*************************** exp ************************/
-do_exp(arg)
+void do_exp(arg)
      char arg[256];
 { 
   nocom(arg);
@@ -895,7 +895,7 @@ do_exp(arg)
 
 
 /***************************  deriv ************************/
-do_deriv(arg)
+void do_deriv(arg)
      char arg[256];
 { 
   /*finite difference derivative using central differences,
@@ -946,7 +946,7 @@ do_deriv(arg)
 
 
 /*************************** vc ************************/
-do_vc(arg)
+void do_vc(arg)
      char arg[256];
 { 
   /* corrrect porosity/volume strain (during loading/unloading) for the effect of confining pressure on the material at the edges of the layer.  User provides a compressibility (dv/V/dP) and volume which is appropriate to the "edge
@@ -1000,7 +1000,7 @@ affected by Pc during load/unload is an anular -elliptical area- of width = laye
 
 
 /*************************** rgt ************************/
-do_rgt(arg)
+void do_rgt(arg)
      char arg[256];
 { 
   /* correct horizontal displacement measurement during direct shear test for "geometric thinning" */
@@ -1050,7 +1050,7 @@ do_rgt(arg)
 
 
 /*************************** cgt ************************/
-do_cgt(arg)
+void do_cgt(arg)
      char arg[256];
 {
   /* calculate geometric thinning */
@@ -1092,7 +1092,7 @@ do_cgt(arg)
 
 
 /*************************** ec ************************/
-do_ec(arg)
+void do_ec(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1139,7 +1139,7 @@ do_ec(arg)
 
 
 /*************************** cs ************************/
-do_cs(arg)
+void do_cs(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1187,7 +1187,7 @@ do_cs(arg)
 
 
 /*************************** polyfit ************************/
-do_polyfit(arg)
+void do_polyfit(arg)
      char arg[256];
 {
   double *px, *py, *pw, *pjm1, *pj, *error, ortval();
@@ -1342,7 +1342,7 @@ do_polyfit(arg)
 
 
 /*************************** sort ************************/
-do_sort(arg)
+void do_sort(arg)
      char arg[256];
 {
   float ascend;
@@ -1417,7 +1417,7 @@ do_sort(arg)
 
 
 /*************************** interpolate ************************/
-do_interpolate(arg)
+void do_interpolate(arg)
      char arg[256];
 {
   char name_arg1[256], unit_arg1[256];
@@ -1526,7 +1526,7 @@ do_interpolate(arg)
 
 
 /*************************** math ************************/
-do_math(arg)
+void do_math(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1566,7 +1566,7 @@ do_math(arg)
   math_final(name_arg, unit_arg);
 }
 
-do_mathint(arg)
+void do_mathint(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1662,7 +1662,7 @@ math_final(name_arg, unit_arg)
 
 
 /*************************** r_spike ************************/
-do_r_spike(arg)
+void do_r_spike(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1700,7 +1700,7 @@ do_r_spike(arg)
 }
 
 /*************************** positive ************************/
-do_positive(arg)
+void do_positive(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1744,7 +1744,7 @@ do_positive(arg)
 
 
 /*************************** compress ************************/
-do_compress(arg)
+void do_compress(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1804,7 +1804,7 @@ do_compress(arg)
 /*************************** r_mean ************************/
 /* r_mean, z_min, z_max call sub() in array.c */
 
-do_r_mean(arg)
+void do_r_mean(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1849,7 +1849,7 @@ do_r_mean(arg)
 
 
 /*************************** z_min ************************/
-do_z_min(arg)
+void do_z_min(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1893,7 +1893,7 @@ do_z_min(arg)
 
 
 /*************************** z_max ************************/
-do_z_max(arg)
+void do_z_max(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1937,7 +1937,7 @@ do_z_max(arg)
 
 
 /*************************** trend ************************/
-do_trend(arg)
+void do_trend(arg)
      char arg[256];
 {
   nocom(arg);
@@ -1975,7 +1975,7 @@ do_trend(arg)
   do_final_trend();
 }
 
-do_trend_a(arg)
+void do_trend_a(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2004,7 +2004,7 @@ do_trend_a(arg)
 }
 
 
-do_final_trend()
+void do_final_trend()
 {
   line(&col1,&col2,&i,&j,trend);
   
@@ -2029,7 +2029,7 @@ do_final_trend()
 
 
 /*************************** r_trend ************************/
-do_r_trend_input(arg)
+void do_r_trend_input(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2057,7 +2057,7 @@ do_r_trend_input(arg)
 }
 
 
-do_r_trend_comp(arg)
+void do_r_trend_comp(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2095,7 +2095,7 @@ do_r_trend_comp(arg)
 }
  
 
-do_r_trend_final()
+void do_r_trend_final()
 {
   
   temp_col = 0 ;
@@ -2172,7 +2172,7 @@ do_r_trend_final()
 
 
 /*************************** findint ************************/
-do_findint(arg)
+void do_findint(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2223,7 +2223,7 @@ do_findint(arg)
 
 /*************************** summation ************************/
 /* calls summation() in array.c */
-do_summation(arg)
+void do_summation(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2263,7 +2263,7 @@ do_summation(arg)
 
 
 /************************** curv **************************/
-do_curv(arg)
+void do_curv(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2307,7 +2307,7 @@ do_curv(arg)
 
 
 /************************** peak ****************************/
-do_peak(arg)
+void do_peak(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2363,7 +2363,7 @@ do_peak(arg)
 
 
 /**************************** decimat **************************/
-do_decimat(arg)
+void do_decimat(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2420,7 +2420,7 @@ do_decimat(arg)
 
 
 /**************************** pdf *****************************/
-do_pdf(arg)
+void do_pdf(arg)
      char arg[256];
 {
   int max, min;
@@ -2451,7 +2451,7 @@ do_pdf(arg)
 }
 
 
-do_pdfauto(arg)
+void do_pdfauto(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2478,7 +2478,7 @@ do_pdfauto(arg)
   do_pdf2();
 }
 
-do_pdf1()
+void do_pdf1()
 {
   if(check_col(col_out) == 0) head.nchan += 1;
   if(check_col(col2) == 0) head.nchan += 1;
@@ -2493,7 +2493,7 @@ do_pdf1()
   head.ch[col2].nelem = k ;
 }
 
-do_pdf2()
+void do_pdf2()
 {
   for(j=0; j<k; ++j)	/*initialize and set up dependent axis*/
     {
@@ -2520,7 +2520,7 @@ do_pdf2()
 
 
 /**************************** r_row **************************/
-do_r_row_col(arg)
+void do_r_row_col(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2538,7 +2538,7 @@ do_r_row_col(arg)
   top();
 }
 
-do_r_row(arg)
+void do_r_row(arg)
      char arg[256];
 {
   nocom(arg);
@@ -2556,7 +2556,7 @@ do_r_row(arg)
   top();
 }
 
-do_r_row_final(l, col1, first, last)
+void do_r_row_final(l, col1, first, last)
      int l, col1, first, last;
 {
   j = first;
@@ -2615,7 +2615,7 @@ do_r_row_final(l, col1, first, last)
 
 
 /***************************** comment ***********************/
-do_comment(arg)
+void do_comment(arg)
      char arg[256];
 {
   char *com;
@@ -2665,7 +2665,7 @@ do_comment(arg)
 /**************************** name ****************************/
 /* calls name() in look_funcs.c */
 
-do_name(arg)
+void do_name(arg)
      char arg[256];    
 {
   
@@ -2697,7 +2697,7 @@ do_name(arg)
 
 /***************************** r_col ***************************/
 /* calls null_col() in  look_funcs.c */
-do_r_col(col)
+void do_r_col(col)
      int col;
 {
   if (col > max_col)
@@ -2718,7 +2718,7 @@ do_r_col(col)
 
 /****************************** zero **************************/
 /* calls zero() in  array.c  */
-do_zero_all(arg)
+void do_zero_all(arg)
      char arg[256];
 {
   int rec;
@@ -2749,7 +2749,7 @@ do_zero_all(arg)
   top();
 }
 
-do_zero(arg)
+void do_zero(arg)
      char arg[256];
 {
   int rec;
@@ -2783,7 +2783,7 @@ do_zero(arg)
 /******************************** offset_int **********************/
 /* calls offset_int() in array.c */
 
-do_offset_int(arg)
+void do_offset_int(arg)
      char arg[256];
 {
   int rec1, rec2;
@@ -2820,7 +2820,7 @@ do_offset_int(arg)
 /******************************** offset **************************/
 /* calls offset() in array.c */
 
-do_offset(arg)
+void do_offset(arg)
      char arg[256];
 {
   int rec1, rec2;
@@ -2856,13 +2856,13 @@ do_offset(arg)
 /******************************** simplex ***************************/
 /* calls simp_func() in simplexl.c */
 
-simplex_info()
+void simplex_info()
 {
   sprintf(msg,"A listing of functions can be found in /lamont/lamont/boitnott/LCO/Simp_functions\n");
     print_msg(msg);
 }
 
-do_simplex(arg)
+void do_simplex(arg)
      char arg[256];
 {
   int xcol, ycol;
@@ -3018,7 +3018,7 @@ do_simplex(arg)
 /****************************** stdasc *************************/
 /* calls stdasc() in filtersm.c */
 
-do_stdasc(arg)
+void do_stdasc(arg)
      char arg[256];
 {
   char fi[20], cr[20];
@@ -3062,7 +3062,7 @@ do_stdasc(arg)
 /********************************** tasc *******************************/
 /* calls tasc() in filtersm.c */
 
-do_tasc(arg)
+void do_tasc(arg)
      char arg[256];
 {
   char fi[20];
@@ -3112,7 +3112,7 @@ do_tasc(arg)
 /********************************* head ********************************/
 /* calls aschead_scrn() or aschead_file() in lookio.c */
 
-do_head(arg)
+void do_head(arg)
      char arg[256];
 {
   char new_file[256];   
@@ -3183,7 +3183,7 @@ do_head(arg)
 /***************************** getaschead ******************************/
 /* calls getaschead() in lookio.c */
 
-do_getaschead(arg)
+void do_getaschead(arg)
      char arg[256];
 {
   if ((data = fopen(arg, "r")) == NULL)
@@ -3205,7 +3205,7 @@ do_getaschead(arg)
 /*********************************** examin ****************************/
 /* calls examin() in filtersm.c */
 
-do_examin(arg)
+void do_examin(arg)
      char arg[256];
 {
   if ((data = fopen(arg, "r")) == NULL)
@@ -3256,7 +3256,7 @@ print_rsm_help_info()
 }
 
 
-do_rsm(arg)
+void do_rsm(arg)
      char arg[256];
 {
       outdated_cmd();
@@ -3297,7 +3297,7 @@ print_cm_help_info()
 }
 
 
-do_cm(arg)
+void do_cm(arg)
      char arg[256];
 {
   
@@ -3313,7 +3313,7 @@ do_cm(arg)
 
 /***************************** mem ****************************/
 
-do_mem(arg)
+void do_mem(arg)
      char arg[256];
 { 
   int n_freq, n_poles, type, junk;
@@ -3449,7 +3449,7 @@ do_mem(arg)
 
 /***********************************  median smooth *************************/
 
-do_median_smooth(arg)
+void do_median_smooth(arg)
      char arg[256];
 {
   nocom(arg);
@@ -3508,7 +3508,7 @@ do_median_smooth(arg)
 
 /****************************** smooth *******************************/
 
-do_smooth(arg)
+void do_smooth(arg)
      char arg[256];
 {
   nocom(arg);
@@ -3569,7 +3569,7 @@ do_smooth(arg)
 /*      msg_vision() and msg_p_vision() are equivalent funcs of the above which prints to the msg_window instead of to a file.  (also in look_funcs.c)  */
 
 
-do_typeall(arg)
+void do_typeall(arg)
      char arg[256];
 {
   nocom(arg);
@@ -3596,7 +3596,7 @@ do_typeall(arg)
 }
 
 
-do_type(arg)
+void do_type(arg)
      char arg[256];
 {
   nocom(arg);
@@ -3642,7 +3642,7 @@ do_type(arg)
   top();
 }
 
-do_type_final()
+void do_type_final()
 {
   /*printf("%s\n", desire);*/
   
@@ -3706,7 +3706,7 @@ do_type_final()
 
 /****************************** stat *******************************/
 
-do_stats(arg)
+void do_stats(arg)
      char arg[256];
 {
   double hmean, gmean, rms;
@@ -3791,7 +3791,7 @@ do_stats(arg)
 /**********************************  qi ******************************/
 /* calls exec_qi() in qi_look.c   */
 
-do_qi(arg)
+void do_qi(arg)
      char arg[256];
 {
   nocom(arg);
@@ -3922,7 +3922,7 @@ do_qi(arg)
   do_qi_final();
 }
 
-do_qi_mvs(arg)
+void do_qi_mvs(arg)
      char arg[256];
 {
   nocom(arg);
@@ -3993,7 +3993,7 @@ do_qi_mvs(arg)
 }
 
 
-do_qi_final()  
+void do_qi_final()  
 {
 
   rs_param.vel_list[0]=rs_param.vf;
@@ -4140,7 +4140,7 @@ sizeof(double)))  == NULL
 
 
 
-do_qi_help()
+void do_qi_help()
 {
   
   sprintf(msg, "> An iterative, non-linear inverse routine using the\n\tLevenberg-Marquardt method (variable damping) and svd to solve the inverse problem.\n");
@@ -4247,7 +4247,7 @@ print_msg(msg);
 /* calls simp_func() in simplexl.c, simp_weight() function is moved from look_funcs.c into this section  */
 
 
-do_scm(arg)
+void do_scm(arg)
      char arg[256];
 {
   nocom(arg);
@@ -4367,7 +4367,7 @@ do_scm(arg)
 }
 
 
-do_simp_weight_l2(arg)
+void do_simp_weight_l2(arg)
      char arg[256];
 {
   /*     int l, *temp_int; */
@@ -4408,7 +4408,7 @@ do_simp_weight_l2(arg)
 }
 
 
-do_simp_weight(arg)
+void do_simp_weight(arg)
      char arg[256];
 {
   nocom(arg);
@@ -4455,7 +4455,7 @@ do_simp_weight(arg)
 }        
   
 
-do_simp_weight_final()
+void do_simp_weight_final()
 {
   
   /* gives weight of 5x for 100 pts*/
@@ -4493,7 +4493,7 @@ do_simp_weight_final()
 
 
 
-do_scm_next()
+void do_scm_next()
 {
   
   /*  allocate space for arrays used by simplex and fq */
@@ -4638,7 +4638,7 @@ do_scm_next()
 
 
 
-do_scm_1(arg)
+void do_scm_1(arg)
      char arg[256];
 {
   if (sscanf(arg,"%lf , %lf , %lf , %lf , %lf , %lf",&a_min, &a_max, &rs_param.a_step, &dc_min, &dc_max, &rs_param.dc1_step) != 6)
@@ -4694,7 +4694,7 @@ do_scm_1(arg)
 
 
 
-do_scm_2()
+void do_scm_2()
 {
   if(l == 2 )
     {
@@ -4761,7 +4761,7 @@ do_scm_2()
   top();
 }
 
-do_scm_help()
+void do_scm_help()
 {
   sprintf(msg,"> This function does a simplex fit of the Dieterich-Ruina rate/state variable friction model to data.\n");
   print_msg(msg);
@@ -4785,7 +4785,7 @@ do_scm_help()
     print_msg(msg); */
 }
 
-do_scm_info()
+void do_scm_info()
 {
   sprintf(msg,"Simplex fit of one or two state variable friction model. (scm_h or simp_rsm_h gives a detailed description of this function) \n");
   print_msg(msg);
