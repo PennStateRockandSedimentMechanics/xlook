@@ -396,7 +396,7 @@ state = (Icon) xv_create (XV_NULL, ICON,
   
 
   xv_main_loop(main_frame);
-  
+  return 0;  
 }  
 
 
