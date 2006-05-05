@@ -24,7 +24,7 @@ around 850
 #include <sys/file.h>
 #include "global.h"
 
-extern check_row();
+extern int check_row();
 extern char msg[MSG_LENGTH];
 extern Frame main_frame; /* main window frame */
 extern int qi_flag; /* flag indicating the tool is launched or not */
@@ -33,7 +33,7 @@ extern int active_window;
 extern char qiparams[256]; /* string of input parameters */ 
 extern void command_handler(); /* command handling procedure event.c */
 extern Panel_item cmd_hist_panel_list; /* panel storing the command history */
-extern cmd_num; /* index used in cmd_hist_panel_list */
+extern int cmd_num; /* index used in cmd_hist_panel_list */
 
 typedef char parameter_str[20]; /* parameter string */
 parameter_str parameter_strs[21]; /* array of parameter strings */
@@ -65,13 +65,20 @@ Frame qi_frame; /* main frame of R/S FRIC TOOL */
 double lambda_flag, wc_flag; /* converted from inputs, define global for use in run_proc */
 int dc2_flag;		/*define global, for use in create() and run()*/
 
-create_qi_canvas()
+
+/* function prototypes */
+void create_qi_canvas(void);
+void error_msg(int indx);
+void left_footer(char txt[256]);
+void update_params(void);
+
+
+void create_qi_canvas()
 {
-  int i; /* indexing intergers */
   int lambda_choice, wc_choice; /* to set the toggle buttons */
 
   /* to parse the input */
-  char *ptr, *cmdline,  *cmdline2, qi_head[12];
+  char *ptr, qi_head[12];
   char qi_cmd_str[160], t_string[160];
 
   /* notifying procedures */
@@ -833,7 +840,6 @@ void run_proc(item, event)
      Panel_item item;
      Event *event;
 {
-  int i;
   char concat_params[160];
   char mvs_str[60], alt_str[9];
   canvasinfo *can_info;		/*use to check active plot*/
@@ -1049,7 +1055,7 @@ void kill_qi_proc(item, event)
 }
   
 
-error_msg(indx)
+void error_msg(indx)
      int indx;
 {
   if (indx == 1)
@@ -1099,13 +1105,13 @@ error_msg(indx)
 
 /* convenience procedure to handle foot notes */
 
-left_footer(txt)
+void left_footer(txt)
      char txt[256];
 {
   xv_set(qi_frame, FRAME_LEFT_FOOTER, txt, NULL);
 }
 
-update_params()
+void update_params()
 {
   int i;
   xv_destroy_safe(qi_frame);
