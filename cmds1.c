@@ -902,7 +902,7 @@ void doit_proc(arg)
 	i=1;	/*use to count lines*/
 	if( fgets(cmd, 256, com_file[doit_f_open]) == NULL)
 	{
-	      sprintf(msg, "Error from doit file \"%s\", unexpected EOF on line %d, see cmds1.c \n",  i, pathname[doit_f_open+1]);
+	      sprintf(msg, "Error from doit file \"%s\", unexpected EOF on line %d, see cmds1.c \n",  pathname[doit_f_open+1], i);
               print_msg(msg);
 	      fclose(com_file[doit_f_open]);
 	      if (--doit_f_open < 0)
@@ -919,7 +919,7 @@ void doit_proc(arg)
 		i++;				/*increment line counter*/
 		if( cmd == NULL)
 	  	{
-	      		sprintf(msg, "Error from doit file \"%s\", unexpected EOF on line %d, see cmds1.c \n",  i, pathname[doit_f_open+1]);
+	      		sprintf(msg, "Error from doit file \"%s\", unexpected EOF on line %d, see cmds1.c \n",  pathname[doit_f_open+1], i);
               		print_msg(msg);
 	      		fclose(com_file[doit_f_open]);
 	      		if (--doit_f_open < 0)
@@ -944,7 +944,7 @@ void doit_proc(arg)
 		}
 		if(error)
 		{
-	      		sprintf(msg, "Error from doit file \"%s\", line %d too long. Lines must be < 256 chars. But this should be easy to fix, see cmds1.c \n",  i, pathname[doit_f_open+1]);
+	      		sprintf(msg, "Error from doit file \"%s\", line %d too long. Lines must be < 256 chars. But this should be easy to fix, see cmds1.c \n",  pathname[doit_f_open+1], i);
               		print_msg(msg);
 	      		fclose(com_file[doit_f_open]);
 	      		if (--doit_f_open < 0)
