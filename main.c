@@ -128,7 +128,7 @@ state = (Icon) xv_create (XV_NULL, ICON,
 
 /* ------------------------  FRAMES INITIALIZATION ------------------------ */
 
-  main_frame = (Frame)xv_create(NULL, FRAME,
+  main_frame = (Frame)xv_create(XV_NULL, FRAME,
                                 FRAME_ICON, state,
 				FRAME_SHOW_FOOTER, TRUE,
 				FRAME_LEFT_FOOTER, "Type your command in the command panel",
@@ -146,7 +146,7 @@ state = (Icon) xv_create (XV_NULL, ICON,
 
   main_frame_menu_panel = (Panel)xv_create(main_frame, PANEL, XV_HEIGHT, 55, NULL);
 
-  file_menu = (Menu) xv_create(NULL, MENU,
+  file_menu = (Menu) xv_create(XV_NULL, MENU,
 			       MENU_GEN_PIN_WINDOW, main_frame, "File",
 			       MENU_ACTION_ITEM, 
 			       "Read File", read_file_proc,
@@ -159,7 +159,7 @@ state = (Icon) xv_create (XV_NULL, ICON,
 		   PANEL_ITEM_MENU, file_menu,
 		   NULL);
   
-  window_menu = (Menu) xv_create(NULL, MENU,
+  window_menu = (Menu) xv_create(XV_NULL, MENU,
 				 MENU_GEN_PIN_WINDOW, main_frame, "Window",
 				 MENU_ACTION_ITEM, 
 				 "New Window", new_window_proc,
@@ -174,7 +174,7 @@ state = (Icon) xv_create (XV_NULL, ICON,
 		   PANEL_ITEM_MENU, window_menu,
 		   NULL);
   
-  plot_cmd_menu = (Menu) xv_create(NULL, MENU,
+  plot_cmd_menu = (Menu) xv_create(XV_NULL, MENU,
 				   MENU_GEN_PIN_WINDOW, 
 				   main_frame, "Plot Commands", 
 				   MENU_ACTION_ITEM, 
@@ -323,7 +323,7 @@ state = (Icon) xv_create (XV_NULL, ICON,
   window_fit(cmd_hist_panel);
   window_fit(cmd_hist_frame);
   
-  xhair_cursor = (Xv_Cursor)xv_create(NULL, CURSOR,
+  xhair_cursor = (Xv_Cursor)xv_create(XV_NULL, CURSOR,
 				      CURSOR_SRC_CHAR, 22,
 				      NULL);
 
