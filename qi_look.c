@@ -924,6 +924,7 @@ int msvdfit(x,y,wv,ndata,a,ma,u,v,w,chisq,rsp,lambda)
      sprintf(msg, " %f%c",((i==4 || i==6) ? exp(a[i]) : a[i]), (i % ma)  ? '\t' : '\n');
      
      */
+     return 0;
 }
 #undef DA_TOL 
 #undef DELTA 
