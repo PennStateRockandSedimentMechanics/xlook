@@ -91,7 +91,7 @@ void do_sort(char arg[256]);
 void do_interpolate(char arg[256]);
 void do_math(char arg[256]);
 void do_mathint(char arg[256]);
-void math_final(int name_arg, int unit_arg);
+void math_final(char *name_arg, char *unit_arg);
 void do_r_spike(char arg[256]);
 void do_positive(char arg[256]);
 void do_compress(char arg[256]);
@@ -1703,6 +1703,8 @@ void do_mathint(arg)
 }
 
 void math_final(name_arg, unit_arg)
+    char *name_arg;
+    char *unit_arg;
 {  
   if(type == ':' && (head.ch[col1].nelem < head.ch[(int)val2].nelem) )
     {
