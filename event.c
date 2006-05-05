@@ -32,15 +32,18 @@ char *args_left;
 
 extern char mu_fit_mess_1[512];
 
+/* function prototypes */
+void command_handler(char input[256]);
+void process_action(char arg[256]);
 
-command_handler(input) 
+
+void command_handler(input) 
      char input[256]; 
 { 
   char cmd[256]; 
   char arg1[256], arg2[256], arg3[256], arg4[256]; 
   static char t_string[256];
   int nar, int1, i, intar[MAX_PLOTS], intar2[MAX_PLOTS];
-  float farg1, farg2, farg3, farg4, farg5, farg6, farg7, farg8, farg9, farg10;
   char *strtok();
    
 
@@ -1741,7 +1744,7 @@ command_handler(input)
 
 
 
-process_action(arg)
+void process_action(arg)
      char arg[256];
 {
   int nargs;
