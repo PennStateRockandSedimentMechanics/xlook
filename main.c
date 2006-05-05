@@ -29,7 +29,7 @@ Icon state;
 extern char plot_cmd[256];
 extern int plot_error;
 extern int xaxis, yaxis;
-extern setup_canvas();
+extern void setup_canvas();
 extern char default_path[80];
 extern int read_flag;
 extern char qiparams[256];
