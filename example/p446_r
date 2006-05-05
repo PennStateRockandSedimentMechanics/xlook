@@ -2,7 +2,7 @@ begin
 com_file
 
 #read /home/geosc/arathbun/data/p446/p446s7tr005l
-read p446s7tr005l
+read example/p446s7tr005l
 
 # Second exp. 7mm thick till layer. ran for 4 normal stresses sample name Mat 2B <1mm  
 
