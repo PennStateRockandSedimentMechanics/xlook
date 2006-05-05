@@ -913,7 +913,7 @@ void doit_proc(arg)
 	}
 
 /* the global_error flag is set in messages.c when the error functions are called*/
-	while( fgets(cmd, 256, com_file[doit_f_open]) != EOF && global_error == FALSE)
+	while( fgets(cmd, 256, com_file[doit_f_open]) != NULL && global_error == FALSE)
 	{
 /*read a line from doit file*/
 		i++;				/*increment line counter*/
