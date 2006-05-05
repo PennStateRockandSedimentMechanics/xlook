@@ -37,7 +37,27 @@ extern void redraw_proc();
 extern Frame main_frame;
 extern Panel_item cmd_panel_item;
 
-new_win_proc()
+
+/* Function prototypes */
+void new_win_proc(void);
+void qi_win_proc(void);
+void set_active_window(int win_num);
+void set_active_plot(int i);
+void del_plot_proc(int pn);
+void kill_win_proc(int wn);
+int get_old_active_window(int wn);
+int get_new_plot_num(int alive_plots[10]);
+void plotting_error(int pn);
+void do_plot(char cmd[256]);
+void write_proc(char arg[256]);
+void read_proc(char cmd[256]);
+void doit_proc(char arg[256]);
+void set_path_proc(char arg[256]);
+void all_final_proc(char cmd[256]);
+
+
+
+void new_win_proc()
 {
   total_windows++;
   create_canvas();
@@ -45,7 +65,7 @@ new_win_proc()
   print_msg(msg);
 }
 
-qi_win_proc()
+void qi_win_proc()
 {
 
  if (read_flag != 0) {
@@ -67,7 +87,7 @@ qi_win_proc()
 }
 
 
-set_active_window(win_num)
+void set_active_window(win_num)
      int win_num;
 {
   if (wininfo.windows[win_num] != 1)
@@ -99,7 +119,7 @@ set_active_window(win_num)
 }
 
 
-set_active_plot(i)
+void set_active_plot(i)
      int i;
 {
   canvasinfo *can_info;
@@ -159,7 +179,7 @@ set_active_plot(i)
 
 
 
-del_plot_proc(pn)
+void del_plot_proc(pn)
      int pn;
 {
   canvasinfo *can_info;
@@ -236,7 +256,7 @@ plot data pointers etc.*/
   top();
 }
 
-kill_win_proc(wn)
+void kill_win_proc(wn)
      int wn;
 {
   int i;
@@ -310,7 +330,7 @@ kill_win_proc(wn)
 }
 
 
-get_old_active_window(wn)
+int get_old_active_window(wn)
      int wn;
 {
   int i;
@@ -334,7 +354,7 @@ get_old_active_window(wn)
 
 
 /* 19/3/96 cjm: this function should renumber after clearing a plot*/
-get_new_plot_num(alive_plots)
+int get_new_plot_num(alive_plots)
      int alive_plots[10];
 {
   int i;
@@ -349,7 +369,7 @@ get_new_plot_num(alive_plots)
 }
 
 
-plotting_error(pn)
+void plotting_error(pn)
      int pn;
 {
   canvasinfo *can_info;
@@ -371,23 +391,20 @@ plotting_error(pn)
 }
 
 
-do_plot(cmd)
+void do_plot(cmd)
      char cmd[256];
 {
   char desire[256];
   int i, j;
   canvasinfo *can_info;
   plotarray *data;
-  int start_x, start_y, end_x, end_y;
   int begin, end;
   int xaxis, yaxis;
   int oldplot;
   float xmax, xmin, ymax, ymin;
   int plot_num;
-  float scale_x, scale_y;
   Canvas canvas;
-  Xv_Window canvas_xv_window, xvwin;
-  Display *dpy;
+  Xv_Window canvas_xv_window;
   Window win;
     
   plot_error = 0;
@@ -708,7 +725,7 @@ should inform user if x and x nelem are not the same...*/
 
 
 
-write_proc(arg)
+void write_proc(arg)
      char arg[256];
 {
   
@@ -776,7 +793,7 @@ write_proc(arg)
 }
 
 
-read_proc(cmd)
+void read_proc(cmd)
      char cmd[256];
 {
   char dummy[256];
@@ -816,12 +833,12 @@ read_proc(cmd)
 }
   
 
-doit_proc(arg)
+void doit_proc(arg)
      char arg[256];
 {
   /* reads a doit file and passes the commands to command_handler() directly */  
   char *fgets();
-  char cmd[256], ch;
+  char cmd[256];
   int i, j, error;
   
   
@@ -971,7 +988,7 @@ doit_proc(arg)
 
      
 
-set_path_proc(arg)  
+void set_path_proc(arg)  
      char arg[256];
 {
   /* change: if path is inaccessible, set path to current path instead of default path */
@@ -1000,7 +1017,7 @@ set_path_proc(arg)
 
 
 
-all_final_proc(cmd)
+void all_final_proc(cmd)
      char cmd[256];
 {
   char dummy1[256], dummy2[256];
