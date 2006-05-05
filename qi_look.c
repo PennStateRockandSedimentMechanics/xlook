@@ -320,7 +320,7 @@ int exec_qi(converg_tol, lambda, wc, rsp)
 
       sprintf(msg, "new params for a\n");
       print_msg(msg);
-      sprintf(msg, "");
+      msg[0] = '\0';
       for(i=1;i<=ma; ++i)
 	{
 	  sprintf(tmp_msg, " %f%c",((i==4 || i==6) ? exp(a[i]) : a[i]), (i % ma)  ? '\t' : '\n');
