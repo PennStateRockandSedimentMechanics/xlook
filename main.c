@@ -648,7 +648,6 @@ void close_hist_proc(item, event)
 {
   /* unmaps the history window from screen */
 
-  Frame graf_frame = (Frame)xv_get(item, PANEL_CLIENT_DATA);
   if ((int)xv_get(cmd_hist_frame, XV_SHOW) == TRUE)
     xv_set(cmd_hist_frame, XV_SHOW, FALSE, NULL);
 }
