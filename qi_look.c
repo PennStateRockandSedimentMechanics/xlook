@@ -27,6 +27,20 @@ extern char msg[MSG_LENGTH];
 
 FILE	*op_file, *data_table;
 
+/* function prototypes */
+int exec_qi(double converg_tol, double lambda, double wc, struct rs_parameters *rsp);
+double calc_chisq(double a[], double x[], double y[], double wv[], int ma, int ndata, struct rs_parameters *rsp);
+double **dm(int row, int col);
+void free_dm(double **m, int row, int col);
+int msvdfit(double x[], double y[], double wv[], int ndata, double a[], int ma, double **u, double **v, double w[], double *chisq, struct rs_parameters *rsp, double *lambda);
+void set_rs_parameters(struct rs_parameters *rsp, double a[], double da[]);
+int get_mu_at_x_t(double x[], double mod_mu[], int ndata, struct rs_parameters *rsp);
+int do_rk(double *mu, double *psi1, double *psi2, double *H, double *v, struct rs_parameters *rsp, double *constant);
+int msvdcmp(double **a, int m, int n, double *w, double **v);
+void msvbksb(double **u, double w[], double **v, int m, int n, double b[], double x[]);
+void zero_sv(double w[], int ma, double tol, int op_flag);
+
+
 int exec_qi(converg_tol, lambda, wc, rsp)
      double converg_tol, lambda, wc;
      struct rs_parameters *rsp;	   /*rate state stuff, defined in global.h*/
@@ -41,7 +55,7 @@ int exec_qi(converg_tol, lambda, wc, rsp)
   int	neglig;
   int	get_mu_at_x_t();
   int	msvdfit();
-  double	*x, *y, *wv, temp_d;
+  double	*wv, temp_d;
   double	**u,**v;
   double	a[7],w[7],a_unscaled[7], std_a[7], std_a_unscaled[7];
   double	chisq, prev_chisq, lambda_max;
@@ -563,8 +577,7 @@ double calc_chisq(a, x, y, wv, ma, ndata, rsp)
 {
   
   int i;
-  double dy, chisq, *mod_mu;
-  int get_mu_at_x_t();
+  double dy, chisq;
   
   /*mod_mu = (double *) malloc((ndata+1)*sizeof(double));*/
   /*mod_mu = (double *) calloc((unsigned)ndata+1,sizeof(double));*/
@@ -657,7 +670,7 @@ int msvdfit(x,y,wv,ndata,a,ma,u,v,w,chisq,rsp,lambda)
   int i, j, k;
   int do_lm_reduce;
   int get_mu_at_x_t();
-  static double wmax,thresh, *b, dyda, **alpha, *beta, **u_norm, **alpha_norm, **v_tmp, **alpha_inv;
+  static double *b, **alpha, *beta, **u_norm, **alpha_norm, **v_tmp, **alpha_inv;
   static double *jac_norm, *a_corr, *a2, *atry, *da, ochisq, *mod_mu, *mod_mu2;
   double calc_chisq(), **dm(), sqrt(), exp();
   int msvdcmp();
