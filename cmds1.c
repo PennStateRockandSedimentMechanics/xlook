@@ -774,7 +774,7 @@ void write_proc(arg)
 
       if (act_col() > head.nchan)
 	{
-	  sprintf(msg, "Active columns = %d\n", act_col);
+	  sprintf(msg, "Active columns = %d\n", act_col());
 	  print_msg(msg);
 	  sprintf(msg, "Please compact data array to use columns 1 through head.nchan[%d]\n", head.nchan);
 	  print_msg(msg);
