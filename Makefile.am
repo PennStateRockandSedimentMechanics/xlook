@@ -62,7 +62,12 @@ xlook_SOURCES = \
         tpulsel.c \
         tpulsel.h
 
-EXTRA_DIST = Doxyfile canvas.ico xlook.ico 
+EXTRA_DIST = \
+        Doxyfile \
+        canvas.ico \
+        xlook.ico \
+        example/p446_r \
+        example/p446s7tr005l
 
 .PHONY: doc
 doc:
