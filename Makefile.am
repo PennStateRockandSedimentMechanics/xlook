@@ -2,13 +2,65 @@ AUTOMAKE_OPTIONS = foreign
 
 bin_PROGRAMS = xlook
 
-xlook_SOURCES = main.c event.c can.c menus.c drawwin.c cmds.c \
-	filtersm.c nrutil.c sort.c special.c array.c \
-	median.c polyfit.c func.c tpulsel.c perrfl.c mem.c fq.c \
-	look_funcs.c lookio.c simplexl.c strcmd.c cmds1.c \
-	mouse.c rs_fric_tool.c qi_look.c notices.c messages.c
-
-noinst_HEADERS = global.h nr.h
+xlook_SOURCES = \
+        array.c \
+        array.h \
+        can.c \
+        can.h \
+        cmds1.c \
+        cmds1.h \
+        cmds.c \
+        cmds.h \
+        drawwin.c \
+        drawwin.h \
+        event.c \
+        event.h \
+        filtersm.c \
+        filtersm.h \
+        fq.c \
+        fq.h \
+        func.c \
+        func.h \
+        global.h \
+        look_funcs.c \
+        look_funcs.h \
+        lookio.c \
+        lookio.h \
+        main.c \
+        main.h \
+        median.c \
+        median.h \
+        mem.c \
+        mem.h \
+        menus.c \
+        menus.h \
+        messages.c \
+        messages.h \
+        mouse.c \
+        mouse.h \
+        notices.c \
+        notices.h \
+        nr.h \
+        nrutil.c \
+        nrutil.h \
+        perrfl.c \
+        perrfl.h \
+        polyfit.c \
+        polyfit.h \
+        qi_look.c \
+        qi_look.h \
+        rs_fric_tool.c \
+        rs_fric_tool.h \
+        simplexl.c \
+        simplexl.h \
+        sort.c \
+        sort.h \
+        special.c \
+        special.h \
+        strcmd.c \
+        strcmd.h \
+        tpulsel.c \
+        tpulsel.h
 
 EXTRA_DIST = Doxyfile canvas.ico xlook.ico 
 
