@@ -13,6 +13,9 @@ around 850
 */
 
 #include <math.h>
+#include <string.h>
+#include <sys/file.h>
+
 #include <X11/Xlib.h>
 #include <xview/xview.h>
 #include <xview/canvas.h>
@@ -20,9 +23,12 @@ around 850
 #include <xview/xv_xrect.h>
 #include <xview/font.h>
 #include <xview/cursor.h>
-#include <string.h>
-#include <sys/file.h>
-#include "global.h"
+
+#include <config.h>
+#include <global.h>
+#include <messages.h>
+#include <rs_fric_tool.h>
+#include <strcmd.h>
 
 extern int check_row();
 extern char msg[MSG_LENGTH];
@@ -64,14 +70,6 @@ Frame qi_frame; /* main frame of R/S FRIC TOOL */
 
 double lambda_flag, wc_flag; /* converted from inputs, define global for use in run_proc */
 int dc2_flag;		/*define global, for use in create() and run()*/
-
-
-/* function prototypes */
-void create_qi_canvas(void);
-void error_msg(int indx);
-void left_footer(char txt[256]);
-void update_params(void);
-
 
 void create_qi_canvas()
 {

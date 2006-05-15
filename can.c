@@ -8,8 +8,10 @@
 #include <xview/font.h>
 #include <xview/cursor.h>
 
+#include <config.h>
 #include <global.h>
 #include <messages.h>
+#include <can.h>
 
 extern int active_window;
 extern int total_windows;
@@ -25,12 +27,6 @@ short canvas0_image[] = {
 };
 Server_image c0image;
 Icon cstate;
-
-
-/* "private" function prototypes */
-void setup_canvas(void);
-void create_canvas(void);
-int get_new_window_num(void);
 
 
 void setup_canvas()

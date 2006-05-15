@@ -1,4 +1,7 @@
-#include "global.h"
+#include <config.h>
+#include <global.h>
+#include <lookio.h>
+#include <messages.h>
 
 extern int action;
 extern int doit;

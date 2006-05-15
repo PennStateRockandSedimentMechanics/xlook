@@ -1,13 +1,26 @@
-#include <config.h>
-#include "global.h"
 #include <string.h>
 #include <sys/file.h>
+
+#include <X11/Xlib.h>
 #include <xview/frame.h>
 #include <xview/canvas.h>
-#include <X11/Xlib.h>
 #include <xview/xv_xrect.h>
 #include <xview/panel.h>
 #include <xview/xview.h>
+
+#include <can.h>
+#include <cmds1.h>
+#include <config.h>
+#include <drawwin.h>
+#include <event.h>
+#include <filtersm.h>
+#include <global.h>
+#include <look_funcs.h>
+#include <messages.h>
+#include <notices.h>
+#include <rs_fric_tool.h>
+#include <special.h>
+#include <strcmd.h>
 
 char pathname[10][80];
 char default_path[80];
@@ -16,8 +29,7 @@ char data_file[32];
 char new_file[32];
 char headline[32];
 
-FILE *data, *fopen(), *new;
-int reed();
+FILE *data, *new;
 
 int doit_des, doit_f_open, meta_fd;
 int plot_error;
@@ -31,30 +43,9 @@ extern int old_active_window;
 extern int total_windows;
 extern int action;
 extern char msg[MSG_LENGTH];
-extern update_params();
 
-extern void redraw_proc();
 extern Frame main_frame;
 extern Panel_item cmd_panel_item;
-
-
-/* Function prototypes */
-void new_win_proc(void);
-void qi_win_proc(void);
-void set_active_window(int win_num);
-void set_active_plot(int i);
-void del_plot_proc(int pn);
-void kill_win_proc(int wn);
-int get_old_active_window(int wn);
-int get_new_plot_num(int alive_plots[10]);
-void plotting_error(int pn);
-void do_plot(char cmd[256]);
-void write_proc(char arg[256]);
-void read_proc(char cmd[256]);
-void doit_proc(char arg[256]);
-void set_path_proc(char arg[256]);
-void all_final_proc(char cmd[256]);
-
 
 
 void new_win_proc()

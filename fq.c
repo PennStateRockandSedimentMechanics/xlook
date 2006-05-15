@@ -1,6 +1,9 @@
-#include	"global.h"
 #include	<math.h>
 #include	<stdio.h>
+
+#include    <config.h>
+#include	<global.h>
+#include    <fq.h>
 
 #define		SR_2   1.41421356
 #define		BIGNUM 1e20

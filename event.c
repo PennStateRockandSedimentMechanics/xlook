@@ -1,12 +1,25 @@
-#include "global.h"
 #include <string.h>
 #include <sys/file.h>
+
+#include <X11/Xlib.h>
 #include <xview/notice.h>
 #include <xview/frame.h>
 #include <xview/canvas.h>
-#include <X11/Xlib.h>
 #include <xview/xv_xrect.h>
 #include <xview/panel.h>
+
+#include <cmds.h>
+#include <cmds1.h>
+#include <config.h>
+#include <event.h>
+#include <global.h>
+#include <look_funcs.h>
+#include <main.h>
+#include <menus.h>
+#include <messages.h>
+#include <notices.h>
+#include <simplexl.h>
+#include <strcmd.h>
 
 char tmp_cmd[256];
 char pathname[10][80];
@@ -18,8 +31,7 @@ char headline[32];
 
 char qiparams[256];
 
-FILE *data, *fopen(), *new;
-int reed();
+FILE *data, *new;
 
 char plot_cmd[16], trig_cmd[16], qi_cmd[16], type_cmd[16];
 
@@ -31,10 +43,6 @@ int nargs;
 char *args_left;
 
 extern char mu_fit_mess_1[512];
-
-/* function prototypes */
-void command_handler(char input[256]);
-void process_action(char arg[256]);
 
 
 void command_handler(input) 
@@ -1781,7 +1789,7 @@ void process_action(arg)
       
 
     case SIMP_FUNC:
-      do_simp_func(arg);
+      do_simp_func();
       break;
       
     case SCM_GET_ARGS:

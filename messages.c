@@ -6,8 +6,10 @@
 #include <xview/sel_attrs.h>
 #include <xview/textsw.h>
 
+#include <config.h>
 #include <global.h>
 #include <messages.h>
+#include <notices.h>
 
 extern int active_window;
 extern int old_active_window;

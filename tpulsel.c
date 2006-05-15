@@ -8,7 +8,9 @@
 /*	bugs  - does not seem to work with 200 roots			      */
 /*									      */
 
-#include "global.h"
+#include <config.h>
+#include <global.h>
+#include <tpulsel.h>
 
 double tpulse(perm,sstor,length,vol,time)
 double perm,sstor,length,vol,time;

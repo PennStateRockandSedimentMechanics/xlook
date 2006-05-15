@@ -1,5 +1,7 @@
+#include <config.h>
 #include <global.h>
 #include <look_funcs.h>
+#include <messages.h>
 
 extern int action;
 extern char msg[MSG_LENGTH];
@@ -368,8 +370,6 @@ void msg_p_vision(firstrow,lastrow,firstcol,lastcol)
 
 /*---------------------------------------------------------------------*/
 
-
-extern void coe();
 
 int name(unknown, orig_col, arg_name, arg_unit)		/*returns 0 on error, 1 if successful*/
      int *unknown;

@@ -1,6 +1,10 @@
-#include "global.h"
 #include <stdio.h>
 #include <math.h>
+
+#include <config.h>
+#include <global.h>
+#include <perrfl.h>
+
 #define PI 3.141592654
 
 void perrf(Kamp,Kph,lgth,Vol,Per,pGperm,pGdif,psstor)

@@ -37,6 +37,10 @@
 		error=f initially, and for each j, error reduced by d[j+1]*pj as soon as d[j+1]
 		becomes available.
 */
+
+#include <config.h>
+#include <polyfit.h>
+
 static double b[20],c[20],d[20];   /* external variables used by ortval */
 static int numterm;
 

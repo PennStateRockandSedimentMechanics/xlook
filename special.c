@@ -1,4 +1,6 @@
+#include <config.h>
 #include <global.h>
+#include <look_funcs.h>
 #include <nr.h>
 #include <special.h>
 
@@ -241,13 +243,13 @@ int *xcol , *ycol , *newcol , *interv;
 	if(head.ch[*xcol].nelem > head.ch[*ycol].nelem) 
      	{
 		recs = head.ch[*xcol].nelem;
-		name(newcol,*xcol);
+		name(newcol,*xcol,NULL,NULL);
      	}
    	 
      	else
      	{
 		recs =  head.ch[*ycol].nelem ;
-     		name(newcol,*ycol) ;
+     		name(newcol,*ycol,NULL,NULL) ;
      	}
 
 

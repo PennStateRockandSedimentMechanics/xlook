@@ -1,3 +1,6 @@
+#include <config.h>
+#include <median.h>
+
 void mdian1(x,n,xmed)
 float x[],*xmed;
 int n;

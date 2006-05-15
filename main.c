@@ -1,4 +1,5 @@
 #include <math.h>
+
 #include <X11/Xlib.h>
 #include <xview/xview.h>
 #include <xview/canvas.h>
@@ -10,7 +11,15 @@
 #include <xview/font.h>
 #include <xview/scrollbar.h>
 #include <xview/cursor.h>
-#include "global.h"
+
+#include <cmds1.h>
+#include <config.h>
+#include <drawwin.h>
+#include <global.h>
+#include <look_funcs.h>
+#include <main.h>
+#include <messages.h>
+#include <mouse.h>
 
 int active_window = -1;
 int old_active_window = -1;
@@ -29,7 +38,6 @@ Icon state;
 extern char plot_cmd[256];
 extern int plot_error;
 extern int xaxis, yaxis;
-extern void setup_canvas();
 extern char default_path[80];
 extern int read_flag;
 extern char qiparams[256];
@@ -61,13 +69,6 @@ GC gcbg;
 GC gcrubber;
 Xv_Cursor xhair_cursor;
 XColor fgc, bgc;
-
-/* function prototypes */
-void quit_xlook(void);
-void goto_plot1_proc(void);
-void goto_plot2_proc(void);
-void clr_all(void);
-void initialize(int argc, char *argv[]);
 
 
 int main(argc, argv)

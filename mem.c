@@ -1,5 +1,8 @@
 #include <math.h>
 
+#include <config.h>
+#include <mem.h>
+
 float evlmem(fdt,cof,m,pm)
 float fdt,cof[],pm;
 int m;

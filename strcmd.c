@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+
 #include <X11/Xlib.h>
 #include <xview/panel.h>
 
+#include <config.h>
 #include <global.h>
+#include <messages.h>
 #include <strcmd.h>
 
 extern Panel_item cmd_panel_item;

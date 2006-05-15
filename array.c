@@ -1,13 +1,11 @@
 #include <math.h>
 
+#include <config.h>
 #include <global.h>
 #include <array.h>
 
 extern int action;
 extern char msg[256];
-
-/* "private" function prototypes */
-
 
 
 /* -------------------------------------------------------------------------*/

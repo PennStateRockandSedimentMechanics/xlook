@@ -1,3 +1,6 @@
+#include <config.h>
+#include <sort.h>
+
 void sort(n,ra)
 int n;
 float ra[];

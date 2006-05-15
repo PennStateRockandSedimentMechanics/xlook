@@ -1,5 +1,8 @@
 /*    functions RECALL, EXAMIN, RITE, REED, TASC, and OLDREAD for program LOOK     */
-#include "global.h"
+#include <config.h>
+#include <filtersm.h>
+#include <global.h>
+#include <look_funcs.h>
 
 extern void print_msg();
 extern char msg[MSG_LENGTH];

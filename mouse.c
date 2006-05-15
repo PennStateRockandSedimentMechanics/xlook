@@ -1,10 +1,16 @@
+#include <math.h>
+
 #include <X11/Xlib.h>
 #include <xview/xview.h>
 #include <xview/canvas.h>
 #include <xview/panel.h>
-#include <math.h>
 
-#include "global.h"
+#include <cmds1.h>
+#include <config.h>
+#include <drawwin.h>
+#include <global.h>
+#include <messages.h>
+#include <mouse.h>
 
 extern char msg[MSG_LENGTH];
 extern int active_window;
@@ -13,11 +19,6 @@ extern char plot_cmd[256];
 extern void zoom_plot_proc();
 int CLEAR_FLAG = 0;
   
-
-void clr_ap(void);
-void draw_xhair(float, float);
-void draw_crosshair(int, int);
-
 
 /******************************** point plot ******************************/
 void point_plot_proc(item, event)

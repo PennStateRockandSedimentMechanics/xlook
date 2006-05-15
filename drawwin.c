@@ -1,11 +1,16 @@
 #include <math.h>
+
 #include <X11/Xlib.h>
 #include <xview/xview.h>
 #include <xview/canvas.h>
 #include <xview/xv_xrect.h>
 #include <xview/panel.h>
 
-#include "global.h"
+#include <cmds1.h>
+#include <config.h>
+#include <drawwin.h>
+#include <global.h>
+#include <messages.h>
 
 extern int active_window;
 extern int old_active_window;

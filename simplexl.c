@@ -36,16 +36,21 @@
                 modifications implemented, Apr 1996.
 */
 
-#include "global.h"
-#include <time.h>
+#include <strings.h>
 #include <sys/types.h>
 #include <sys/timeb.h>
-#include <strings.h>
+#include <time.h>
+
+#include <cmds.h>
+#include <config.h>
+#include <fq.h>
+#include <global.h>
+#include <messages.h>
+#include <simplexl.h>
+#include <strcmd.h>
 
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-extern void do_scm_2();
 
 
 extern int action;
@@ -63,29 +68,9 @@ int		ndata, iter_max, scrn_write, sw_num;
 int         high[MAX_PARAM+1], low[MAX_PARAM+1];
 float       first_step[MAX_PARAM];
 double	centre[MAX_PARAM];
-double	errormax[MAX_PARAM+1], error(), scm_err[MAX_PARAM+1];
-double	simp_rate_state_mod();
-char	*strcat();
+double	errormax[MAX_PARAM+1], scm_err[MAX_PARAM+1];
 char	buf[80];
 int max_iter;
-
-
-void do_simp_func(void);
-void do_get_initial_values(char arg[256]);
-void simp_func_final(void);
-void init_values_write(double errormax[], FILE *outf);
-void get_starting_simplex(char funcname[], float first_step[], int p_xch[], int *p_ych, int ndata, int first);
-void solution_write(int n, double scm_err[], FILE *outf, char f_name[]);
-void printSimplex(FILE *outf, char function_name[]);
-void order(int high[], int low[]);
-void find_centroid(double centre[], int h);
-void reflect_worst(double centre[], int h);
-void expand_reflection(double centre[], int h);
-void contract_worst(double centre[], int h);
-void contract_all(char funcname[], double centre[], int l, int p_xch[], int *p_ych, int ndata, int first);
-void saveAs_new_vertex(int h);
-double error(char name[], int p_xch[], int *p_ych, int nd, int first);
-
 
 
 void do_simp_func()

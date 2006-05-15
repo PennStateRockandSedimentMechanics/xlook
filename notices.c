@@ -1,9 +1,14 @@
-#include "global.h"
 #include <string.h>
+
+#include <X11/Xlib.h>
 #include <xview/notice.h>
 #include <xview/frame.h>
-#include <X11/Xlib.h>
 #include <xview/xview.h>
+
+#include <config.h>
+#include <global.h>
+#include <messages.h>
+#include <notices.h>
 
 extern Frame main_frame;
 extern int action;
@@ -43,7 +48,7 @@ int write_show_warning()
 
 
 
-warn_textsw_almost_full()
+void warn_textsw_almost_full()
 {
   extern Frame main_frame;
   Xv_notice notice;
@@ -111,7 +116,7 @@ int textsw_full_show_warning(filename)
 
 
      
-all_show_warning_proc(cmd)
+void all_show_warning_proc(cmd)
      char cmd[256];
 {
   extern Frame main_frame;

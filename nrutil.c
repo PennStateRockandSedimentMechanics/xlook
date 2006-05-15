@@ -1,8 +1,10 @@
-#include <config.h>
-#include "global.h"
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <config.h>
+#include <global.h>
+#include <messages.h>
+#include <nrutil.h>
 
 
 void nrerror(error_text)
