@@ -10,5 +10,8 @@ xlook_SOURCES = main.c event.c can.c menus.c drawwin.c cmds.c \
 
 noinst_HEADERS = global.h nr.h
 
-EXTRA_DIST = canvas.ico xlook.ico 
+EXTRA_DIST = Doxyfile canvas.ico xlook.ico 
 
+.PHONY: doc
+doc:
+	$(DOXYGEN)

@@ -9,6 +9,7 @@ AM_CONFIG_HEADER(config.h)
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
+AC_CHECK_PROG(DOXYGEN,doxygen,doxygen,[@echo 'You must have doxygen installed to generate the developer documentation.'])
 
 AC_LANG_C
 
