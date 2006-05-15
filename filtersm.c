@@ -1,40 +1,48 @@
 /*    functions RECALL, EXAMIN, RITE, REED, TASC, and OLDREAD for program LOOK     */
 #include <config.h>
-#include <filtersm.h>
+
+#ifdef HAVE_ARPA_INET_H
+# include <arpa/inet.h>
+#endif 
+#ifdef HAVE_NETINET_IN_H
+# include <netinet/in.h>
+#endif
+
 #include <global.h>
+#include <filtersm.h>
 #include <look_funcs.h>
 
 extern void print_msg();
 extern char msg[MSG_LENGTH];
 extern int action; 
 
+/** 
+ * Read integer(s) from the data file.
+ * 
+ * Reads \a count integers from \a file, and stores them at the given \a target. 
+ * Presumes that the file was written in big-endian (network) byte order, and 
+ * swaps the bytes appropriately for the current architecture. 
+ *
+ * This function currently presumes that it is dealing with 32-bit integers.
+ *
+ * @param target The buffer (size = sizeof(int) * count) where this function 
+ *               should store the results.
+ * @param count The number of integers to read from the file.
+ * @param file The open file descriptor to read from.
+ * 
+ * @return The number of integers that were successfully read from the file.
+ */
 int read_int(int *target, int count, FILE *file) 
 {
-#ifdef i386
-    /* swap bytes compared to original file */
-    int elements_read;    
-    int i, n;
-    int *element;
-    char *p;
+    int num_read, i;
     
-    elements_read = 0;
-    for (n=0; n<count; n++)
+    num_read = fread(target, 4, count, file);
+    for (i=0; i<num_read; i++)
     {
-        element = target + n;
-        p = (char *)element;
-        for (i=3; i>=0; i--) 
-        {
-            if (fread(p+i, 1, 1, file) != 1)
-            {
-                return n;   
-            }
-        }
+        /* integers are always written to file in big-endian byte order */
+        target[i] = ntohl(target[i]);
     }
-    return count;
-#else
-    /* same byte order as original file */
-    return fread(target, 4, count, file);
-#endif
+    return num_read;
 }
 
 

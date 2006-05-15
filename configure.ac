@@ -25,5 +25,7 @@ AC_CHECK_LIB(m,floor,,[AC_MSG_ERROR([couldn't find m library.])])
 # Check for headers.
 AC_CHECK_HEADERS(xview/xview.h,,
                 [AC_MSG_ERROR([couldn't find xview header files. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])])
+AC_CHECK_HEADERS(arpa/inet.h)
+AC_CHECK_HEADERS(netinet/in.h)
 
 AC_OUTPUT(Makefile)
