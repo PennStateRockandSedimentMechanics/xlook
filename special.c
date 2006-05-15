@@ -1,5 +1,7 @@
-#include "global.h"
-#include "nr.h"
+#include <global.h>
+#include <nr.h>
+#include <special.h>
+
 /* -------------------------------------------------------------------------*/
 void line(colx,coly,first,last,result)
 int *colx , *coly , *first , *last;

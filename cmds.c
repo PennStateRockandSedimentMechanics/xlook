@@ -1,11 +1,17 @@
-#include <config.h>
-#include "global.h"
 #include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#include <config.h>
+#include <global.h>
+#include <array.h>
+#include <look_funcs.h>
+#include <messages.h>
+#include <special.h>
+#include <strcmd.h>
 
 
 extern int action;
@@ -15,13 +21,6 @@ extern FILE *data, *fopen(), *new;
 extern int doit_des, doit_f_open;
 extern char pathname[10][80], default_path[80], metapath[80];
 extern int name_action;
-
-extern doit_proc();
-extern double simp_rate_state_mod();
-extern power1(), power2(), normal(), chisqr(), scchisqr(), genexp(), ExpLin(), gensin(), rclow(), rcph(), Poly4(); /* in func.c */
-extern check_row(), mu_check(), act_col(), null_col();
-extern tasc(), stdasc(), getaschead();
-extern o_slope();
 
 int simp_func_action;
  
@@ -60,7 +59,7 @@ char mu_fit_mess_2[512];	/* help message for scm, cm, rsm */
 char name_arg[256], unit_arg[256];
 char *junkp, *strtok();
 
-/* function prototypes */
+/* "private" function prototypes */
 void do_slope(char arg[256]);
 void do_trig(char arg[256]);
 void do_rcph(char arg[256]);

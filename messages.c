@@ -1,10 +1,13 @@
 #include <math.h>
+
 #include <X11/Xlib.h>
 #include <xview/xview.h>
 #include <xview/panel.h>
 #include <xview/sel_attrs.h>
 #include <xview/textsw.h>
-#include "global.h"
+
+#include <global.h>
+#include <messages.h>
 
 extern int active_window;
 extern int old_active_window;
@@ -22,12 +25,6 @@ extern Textsw fileinfo_window;
 extern int textsw_total_used;
 extern int textsw_memory_limit;
 extern int textsw_saves;
-
-
-void print_msg(char *);
-void set_cmd_prompt(char []);
-void set_left_footer(char []);
-void print_info(void);
 
 
 

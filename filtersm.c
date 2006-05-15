@@ -5,6 +5,35 @@ extern void print_msg();
 extern char msg[MSG_LENGTH];
 extern int action; 
 
+int read_int(int *target, int count, FILE *file) 
+{
+#ifdef i386
+    /* swap bytes compared to original file */
+    int elements_read;    
+    int i, n;
+    int *element;
+    char *p;
+    
+    elements_read = 0;
+    for (n=0; n<count; n++)
+    {
+        element = target + n;
+        p = (char *)element;
+        for (i=3; i>=0; i--) 
+        {
+            if (fread(p+i, 1, 1, file) != 1)
+            {
+                return n;   
+            }
+        }
+    }
+    return count;
+#else
+    /* same byte order as original file */
+    return fread(target, 4, count, file);
+#endif
+}
+
 
 /***************************** examin *******************************/
 /* done */
@@ -16,17 +45,17 @@ void examin(dfile)
     
   
   fread(&(temphead.title[0]),1,20,dfile) ;
-  fread(&(temphead.nrec),4,1,dfile) ;
-  fread(&(temphead.nchan),4,1,dfile) ;
-  fread(&(temphead.swp),4,1,dfile) ;
-  fread(&(temphead.dtime),4,1,dfile) ;
+  read_int(&(temphead.nrec),1,dfile) ;
+  read_int(&(temphead.nchan),1,dfile) ;
+  read_int(&(temphead.swp),1,dfile) ;
+  read_int(&(temphead.dtime),1,dfile) ;
   for( i = 1; i < MAX_COL; ++i )
     {
       fread(&(temphead.ch[i].name[0]),1,13,dfile) ;
       fread(&(temphead.ch[i].units[0]),1,13,dfile) ;
-      fread(&(temphead.ch[i].gain),4,1,dfile) ;
+      read_int(&(temphead.ch[i].gain),1,dfile) ;
       fread(&(temphead.ch[i].comment[0]),1,50,dfile) ;
-      fread(&(temphead.ch[i].nelem),4,1,dfile) ;
+      read_int(&(temphead.ch[i].nelem),1,dfile) ;
     }
   
   sprintf(msg,"%s\n",temphead.title) ;
@@ -89,8 +118,8 @@ int reed(dfile,append)
   i = 2;
   file1_nrec = 0;
   fread(&(title[0]),1,20,dfile) ;
-  fread(&(rec),4,1,dfile) ;
-  fread(&(chan),4,1,dfile) ;
+  read_int(&(rec),1,dfile) ;
+  read_int(&(chan),1,dfile) ;
   
   if(append == TRUE)
     {
@@ -115,22 +144,22 @@ int reed(dfile,append)
         {
 	  fseek(dfile, 80, 1);	
 	  file1_nelem[i] = head.ch[i].nelem;	/* save old */
-	  fread(&(head.ch[i].nelem),4,1,dfile) ;
+	  read_int(&(head.ch[i].nelem),1,dfile) ;
         }
     }
   else			 /* use the first file for title, gain etc */
     {
       strcpy(&(head.title[0]),&(title[0])) ;
       
-      fread(&(head.swp),4,1,dfile) ;
-      fread(&(head.dtime),4,1,dfile) ;
+      read_int(&(head.swp),1,dfile) ;
+      read_int(&(head.dtime),1,dfile) ;
       for( i = 1; i < MAX_COL; ++i )
    	{
 	  fread(&(head.ch[i].name[0]),1,13,dfile) ;
 	  fread(&(head.ch[i].units[0]),1,13,dfile) ;
-	  fread(&(head.ch[i].gain),4,1,dfile) ;
+	  read_int(&(head.ch[i].gain),1,dfile) ;
 	  fread(&(head.ch[i].comment[0]),1,50,dfile) ;
-	  fread(&(head.ch[i].nelem),4,1,dfile) ;
+	  read_int(&(head.ch[i].nelem),1,dfile) ;
 	  file1_nelem[i] = 0;
    	}
     }
@@ -147,7 +176,7 @@ int reed(dfile,append)
 	      print_msg(msg);
 	      head.ch[i].nelem = rec ;
 	    }
-	  fread(&darray[i][file1_nelem[i]],4,head.ch[i].nelem,dfile) ;
+	  read_int(&darray[i][file1_nelem[i]],head.ch[i].nelem,dfile) ;
 	  head.ch[i].nelem += file1_nelem[i];
 	}
     }

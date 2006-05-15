@@ -1,4 +1,6 @@
-#include "global.h"
+#include <global.h>
+#include <look_funcs.h>
+
 extern int action;
 extern char msg[MSG_LENGTH];
 int name_action;

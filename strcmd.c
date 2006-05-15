@@ -2,11 +2,14 @@
 #include <string.h>
 #include <X11/Xlib.h>
 #include <xview/panel.h>
-#include "global.h"
+
+#include <global.h>
+#include <strcmd.h>
 
 extern Panel_item cmd_panel_item;
 extern char msg[MSG_LENGTH];
 
+/* "private" function prototypes */
 
 
 void nocom(str)

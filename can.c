@@ -1,4 +1,5 @@
 #include <math.h>
+
 #include <X11/Xlib.h>
 #include <xview/xview.h>
 #include <xview/canvas.h>
@@ -7,7 +8,8 @@
 #include <xview/font.h>
 #include <xview/cursor.h>
 
-#include "global.h"
+#include <global.h>
+#include <messages.h>
 
 extern int active_window;
 extern int total_windows;
@@ -25,6 +27,10 @@ Server_image c0image;
 Icon cstate;
 
 
+/* "private" function prototypes */
+void setup_canvas(void);
+void create_canvas(void);
+int get_new_window_num(void);
 
 
 void setup_canvas()

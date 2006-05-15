@@ -1,4 +1,6 @@
-#include "global.h"
+#include <global.h>
+#include <func.h>
+
 #define SRTWO 1.414213562
 
 double power1(x,A,B)	/* y = pow(x,A) + B */
