@@ -1,10 +1,10 @@
 /*    functions RECALL, EXAMIN, RITE, REED, TASC, and OLDREAD for program LOOK     */
 #include <config.h>
 
-#ifdef HAVE_ARPA_INET_H
+#if HAVE_ARPA_INET_H
 # include <arpa/inet.h>
 #endif 
-#ifdef HAVE_NETINET_IN_H
+#if HAVE_NETINET_IN_H
 # include <netinet/in.h>
 #endif
 
