@@ -18,9 +18,9 @@ CPPFLAGS="-I/usr/openwin/include"
 LDFLAGS="-L/usr/openwin/lib -L/usr/X11R6/lib"
 
 # Check for libraries.
+AC_CHECK_LIB(X11,XDrawLine,,[AC_MSG_ERROR([couldn't find X11 libraries.])])
 AC_CHECK_LIB(olgx,olgx_draw_box,,[AC_MSG_ERROR([couldn't find xview libraries. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])],[-lX11])
 AC_CHECK_LIB(xview,xv_init,,[AC_MSG_ERROR([couldn't find xview libraries. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])],[-lX11 -lolgx])
-AC_CHECK_LIB(X11,XDrawLine,,[AC_MSG_ERROR([couldn't find X11 libraries.])])
 AC_CHECK_LIB(m,floor,,[AC_MSG_ERROR([couldn't find m library.])])
 
 # Check for headers.
