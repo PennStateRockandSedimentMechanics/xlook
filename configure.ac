@@ -13,9 +13,9 @@ AC_CHECK_PROG(DOXYGEN,doxygen,doxygen,[@echo 'You must have doxygen installed to
 
 AC_LANG_C
 
-CFLAGS="-Wall -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED"
-CPPFLAGS="-I/usr/openwin/include"
-LDFLAGS="-L/usr/openwin/lib -L/usr/X11R6/lib"
+CFLAGS="$CFLAGS -Wall -I/usr/openwin/include -DOWTOOLKIT_WARNING_DISABLED"
+CPPFLAGS="$CPPFLAGS -I/usr/openwin/include"
+LDFLAGS="$LDFLAGS -L/usr/openwin/lib -L/usr/X11R6/lib"
 
 # Check for libraries.
 AC_CHECK_LIB(X11,XDrawLine,,[AC_MSG_ERROR([couldn't find X11 libraries.])])
