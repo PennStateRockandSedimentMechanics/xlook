@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IFPkgDescriptionDescription</key>
+	<string>This package provides the Sun XView and olgx libraries for OS X 10.4.
+
+These libraries are universal and therefore, will work on any PPC or Intel mac.
+
+All files will be installed in  /usr/openwin. 
+
+The source code can be found in /usr/openwin/src
+
+This port is due to the awesome efforts of Scott Buchanan (4D Neuroimaging Inc).</string>
+	<key>IFPkgDescriptionTitle</key>
+	<string>XView Universal (PPC/Intel)</string>
+</dict>
+</plist>

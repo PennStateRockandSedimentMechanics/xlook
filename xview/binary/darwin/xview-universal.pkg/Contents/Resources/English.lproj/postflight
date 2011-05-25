@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "updating table of contents for libxview" > /usr/openwin/lib/ranlib.log
+ranlib /usr/openwin/lib/libxview.a
+
+echo "updating table of contents for libolgx" >> /usr/openwin/lib/ranlib.log
+ranlib /usr/openwin/lib/libolgx.a
+
+exit 0
