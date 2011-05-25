@@ -11,3 +11,4 @@ configure
 stamp-h1
 *.o
 xlook
+!mac-installer/xlook
