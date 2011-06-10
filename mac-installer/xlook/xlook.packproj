@@ -50,11 +50,11 @@
 					<key>International</key>
 					<dict>
 						<key>Mode</key>
-						<integer>0</integer>
-						<key>Path</key>
-						<string></string>
-						<key>Path Type</key>
 						<integer>1</integer>
+						<key>Path</key>
+						<string>README.txt</string>
+						<key>Path Type</key>
+						<integer>2</integer>
 					</dict>
 				</dict>
 			</dict>
@@ -82,6 +82,88 @@
 									<integer>509</integer>
 									<key>Type</key>
 									<integer>1</integer>
+									<key>UID</key>
+									<integer>0</integer>
+								</dict>
+								<dict>
+									<key>Children</key>
+									<array>
+										<dict>
+											<key>Children</key>
+											<array>
+												<dict>
+													<key>Children</key>
+													<array/>
+													<key>GID</key>
+													<integer>80</integer>
+													<key>Path</key>
+													<string>../../example/p446_r</string>
+													<key>Path Type</key>
+													<integer>2</integer>
+													<key>Privileges</key>
+													<integer>420</integer>
+													<key>Type</key>
+													<integer>3</integer>
+													<key>UID</key>
+													<integer>0</integer>
+												</dict>
+												<dict>
+													<key>Children</key>
+													<array/>
+													<key>GID</key>
+													<integer>80</integer>
+													<key>Path</key>
+													<string>../../example/p446s7tr005l</string>
+													<key>Path Type</key>
+													<integer>2</integer>
+													<key>Privileges</key>
+													<integer>420</integer>
+													<key>Type</key>
+													<integer>3</integer>
+													<key>UID</key>
+													<integer>0</integer>
+												</dict>
+											</array>
+											<key>GID</key>
+											<integer>80</integer>
+											<key>Path</key>
+											<string>example</string>
+											<key>Path Type</key>
+											<integer>1</integer>
+											<key>Privileges</key>
+											<integer>509</integer>
+											<key>Type</key>
+											<integer>2</integer>
+											<key>UID</key>
+											<integer>0</integer>
+										</dict>
+										<dict>
+											<key>Children</key>
+											<array/>
+											<key>GID</key>
+											<integer>0</integer>
+											<key>Path</key>
+											<string>../../xlook</string>
+											<key>Path Type</key>
+											<integer>2</integer>
+											<key>Privileges</key>
+											<integer>493</integer>
+											<key>Type</key>
+											<integer>3</integer>
+											<key>UID</key>
+											<integer>0</integer>
+										</dict>
+									</array>
+									<key>GID</key>
+									<integer>80</integer>
+									<key>Path</key>
+									<string>xlook</string>
+									<key>Path Type</key>
+									<integer>1</integer>
+									<key>Privileges</key>
+									<integer>509</integer>
+									<key>Type</key>
+									<integer>2</integer>
 									<key>UID</key>
 									<integer>0</integer>
 								</dict>
@@ -396,24 +478,7 @@
 							<array>
 								<dict>
 									<key>Children</key>
-									<array>
-										<dict>
-											<key>Children</key>
-											<array/>
-											<key>GID</key>
-											<integer>0</integer>
-											<key>Path</key>
-											<string>../../xlook</string>
-											<key>Path Type</key>
-											<integer>2</integer>
-											<key>Privileges</key>
-											<integer>493</integer>
-											<key>Type</key>
-											<integer>3</integer>
-											<key>UID</key>
-											<integer>0</integer>
-										</dict>
-									</array>
+									<array/>
 									<key>GID</key>
 									<integer>0</integer>
 									<key>Path</key>
@@ -785,7 +850,7 @@
 					<key>IFPkgFlagFollowLinks</key>
 					<false/>
 					<key>IFPkgFlagIsRequired</key>
-					<false/>
+					<true/>
 					<key>IFPkgFlagOverwritePermissions</key>
 					<false/>
 					<key>IFPkgFlagRelocatable</key>
@@ -793,7 +858,7 @@
 					<key>IFPkgFlagRestartAction</key>
 					<integer>0</integer>
 					<key>IFPkgFlagRootVolumeOnly</key>
-					<false/>
+					<true/>
 					<key>IFPkgFlagUpdateInstalledLanguages</key>
 					<false/>
 				</dict>

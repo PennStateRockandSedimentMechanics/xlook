@@ -7,11 +7,11 @@ DeleteWarning
 ### Package Flags
 
 NeedsAuthorization YES
-Required NO
+Required YES
 Relocatable NO
 RequiresReboot NO
 UseUserMask NO
 OverwritePermissions NO
 AllowBackRev NO
-RootVolumeOnly NO
+RootVolumeOnly YES
 OnlyUpdateInstalledLanguages NO
