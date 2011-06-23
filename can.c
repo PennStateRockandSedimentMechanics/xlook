@@ -232,7 +232,6 @@ print_msg(msg);
 		   PANEL_CLIENT_DATA, win_num,
 		   NULL);
 
-
   /*canvas_info_panel=(Panel)xv_create(graf_frame, PANEL, XV_HEIGHT, 30, NULL);*/
 
   X = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
@@ -281,11 +280,24 @@ print_msg(msg);
   
   xv_set(canvas_paint_window(canvas),
 	 WIN_CURSOR, xhair_cursor, NULL);
- 
+
+/*
+  // cjm 28.3.08 this makes plot windows open with no data (plot) in them...
   xv_set(canvas_paint_window(canvas), 
-	 WIN_EVENT_PROC, canvas_event_proc,
-	 /*WIN_CONSUME_EVENTS, WIN_NO_EVENTS, WIN_MOUSE_BUTTONS, LOC_DRAG, LOC_MOVE, NULL, cjm 28.3.08
-this makes plot windows open with no data (plot) in them... */
+	WIN_EVENT_PROC, canvas_event_proc,
+	 NULL);
+*/
+
+  // rdm 22.6.11 - readded to get the move events for the mouse rubber band */
+  // taking out the events makes the open dialog not crash as soon as loading is complete.
+  xv_set(canvas_paint_window(canvas), 
+	WIN_EVENT_PROC, canvas_event_proc,
+	WIN_CONSUME_EVENTS, 
+		WIN_NO_EVENTS, 
+		WIN_MOUSE_BUTTONS, 
+		LOC_DRAG, 
+		LOC_MOVE, 
+		NULL,
 	 NULL);
 
   xv_set(canvas, XV_KEY_DATA, CAN_X, X,  NULL);
@@ -335,7 +347,6 @@ this makes plot windows open with no data (plot) in them... */
 
   sprintf(msg, "(create_canvas) Window #%d is old active window.\n", old_active_window+1);
   print_msg(msg); */
-
 }
 
 
