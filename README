@@ -1,0 +1,25 @@
+Readme File
+
+To compile this, you'll need the latest version of the xview library from 
+
+http://www.yorku.ca/logand/macosx/packages/xview-universal.zip
+
+The website is:
+
+http://www.yorku.ca/logand/macosx/index.html
+
+Once you have that, you need to install it.  Once it's installed:
+
+./configure CFLAGS=-arch i386 LDFLAGS=-arch i386
+
+(If you're not on a x86_64 machine, you won't need the CFLAGS and LDFLAGS.  If you get an error about not finding xview, you'll need them.)
+
+then just:
+
+make
+
+Executable can be run directly on newer versions of OSX by just typing 
+
+./xlook
+
+(Newer versions of OS X will autolaunch X11 for you)
