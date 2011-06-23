@@ -12,6 +12,7 @@
 #include <xview/font.h>
 #include <xview/scrollbar.h>
 #include <xview/cursor.h>
+#include <xview/file_chsr.h>
 
 #include <cmds1.h>
 #include <config.h>
@@ -72,6 +73,12 @@ GC gcbg;
 GC gcrubber;
 Xv_Cursor xhair_cursor;
 XColor fgc, bgc;
+
+static File_chooser open_chsr= 0; 
+
+
+/* prototypes */
+int my_open_callback(File_chooser fc, char *path, char *file, Xv_opaque client_data);
 
 
 int main(argc, argv)
@@ -411,7 +418,8 @@ state = (Icon) xv_create (XV_NULL, ICON,
   gcvalues.background = bgc.pixel;
   gcvalues.graphics_exposures = False;
   gcrubber = XCreateGC(dpy, RootWindow(dpy, DefaultScreen(dpy)), GCGraphicsExposures | GCForeground | GCBackground, &gcvalues);
-  XSetFunction(dpy, gcrubber, GXxor);
+//  XSetFunction(dpy, gcrubber, GXxor);
+  XSetFunction(dpy, gcrubber, GXinvert);
   
   gcvalues.foreground = bgc.pixel;
   gcbg = XCreateGC(dpy, RootWindow(dpy, DefaultScreen(dpy)), GCForeground, &gcvalues);
@@ -469,9 +477,66 @@ void read_file_proc(menu, item)
      Menu menu;
      Menu_item item;
 {
+/*
   set_left_footer("Type the data file to read");	  
   action = READ;
   set_cmd_prompt("Filename: ");
+*/
+  if(!open_chsr)
+  {
+	open_chsr	= (File_chooser) xv_create(main_frame, FILE_CHOOSER_OPEN_DIALOG, 
+		XV_LABEL,	"XLook: Open", 
+		FILE_CHOOSER_NOTIFY_FUNC, my_open_callback,
+//		XV_KEY_DATA, MY_KEY, ui
+		NULL);
+	}
+	xv_set(open_chsr, XV_SHOW, TRUE, NULL);
+}
+
+int my_open_callback(
+	File_chooser fc, 
+	char *path, 
+	char *file, 
+	Xv_opaque client_data)
+{
+//	My_ui *ui = (My_ui *)xv_get(fc, XV_KEY_DATA, MY_KEY); 
+	char buf[512];
+	
+	xv_set(fc, FRAME_BUSY, TRUE, NULL);
+/*
+	Textsw_status status; 
+
+	xv_set(ui->textsw, TEXTSW_STATUS, &status, TEXTSW_FILE, path, TEXTSW_FIRST, 0, NULL);
+	if ( status != TEXTSW_STATUS_OKAY ) { 
+		window_bell( ui->frame ); 
+		xv_set( ui->frame, FRAME_LEFT_FOOTER, "Unable to load file!", NULL); 
+		xv_set(fc, FRAME_BUSY, FALSE, NULL); 
+		return XV_ERROR;
+	}
+*/	
+	/* Set current doc name on the Save popup. */ 
+/*
+	(void) sprintf(buf, "%s.1", file); 
+	if ( ui->saveas )
+		xv_set(ui->saveas, FILE_CHOOSER_DOC_NAME, buf, NULL); 
+	else {
+		if ( ui->doc_name ) free( ui->doc_name );
+		ui->doc_name = strdup( buf ); 
+	}
+	(void) sprintf(buf, "Demo Text Editor – %s", file); 
+	xv_set(ui->frame, XV_LABEL, buf, NULL);
+*/
+//fprintf(stderr, "Open: %s\n\n", path);
+	snprintf(buf, sizeof(buf), "doit %s", path);
+//	read_proc(tmp_cmd);
+
+	xv_set(fc, FRAME_BUSY, FALSE, NULL); 
+
+	// doit.
+//  	xv_set(cmd_panel_item, PANEL_VALUE, buf, NULL);
+    doit_proc(path);
+
+	return XV_OK;
 }
 
 void write_file_proc(menu, item)
@@ -869,7 +934,6 @@ void canvas_event_proc(xvwindow, event)
      always get the window number first and set active window to this num.
      if mouse event, check the current mode, then execute the proc.
      */
-
   int xloc, yloc;
   Canvas canvas;
   int can_num;
@@ -894,29 +958,33 @@ void canvas_event_proc(xvwindow, event)
   switch(event_action(event))
     {
       
-    case LOC_MOVE:
-      
-      if (can_info->total_plots == 0) break;
-      data = can_info->plots[active_plot];
-
-      xloc = event_x(event);
-      yloc = event_y(event);
-
-      /* draw rubber band line for line plot */
-      if (data->mouse == 1 && data->p1 == 1)
+    case LOC_MOVE:      
 	{
-	  if (data->p2 == 1)
-	    {
-	      /* remove previous line */
-	      XDrawLine((Display *)xv_get(canvas, XV_DISPLAY) , can_info->win, gcrubber, data->x1, data->y1, data->x2, data->y2);
-	    }
-	  /* draw new line */
-	  XDrawLine((Display *)xv_get(canvas, XV_DISPLAY) , can_info->win, gcrubber, data->x1, data->y1, xloc, yloc);
-	  data->x2 = xloc;
-	  data->y2 = yloc;
-	  data->p2 = 1;
+		Display *display= (Display *)xv_get(canvas, XV_DISPLAY);
+		if (can_info->total_plots == 0) break;
+		data = can_info->plots[active_plot];
+
+		xloc = event_x(event);
+		yloc = event_y(event);
+
+		/* draw rubber band line for line plot */
+		if (data->mouse == 1 && data->p1 == 1)
+		{
+			if (data->p2 == 1)
+			{
+				/* remove previous line */
+				XDrawLine(display, can_info->win, gcrubber, data->x1, data->y1, data->x2, data->y2);
+			}
+
+			/* draw new line */
+			XDrawLine(display, can_info->win, gcrubber, data->x1, data->y1, xloc, yloc);
+			XFlush(display);
+
+			data->x2 = xloc;
+			data->y2 = yloc;
+			data->p2 = 1;
+		}
 	}
-      
       break;
 	 
 
@@ -988,6 +1056,8 @@ void canvas_event_proc(xvwindow, event)
 	
       if (data->mouse == 1 && data->p1 == 1)
 	{
+		Display *display= (Display *)xv_get(canvas, XV_DISPLAY);
+
 	  /* get the 2nd point */
 	  sprintf(msg, "2nd point picked\n");
 	  print_msg(msg);
@@ -997,9 +1067,9 @@ void canvas_event_proc(xvwindow, event)
 
 	  /* commit line plot */
 	  draw_crosshair(xloc, yloc);
-	  XDrawLine((Display *)xv_get(canvas, XV_DISPLAY) , can_info->win, gcrubber, data->x1, data->y1, data->x2, data->y2);
+	  XDrawLine(display, can_info->win, gcrubber, data->x1, data->y1, data->x2, data->y2);
 	  do_line_plot();
-	  
+	
 	  /* reset for next line plot */
 	  data->p1 = 0;
 	  data->p2 = 0;
