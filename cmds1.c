@@ -707,15 +707,16 @@ should inform user if x and x nelem are not the same...*/
   win = can_info->win;
 
   /* draw the plot */
+/*
   redraw_proc(canvas, canvas_xv_window, (Display *)xv_get(canvas, XV_DISPLAY),
 	       (Window)xv_get(canvas_xv_window, XV_XID), NULL);
-    
+*/    
 /* 28.3.08 cjm, took out. I think this is the line I put in ~ 5/07 to get plots to appear when the plot window first opened
 but, since then I've found that the problem with blank plots was due to the xv_set command and these calls:
 WIN_CONSUME_EVENTS, WIN_NO_EVENTS, WIN_MOUSE_BUTTONS
 so
-  redraw_all_proc(canvas, can_info->xvwin, (Display *)xv_get(canvas, XV_DISPLAY), can_info->win, NULL);
 */
+  redraw_all_proc(canvas, can_info->xvwin, (Display *)xv_get(canvas, XV_DISPLAY), can_info->win, NULL);
 
   top();
   action = MAIN;
