@@ -23,6 +23,8 @@
 #include <messages.h>
 #include <mouse.h>
 
+#include "filtersm.h"
+
 int active_window = -1;
 int old_active_window = -1;
 int total_windows = -1;
@@ -74,11 +76,28 @@ GC gcrubber;
 Xv_Cursor xhair_cursor;
 XColor fgc, bgc;
 
-static File_chooser open_chsr= 0; 
+typedef enum {
+	_file_type_script=0,
+	_file_type_data,
+	_file_type_unrecognized,
+	NUMBER_OF_FILE_TYPES
+} FileType;
+
+struct ui_globals {
+	File_chooser open;
+	File_chooser save;
+};
+
+static struct ui_globals ui;
+
+static File_chooser_op open_filter_func(File_chooser fc, char * path, struct stat * stats, File_chooser_op matched, Server_image * glyph,
+	Xv_opaque * client_data, Server_image * mask_glyph);
 
 
 /* prototypes */
-int my_open_callback(File_chooser fc, char *path, char *file, Xv_opaque client_data);
+static int my_save_callback(File_chooser fc, char *path, struct stat * stats);
+static int my_open_callback(File_chooser fc, char *path, char *file, Xv_opaque client_data);
+static FileType file_type_with_path(char *path);
 
 
 int main(argc, argv)
@@ -163,10 +182,9 @@ state = (Icon) xv_create (XV_NULL, ICON,
 
   file_menu = (Menu) xv_create(XV_NULL, MENU,
 			       MENU_GEN_PIN_WINDOW, main_frame, "File",
-			       MENU_ACTION_ITEM, 
-			       "Read File", read_file_proc,
-			       MENU_ACTION_ITEM,
-			       "Write File", write_file_proc,
+			       MENU_ACTION_ITEM, "Open...", read_file_proc,
+			       MENU_ACTION_ITEM, "Save...", write_file_proc,
+//			       MENU_ACTION_ITEM, "Change Directory...", change_directory_proc,
 			       NULL);
   (void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
 		   PANEL_LABEL_STRING, "FILE",
@@ -482,25 +500,86 @@ void read_file_proc(menu, item)
   action = READ;
   set_cmd_prompt("Filename: ");
 */
-  if(!open_chsr)
+  if(!ui.open)
   {
-	open_chsr	= (File_chooser) xv_create(main_frame, FILE_CHOOSER_OPEN_DIALOG, 
+	ui.open	= (File_chooser) xv_create(main_frame, FILE_CHOOSER_OPEN_DIALOG, 
 		XV_LABEL,	"XLook: Open", 
 		FILE_CHOOSER_NOTIFY_FUNC, my_open_callback,
+		FILE_CHOOSER_FILTER_FUNC, open_filter_func,
+		FILE_CHOOSER_ABBREV_VIEW, TRUE,
 //		XV_KEY_DATA, MY_KEY, ui
 		NULL);
 	}
-	xv_set(open_chsr, XV_SHOW, TRUE, NULL);
+
+	xv_set(ui.open, XV_SHOW, TRUE, NULL);
+	xv_set(ui.open, FILE_CHOOSER_UPDATE, NULL); // required to get the recently saved to show up.
 }
 
-int my_open_callback(
+// either starts with "begin", because it's a script,
+// or it's a header_version.
+static File_chooser_op open_filter_func(
+	File_chooser fc,
+	char * path,
+	struct stat * stats,
+	File_chooser_op matched,
+	Server_image * glyph,
+	Xv_opaque * client_data,
+	Server_image * mask_glyph)
+{
+	File_chooser_op result= FILE_CHOOSER_IGNORE; 
+	
+	glyph= NULL;
+	mask_glyph= NULL;
+	client_data= NULL;
+	
+	// open it up...
+	if(file_type_with_path(path) != _file_type_unrecognized)
+	{
+		result= FILE_CHOOSER_ACCEPT;
+	}
+	
+	return result;
+}
+
+static FileType file_type_with_path(char *path)
+{
+	FileType type= _file_type_unrecognized;
+	FILE *fp= fopen(path, "r");
+	if(fp)
+	{
+		char *key= "begin";
+		int key_length= strlen(key);
+		char buffer[128];
+		int length_read;
+
+		length_read= fread(buffer, 1, key_length, fp);
+		if(length_read==key_length && strncmp(key, buffer, key_length)==0)
+		{
+			type= _file_type_script;
+		} else {
+			/* in filtersm.h */
+			/*	return is 16, 32, 64 or 0 (0 indicates an error) */
+			int version= header_version(fp);
+			if(version != 0)
+			{
+				type= _file_type_data;
+			}
+		}
+	
+		fclose(fp);
+	}	
+	
+	return type;
+}
+
+static int my_open_callback(
 	File_chooser fc, 
 	char *path, 
 	char *file, 
 	Xv_opaque client_data)
 {
 //	My_ui *ui = (My_ui *)xv_get(fc, XV_KEY_DATA, MY_KEY); 
-	char buf[512];
+//	char buf[512];
 	
 	xv_set(fc, FRAME_BUSY, TRUE, NULL);
 /*
@@ -526,15 +605,18 @@ int my_open_callback(
 	(void) sprintf(buf, "Demo Text Editor – %s", file); 
 	xv_set(ui->frame, XV_LABEL, buf, NULL);
 */
-//fprintf(stderr, "Open: %s\n\n", path);
-	snprintf(buf, sizeof(buf), "doit %s", path);
-//	read_proc(tmp_cmd);
-
+	switch(file_type_with_path(path))
+	{
+		case _file_type_script:
+		    doit_proc(path);
+			break;
+		case _file_type_data:
+			read_proc(path);
+			break;
+		default:
+			break;
+	}
 	xv_set(fc, FRAME_BUSY, FALSE, NULL); 
-
-	// doit.
-//  	xv_set(cmd_panel_item, PANEL_VALUE, buf, NULL);
-    doit_proc(path);
 
 	return XV_OK;
 }
@@ -543,10 +625,31 @@ void write_file_proc(menu, item)
      Menu menu;
      Menu_item item;
 { 
+/*
   set_left_footer("Type the file to write");
   action = WRITE; 
   set_cmd_prompt("Filename: ");
+*/
+  if(!ui.save)
+  {
+	ui.save	= (File_chooser) xv_create(main_frame, FILE_CHOOSER_SAVE_DIALOG, 
+		XV_LABEL,	"XLook: Save", 
+		FILE_CHOOSER_NOTIFY_FUNC, my_save_callback,
+		NULL);
+	}
+	xv_set(ui.save, XV_SHOW, TRUE, NULL);
 }
+
+static int my_save_callback(
+	File_chooser fc, 
+	char *path, 
+	struct stat * stats)
+{
+	write_proc(path);
+    
+	return XV_OK;
+}
+
 
 void append_file_proc(menu, item)
      Menu menu;
