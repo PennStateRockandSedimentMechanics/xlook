@@ -15,11 +15,10 @@ int main(ac,av)
 int ac;
 char *av[];
 {
-	void exit(), *calloc();
 	void	null_col(), rite_lookfile(); 
 	int i , j;
-	char *strcat(), *strcpy(), outfile[50];
-	FILE    *infile, *dfile, *fopen();
+	char outfile[50];
+	FILE    *infile, *dfile;
 
 	if(ac != 4) 
 	{
