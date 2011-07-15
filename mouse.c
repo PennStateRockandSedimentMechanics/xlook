@@ -16,7 +16,8 @@ extern char msg[MSG_LENGTH];
 extern int active_window;
 extern GC gctick, gctitle;
 extern char plot_cmd[256];
-extern void zoom_plot_proc();
+extern void zoom_plot_proc(), zoom_new_plot_proc();
+extern int get_new_window_num();
 int CLEAR_FLAG = 0;
   
 
@@ -106,7 +107,7 @@ void do_line_plot()
   int ap;
   plotarray *data;
   float slope, intercept, x1, x2, y1, y2;
-  char xstring[20], ystring[20], rowstring[20];
+  char xstring[MSG_LENGTH], ystring[MSG_LENGTH], rowstring[MSG_LENGTH];
   Canvas canvas;
   
   can_info = wininfo.canvases[active_window];
@@ -278,7 +279,7 @@ void do_dist()
   int ap;
   plotarray *data;
   float dx, dy, da;
-  char xstring[20], ystring[20], vstring[20];
+  char xstring[MSG_LENGTH], ystring[MSG_LENGTH], vstring[MSG_LENGTH];
   Canvas canvas;
   float x1, x2, y1, y2;
   
@@ -340,6 +341,16 @@ void set_zoom()
 
   xv_set(xv_get(can_info->canvas, XV_KEY_DATA, GRAF_FRAME), 
 	 FRAME_LEFT_FOOTER, "Zoom Mode: left button picks 1st point, middle picks 2nd, right button commits zoom", NULL);
+}
+
+
+void zoom_new_plot_proc(menu,item)
+     Menu menu; 
+     Menu_item item;
+{ 
+/* note that action passes to an event case because of mouse button . See:  case ACTION_SELECT:  in main.c line 1042 */ 
+  CLEAR_FLAG = 2;		/*set flag here so that plot function, which is built from zoom(), knows to open new window*/
+  zoom_plot_proc(menu,item);
 }
 
 
@@ -450,10 +461,17 @@ print_msg(msg);
      clr_ap();
      CLEAR_FLAG =0;
     }
+  else if( CLEAR_FLAG == 2)
+  {
+/*this is where we have to make a new window, and plot to it*/
+	/*zoom to new window*/
+     new_win_proc();
+     /*set_active_window(get_new_window_num());*/
+     CLEAR_FLAG =0;
+  }
   strcpy(plot_cmd, "plotauto");
   sprintf(msg, "plotauto %d %d %d %d", data->col_x, data->col_y, begin, end);
   do_plot(msg);
-
 }
 
    
@@ -463,7 +481,7 @@ void print_xy(xloc, yloc)
 {
   canvasinfo *can_info;
   plotarray *data;
-  char xstring[20], ystring[20], rowstring[20];
+  char xstring[MSG_LENGTH], ystring[MSG_LENGTH], rowstring[MSG_LENGTH];
   Canvas canvas;
   float xval, yval;
   
@@ -493,6 +511,7 @@ void print_xy(xloc, yloc)
   xv_set(xv_get(canvas, XV_KEY_DATA, CAN_X), PANEL_LABEL_STRING, xstring, NULL);	      
   sprintf(ystring, "Y: %.5g", yval);
   xv_set(xv_get(canvas, XV_KEY_DATA, CAN_Y), PANEL_LABEL_STRING, ystring, NULL);
+
   /*  print the x and y coord on the msg window */	      
   strcat(xstring, "  ");
   strcat(xstring, ystring);
@@ -508,7 +527,7 @@ void print_xyrow(xloc, yloc, draw_string)
 {
   canvasinfo *can_info;
   plotarray *data;
-  char xstring[20], ystring[20], rowstring[20];
+  char xstring[MSG_LENGTH], ystring[MSG_LENGTH], rowstring[MSG_LENGTH];
   char xyrowstring[60];
   Canvas canvas;
   float xval, yval;
@@ -571,7 +590,7 @@ void draw_xy(xloc, yloc)
 {
   canvasinfo *can_info;
   plotarray *data;
-  char xstring[20], ystring[20], rowstring[20];
+  char xstring[MSG_LENGTH], ystring[MSG_LENGTH], rowstring[MSG_LENGTH];
   Canvas canvas;
   float xval, yval;
   
@@ -622,7 +641,7 @@ int get_row_number(nrow, x1, y1)
   canvasinfo *can_info;
   plotarray *data;
   int rownum;
-  float *x, *y;
+  double *x, *y;
   
   can_info = wininfo.canvases[active_window];
   if (can_info->active_plot == -1)

@@ -1,3 +1,6 @@
+/* cjm 21.1.08:  added a new line to plot window info, for xlook compile version and to
+deal with wrapping problem caused by OS 10.5*/
+
 #include <math.h>
 
 #include <X11/Xlib.h>
@@ -76,15 +79,15 @@ void setup_canvas()
 
 
 void create_canvas()
-{
-  Frame graf_frame;
+{ Frame graf_frame;
   Canvas canvas;
   Xv_Window xvwin;
   Window win;
   
   Panel canvas_menu_panel;
-  Panel canvas_info_panel;
+  /*Panel canvas_info_panel;*/
   Panel_item X, Y, ROW, PLOT_ROWS;
+  Panel_item XLOOK_VERSION;
   canvasinfo *can_info;
   int win_num;
   int i;
@@ -92,13 +95,16 @@ void create_canvas()
 
   extern void canvas_event_proc(), redraw_proc(), resize_proc(), refresh_win_proc();
   extern void clr_plots_proc(), clr_all_plots_proc(), clr_plots_notify_proc();
-  extern void clear_win_proc(), kill_graf_proc(), zoom_plot_proc(); 
+  extern void clear_win_proc(), kill_graf_proc(), zoom_plot_proc(), zoom_new_plot_proc(); 
   extern void zoom_clr_all_plots_proc(), zoom_clr_plots_notify_proc();
   extern void create_act_plot_menu_proc(), get_act_item_proc();
   extern void line_plot_proc(), mouse_mu_proc(), dist_proc();
   extern void point_plot_proc();
-  
-
+ 
+/* 
+sprintf(msg, "cjm. in can.c window menu, main frame!\n");
+print_msg(msg);
+*/
   win_num = get_new_window_num();
   
   if (win_num == -1)
@@ -126,16 +132,30 @@ void create_canvas()
 				FRAME_ICON, cstate,
 				FRAME_LABEL, msg,
 				XV_HEIGHT, 500, 
-				XV_WIDTH, 700,
+				XV_WIDTH, 800,
 				FRAME_SHOW_FOOTER, TRUE,
 				NULL);
 
-  canvas_menu_panel = (Panel)xv_create(graf_frame, PANEL, XV_HEIGHT, 55, NULL);
+  canvas_menu_panel = (Panel)xv_create(graf_frame, PANEL, XV_HEIGHT, 85, NULL);
   
+  XLOOK_VERSION = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
+			    PANEL_LABEL_STRING, "xlook version: working.2011",
+			    PANEL_VALUE_DISPLAY_LENGTH, 20,
+			    NULL);
+
+ /*move Kill button to top row;  This works fine for 10.4.11*/ 
+
+  (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+		   PANEL_LABEL_STRING, "Kill Window",
+		   PANEL_NOTIFY_PROC, kill_graf_proc,
+		   PANEL_CLIENT_DATA, win_num,
+		   NULL);
+
   act_plot_menu = (Menu) xv_create(XV_NULL, MENU,
 				   NULL);
   
   (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+			    PANEL_NEXT_ROW, -1,
 		   PANEL_LABEL_STRING, "Activate Plot",
 		   PANEL_ITEM_MENU, act_plot_menu,
 		   PANEL_NOTIFY_PROC, create_act_plot_menu_proc,
@@ -165,14 +185,20 @@ void create_canvas()
 		   PANEL_CLIENT_DATA, win_num,
 		   NULL);
 
-  zoom_menu     = (Menu) xv_create(XV_NULL, MENU, MENU_GEN_PIN_WINDOW, 
-				   main_frame, "Zoom", 
+  zoom_menu     = (Menu) xv_create(XV_NULL, MENU, 
+				   MENU_GEN_PIN_WINDOW, 
+/* cjm 22.1.08*, change to graf frame, main_frame is the other --main-- window, seems like this was a mistake
+				   main_frame, "Zoom", */
+				   graf_frame, "Zoom", 
 				   MENU_CLIENT_DATA, win_num,
 				   MENU_ACTION_ITEM, 
 				   "Zoom and Clear", zoom_clr_all_plots_proc,
 				   MENU_ACTION_ITEM,
 				  "Zoom", zoom_plot_proc,
+				   MENU_ACTION_ITEM,
+				  "Zoom New Window", zoom_new_plot_proc,
 				   NULL);
+
   (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
 		   PANEL_LABEL_STRING, "Zoom",
 		   PANEL_ITEM_MENU, zoom_menu,
@@ -182,7 +208,9 @@ void create_canvas()
   
   mouse_menu = (Menu) xv_create(XV_NULL, MENU,
 				MENU_GEN_PIN_WINDOW, 
-				main_frame, "Mouse", 
+/* cjm 22.1.08*, change to graf frame, main_frame is the other --main-- window, seems like this was a mistake
+				main_frame, "Mouse", */
+				graf_frame, "Mouse", 
 				MENU_CLIENT_DATA, win_num,
 				MENU_ACTION_ITEM, 
 				"Line Plot", line_plot_proc,
@@ -204,14 +232,8 @@ void create_canvas()
 		   PANEL_CLIENT_DATA, win_num,
 		   NULL);
 
-  (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
-		   PANEL_LABEL_STRING, "Kill Window",
-		   PANEL_NOTIFY_PROC, kill_graf_proc,
-		   PANEL_CLIENT_DATA, win_num,
-		   NULL);
 
-
-  canvas_info_panel=(Panel)xv_create(graf_frame, PANEL, XV_HEIGHT, 30, NULL);
+  /*canvas_info_panel=(Panel)xv_create(graf_frame, PANEL, XV_HEIGHT, 30, NULL);*/
 
   X = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
 			    PANEL_NEXT_ROW, -1,
@@ -221,22 +243,32 @@ void create_canvas()
   
   Y = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
                             PANEL_LABEL_STRING, "Y: ",
-			    XV_X, xv_col(canvas_menu_panel, 20),
+			    XV_X, xv_col(canvas_menu_panel, 15),
 			    PANEL_VALUE_DISPLAY_LENGTH, 8,
 			    NULL);
   
   ROW = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
   			      PANEL_LABEL_STRING, "ROW#: ",
-			      XV_X, xv_col(canvas_menu_panel, 38),
+			      XV_X, xv_col(canvas_menu_panel, 25),
 			      PANEL_VALUE_DISPLAY_LENGTH, 8,
 			      NULL);
   
   PLOT_ROWS = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
   			      PANEL_LABEL_STRING, "PLOT ROWS: ",
-			      XV_X, xv_col(canvas_menu_panel, 58),
+			      XV_X, xv_col(canvas_menu_panel, 50),
 			      PANEL_VALUE_DISPLAY_LENGTH, 10,
 			      NULL);
   
+/*cjm: 10.4.07 this is the fix for buttons that don't work. Must be something in PANEL_TEXT that activates*/
+  (void) xv_create(canvas_menu_panel, PANEL_TEXT,
+                   PANEL_LABEL_STRING, "",
+                   PANEL_VALUE_DISPLAY_LENGTH, 1,
+		   XV_X, xv_col(canvas_menu_panel, 80),
+/*                   PANEL_VALUE, parameter_strs[0],
+                   PANEL_NOTIFY_LEVEL, PANEL_SPECIFIED,
+                   PANEL_NOTIFY_PROC, get_options, */
+                   NULL);
+
   canvas = (Canvas)xv_create(graf_frame, CANVAS, 
 			     CANVAS_RESIZE_PROC, resize_proc, 
 			     CANVAS_RETAINED, TRUE,
@@ -252,7 +284,8 @@ void create_canvas()
  
   xv_set(canvas_paint_window(canvas), 
 	 WIN_EVENT_PROC, canvas_event_proc,
-	 WIN_CONSUME_EVENTS, WIN_NO_EVENTS, WIN_MOUSE_BUTTONS, LOC_DRAG, LOC_MOVE, NULL,
+	 /*WIN_CONSUME_EVENTS, WIN_NO_EVENTS, WIN_MOUSE_BUTTONS, LOC_DRAG, LOC_MOVE, NULL, cjm 28.3.08
+this makes plot windows open with no data (plot) in them... */
 	 NULL);
 
   xv_set(canvas, XV_KEY_DATA, CAN_X, X,  NULL);

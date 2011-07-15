@@ -44,6 +44,7 @@ int getcol(str, num)
   char temp_string[256];
   char buf[8];
   char *strtok();
+  int token_count();
 
   if(num < 3)	
   {
@@ -53,15 +54,23 @@ int getcol(str, num)
   }
   else		/*ok, go ahead*/
   {
+	temp_string[0] = '\0';
+
 	strcpy(buf," ,");	/*separators*/
 	strcpy(temp_string,str);	/*use tmp copy*/
+
+	if(token_count(str) <= 2)	/*try to avoid the problem of user changing their mind and just typing one letter*/
+		return(-1);
+
+/*fprintf(stderr,"colnum=%d in getcol %s, len=%d\n", colnum, str, (int)strlen(str));
+fprintf(stderr,"tokens=%d, in getcol %s, len=%d\n", token_count(str),str, (int)strlen(str));*/
 
 	strtok(temp_string,buf);	/*make a first call*/
   	for(i=0;i<num-2;++i)
 		strtok(NULL,buf);	
 	sscanf(strtok(NULL,buf),"%d",&colnum);
 
-  return(colnum);
+  	return(colnum);
   }
 }
 

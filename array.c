@@ -5,15 +5,15 @@
 #include <array.h>
 
 extern int action;
-extern char msg[256];
-
+extern char msg[MSG_LENGTH];
+void free();
 
 /* -------------------------------------------------------------------------*/
 void zero(col,rec)
 int *col , *rec ;
 {
    static int i ;
-   static float temp_fl ;
+   static double temp_fl ;
    temp_fl = darray[*col][*rec] ;
    for( i = 0; i < head.ch[*col].nelem; ++i)
    {
@@ -26,7 +26,7 @@ int *rec , *col , *rec2;
 char *ts;
 {
    static int i ;
-   static float temp_fl ;
+   static double temp_fl ;
    temp_fl = darray[*col][*rec2] - darray[*col][*rec] ;
    if(*ts == 'y') 		
    			/*set values between rec1 and rec2 equal to rec 1*/
@@ -45,7 +45,7 @@ void offset(rec,col,rec2,col2)
 int *rec , *col , *rec2 , *col2;
 {
    static int i ;
-   static float temp_fl ;
+   static double temp_fl ;
    temp_fl = darray[*col2][*rec2] - darray[*col][*rec] ;
    for( i = 0; i < head.ch[*col].nelem; ++i)
    {
@@ -57,9 +57,25 @@ void summation(old,new)
 int *old , *new ;
 {
    static int i ;
+   /*double dd1, dd2, dd3, *sum;
+   sum  = (double *) malloc(head.ch[*old].nelem*sizeof(double));*/
+
+   darray[*new][i-1] = 0;
+
    for( i = 1; i < head.ch[*old].nelem; ++i)
    {
 	darray[*new][i] = darray[*old][i] + darray[*new][i-1] ;
+/*	dd1 = (double) darray[*old][i];
+	dd2 = (double) darray[*new][i-1];
+	dd3 = dd1 + dd2;
+	sum[i] = (double) dd1 + sum[i-1] ;
+	darray[*new][i] = sum[i];*/
+
+/*
+if(i> 11480 && i <11510)
+fprintf(stderr,"darray.new_i=%f, darray.old_i=%.11f, dd1=%f, dd2=%f, d1d3=%.11f, sum=%.11f, darray=%f\n", darray[*new][i], darray[*old][i], dd1, dd2, dd1+dd3, sum[i], darray[*new][i]);
+*/
+/*fprintf(stderr,"darray.new_i=%10.10f, darray.new_im1=%10.10f, darray.old_i=%.11f, darray.old_im1=%.11f, dd12sum=%.11f, dd13sum=%.11f, sum=%.11f\n", darray[*new][i], darray[*new][i-1], darray[*old][i], darray[*old][i-1], dd1+dd2, dd1+dd3, (darray[*old][i] + darray[*new][i-1]));*/
    }
 }
 /* -------------------------------------------------------------------------*/
@@ -170,18 +186,18 @@ int *power_col;
    static int i ;
    for( i = 0; i < head.ch[*old].nelem; ++i)
    {
-      darray[*new][i] = (float)pow((double)darray[*old][i],(double)darray[*power_col][i]) ;
+      darray[*new][i] = pow((double)darray[*old][i],(double)darray[*power_col][i]) ;
    }
 }
 /* -------------------------------------------------------------------------*/
 void powvec(old,new,power)
 int *old , *new ;
-float *power;
+double *power;
 {
    static int i ;
    for( i = 0; i < head.ch[*old].nelem; ++i)
    {
-      darray[*new][i] = (float)pow((double)darray[*old][i],(double)*power) ;
+      darray[*new][i] = pow((double)darray[*old][i],*power) ;
    }
 }
 /* -------------------------------------------------------------------------*/
@@ -189,20 +205,22 @@ void elastic_corr(ad_c, tau_c, new_col, first, last, E_on_L)
 
 int ad_c, tau_c, new_col;		/*ad_c= column that contains axial displacement*/
 int first, last;
-float E_on_L;
+double E_on_L;
 {
 
   int i,n_data;
   int row, nrb;
-  float *disp;
+  double *disp;
+  double *f_pointer; /*13.2.08 cjm: to fix problem with crashes under (windows) cygwin*/
 
 	n_data = last-first;
 	row = first;
 	nrb = row-1;
 						/*first point of the corrected disp. column is the same as that from the uncorrected */
 
-	disp = (float *) malloc(n_data*sizeof(float));	 /* in case they chose same col for op */
-	/*disp = (float *) calloc(n_data,sizeof(float));	 */
+	f_pointer = (double *) malloc((n_data+1)*sizeof(double));	 /* in case they chose same col for op */
+	disp = f_pointer;
+
 	for(i=first; i<=last;++i)
 		disp[i-first] = darray[ad_c][i];
 	
@@ -216,7 +234,10 @@ float E_on_L;
 					 (darray[tau_c][row]-darray[tau_c][nrb])/E_on_L ) ;
 	
 	}
-	free( (void *) disp );
+
+  /*13.2.08 cjm: to fix problem with crashes under cygwin/X under windows vista*/
+	/*free( (void *) disp );*/
+	free( (void *) f_pointer );
 }
 /* -------------------------------------------------------------------------*/
 void
@@ -228,13 +249,12 @@ int first, last;
 
   int i,n_data;
   int row, orb;
-  float *disp;
+  double *disp;
 
         n_data = last-first;
         orb = row = first;
 
-        disp = (float *) malloc(n_data*sizeof(float));   /* in case they chose s */
-        /*disp = (float *) calloc(n_data,sizeof(float));  */ 
+        disp = (double *) malloc(n_data*sizeof(double));   /* in case they chose s */
 
         for(i=first; i<=last;++i)
                 disp[i-first] = darray[disp_col][i];
@@ -250,14 +270,14 @@ int first, last;
                 orb++;
         
         }
-	free( (void *) disp);
+	/*free( (void *) disp);*/
 }
 /* -------------------------------------------------------------------------*/
 void
 calc_geom_thin(disp_col, new_col, L, h_h )
  
 int disp_col, new_col;
-float L, h_h; 
+double L, h_h; 
 {
  
   int i; 
@@ -286,7 +306,7 @@ void
 geom_thin(disp_col, gouge_thick_col, new_col, L)
  
 int disp_col, gouge_thick_col, new_col; 
-float L;
+double L;
 {
 
   int i;
@@ -318,7 +338,7 @@ vol_corr(vs_c, tau_c, new_col, first, last, SV_on_V)
 int vs_c, tau_c, new_col;                       /*vs_c= column that contains axial displacement*/
 					/* SV_on_V = S*Va/V */
 int first, last;
-float SV_on_V;
+double SV_on_V;
 {
 
   int i,n_data;
@@ -351,8 +371,8 @@ int first, last;
 
 {
  double denom;
- float *next[2];
- float  aa[2], bb[2], cc[2], dydx;
+ double *next[2];
+ double  aa[2], bb[2], cc[2], dydx;
  int 	i, j, n_data;
 
 	n_data = (last - first ) +1;
@@ -415,7 +435,7 @@ int first, last;
 void add(a,b,f,c,to,first,last)
 int *a , *b, *c ;
 char *to ;
-float *f ;
+double *f ;
 int first , last ;
 {
 int i ;
@@ -438,7 +458,7 @@ switch(*to)
 void sub(a,b,f,c,to,first,last)
      int *a , *b, *c ;
      char *to ;
-     float *f ;
+     double *f ;
      int first , last ;
 {
   int i ;
@@ -464,7 +484,7 @@ void sub(a,b,f,c,to,first,last)
 void prod(a,b,f,c,to,first,last)
 int *a, *b, *c ;
 char *to ;
-float *f ;
+double *f ;
 int first , last ;
 {
 int i;
@@ -488,7 +508,7 @@ switch(*to)
 void mydiv(a,b,f,c,to,first,last)
 int *a, *b, *c ;
 char *to ;
-float *f ;
+double *f ;
 int first , last ;
 {
 int i;

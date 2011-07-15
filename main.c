@@ -1,4 +1,5 @@
 #include <math.h>
+#include <unistd.h>
 
 #include <X11/Xlib.h>
 #include <xview/xview.h>
@@ -40,13 +41,15 @@ extern int plot_error;
 extern int xaxis, yaxis;
 extern char default_path[80];
 extern int read_flag;
-extern char qiparams[256];
+extern char qiparams[1024];
+extern void setup_canvas();
 
 /* main_frame objects */
 Frame main_frame;
 Panel main_frame_menu_panel;
 Panel main_frame_cmd_panel;
 Panel_item cmd_panel_item;
+Panel_item XLOOK_VERSION;
 Panel main_frame_info_panel;
 Panel_item active_win_info, active_plot_info, active_file_info;
 Textsw msgwindow;
@@ -55,7 +58,7 @@ int textsw_total_used;
 int textsw_memory_limit;
 int textsw_saves=0;
 
-
+/*Frame duh_frame;*/
 
 /* cmd_hist_frame objects */
 Frame cmd_hist_frame;
@@ -78,8 +81,10 @@ int main(argc, argv)
   void plot1_proc(), plot2_proc(), plot3_proc(), plot4_proc(), plot5_proc(), plot6_proc(), plot7_proc(), plot8_proc();
   void new_window_proc(), act_window_proc(), kill_window_proc();
   void close_graf_proc(), show_hist_proc();
+  /*void duh_proc();*/
   void exit_proc(), get_cmd_proc(), cmd_hist_proc(), close_hist_proc();
   void qi_window_proc();
+  void textsw_possibly_normalize();
 
   Display *dpy;
   XGCValues gcvalues;
@@ -133,11 +138,13 @@ state = (Icon) xv_create (XV_NULL, ICON,
                                 FRAME_ICON, state,
 				FRAME_SHOW_FOOTER, TRUE,
 				FRAME_LEFT_FOOTER, "Type your command in the command panel",
-				FRAME_LABEL, "XLook", NULL);
+				FRAME_LABEL, "XLook", 
+                                XV_HEIGHT, 500,
+                                XV_WIDTH, 800,
+				NULL);
 
 
-  cmd_hist_frame = (Frame)xv_create(main_frame, FRAME, FRAME_LABEL, "Command History",
-			    NULL);
+  cmd_hist_frame = (Frame)xv_create(main_frame, FRAME, FRAME_LABEL, "Command History", NULL);
   
   
 /* ------------------------ MAIN FRAME SETUP ----------------------------- */
@@ -154,7 +161,6 @@ state = (Icon) xv_create (XV_NULL, ICON,
 			       MENU_ACTION_ITEM,
 			       "Write File", write_file_proc,
 			       NULL);
-
   (void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
 		   PANEL_LABEL_STRING, "FILE",
 		   PANEL_ITEM_MENU, file_menu,
@@ -207,6 +213,11 @@ state = (Icon) xv_create (XV_NULL, ICON,
 		   PANEL_CLIENT_DATA, cmd_hist_frame,
 		   NULL);
 
+  /*(void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
+		   PANEL_LABEL_STRING, "Duh",
+		   PANEL_NOTIFY_PROC, duh_proc, 		 
+		   NULL);*/
+
   /* Thu Mar 13 16:25:44 EST 1997
      by park
      for adding qi button
@@ -228,6 +239,13 @@ state = (Icon) xv_create (XV_NULL, ICON,
 		   PANEL_NOTIFY_PROC, exit_proc,
 		   NULL);
 
+				/*	   XV_X, xv_col(main_frame_info_panel, 20),*/
+
+  XLOOK_VERSION = (Panel_item)xv_create(main_frame_menu_panel, PANEL_MESSAGE,
+                            PANEL_LABEL_STRING, "xlook version: working.2011 ",
+                            PANEL_VALUE_DISPLAY_LENGTH, 20,
+                            NULL);
+
 
 /* ----------------------------- COMMAND PANEL --------------------------*/
 
@@ -238,6 +256,7 @@ state = (Icon) xv_create (XV_NULL, ICON,
 			       NULL);
 
   cmd_panel_item = (Panel_item) xv_create(main_frame_cmd_panel, PANEL_TEXT,
+				 PANEL_NEXT_ROW, -1,
 				 PANEL_LABEL_STRING, "Command: ",
 				 PANEL_VALUE_STORED_LENGTH, 200,
 				 PANEL_VALUE_DISPLAY_LENGTH, 80,
@@ -306,27 +325,46 @@ state = (Icon) xv_create (XV_NULL, ICON,
 
 /* -----------------  CMD_HISTORY FRAME SETUP  ------------------- */
 
-  cmd_hist_panel = (Panel)xv_create(cmd_hist_frame, PANEL,
-				    PANEL_LAYOUT, PANEL_VERTICAL,
-				    NULL);
+
+/*fprintf(stderr,"now setting up cmd_hist_panel, PANEL, and CLOSE buton...\n");*/
+
+  cmd_hist_panel = (Panel)xv_create(cmd_hist_frame, PANEL, PANEL_LAYOUT, PANEL_VERTICAL, NULL);
 
   (void) xv_create(cmd_hist_panel, PANEL_BUTTON,
+		   XV_X, 300,
 		   PANEL_LABEL_STRING, "CLOSE",
 		   PANEL_NOTIFY_PROC, close_hist_proc,
+		   PANEL_CLIENT_DATA, cmd_hist_frame,
 		   NULL);
-  
+ 
+/*cjm: 10.4.07 this is the fix for buttons that don't work. Must be something in PANEL_TEXT that activates*/
+  /*options = (Panel_text_item) xv_create(cmd_hist_panel, PANEL_TEXT,*/
+  (void) xv_create(cmd_hist_panel, PANEL_TEXT,
+                   XV_X, 20,
+                   XV_Y, 15,
+                   PANEL_LABEL_STRING, "",
+                   PANEL_VALUE_DISPLAY_LENGTH, 1,
+                   PANEL_MASK_CHAR, TRUE,
+/*                   PANEL_VALUE, parameter_strs[0],
+                   PANEL_NOTIFY_LEVEL, PANEL_SPECIFIED,
+                   PANEL_NOTIFY_PROC, get_options, */
+                   NULL);
+ 
+
   cmd_hist_panel_list = (Panel_item) xv_create(cmd_hist_panel, PANEL_LIST,
 					  PANEL_LIST_DISPLAY_ROWS, 10,
 					  PANEL_LIST_MODE, PANEL_LIST_READ, 
 					  PANEL_LIST_WIDTH, -1,
 					  PANEL_NOTIFY_PROC, cmd_hist_proc,
 					  NULL);
+
   window_fit(cmd_hist_panel);
   window_fit(cmd_hist_frame);
-  
+ 
   xhair_cursor = (Xv_Cursor)xv_create(XV_NULL, CURSOR,
 				      CURSOR_SRC_CHAR, 22,
 				      NULL);
+
 
 /*----------------  PLOTTING WINDOW SETUP  ---------------------   */
  /* create_canvas(); */
@@ -630,16 +668,81 @@ void cmd_hist_proc(item, cmd_text, client_data, op, event, row)
   
 }
 
-  
+
+/*cjm: added to debug buttons problem. Commented out on: 10.4.07*/
+
+#if 0
+
+void duh_proc(menu, item)
+     Menu menu;
+     Menu_item item;
+{
+Panel button_panel;
+void kill_duh_proc();
+Panel_text_item options;
+
+/*sprintf(msg, "cjm1. in duh_proc \n"); print_msg(msg);
+fprintf(stderr, "%s\n", msg);*/
+
+duh_frame = (Frame)xv_create(main_frame, FRAME,
+                              FRAME_LABEL, "duh",
+                              XV_HEIGHT, 400,
+                              XV_WIDTH, 700,
+                              NULL);
+
+button_panel =  (Panel)xv_create(duh_frame, PANEL, XV_HEIGHT, 52, NULL);
+
+/* kill window button */
+(void) xv_create(button_panel, PANEL_BUTTON,
+                   XV_X, 260,
+                   PANEL_LABEL_STRING, "Kill Window",
+                   PANEL_NOTIFY_PROC, kill_duh_proc,
+                   PANEL_CLIENT_DATA, duh_frame,
+                   NULL);
+
+  options = (Panel_text_item) xv_create(button_panel, PANEL_TEXT,
+                   XV_X, 20,
+                   XV_Y, 15,
+                   PANEL_LABEL_STRING, "",
+                   PANEL_VALUE_DISPLAY_LENGTH, 1,
+		   PANEL_MASK_CHAR, TRUE,
+/*                   PANEL_VALUE, parameter_strs[0],
+                   PANEL_NOTIFY_LEVEL, PANEL_SPECIFIED,
+                   PANEL_NOTIFY_PROC, get_options, */
+                   NULL);
+
+
+xv_set(duh_frame, XV_SHOW, TRUE, NULL);
+
+}
+
+void kill_duh_proc(item, event)
+     Panel_item item;
+     Event *event;
+{
+Frame fr; 
+
+/*sprintf(msg, "cjm1. in kill_duh_proc \n"); print_msg(msg);
+fprintf(stderr, "%s\n", msg);*/
+
+  fr = (Frame) xv_get(item, PANEL_CLIENT_DATA);
+  xv_destroy_safe(fr);
+
+}
+
+#endif
+
 void show_hist_proc(item, event)
      Frame item;
      Event *event;
 {
   /* maps the history window to screen */
+print_msg(msg);
 
   Frame cmd_hist_frame = (Frame)xv_get(item, PANEL_CLIENT_DATA);
   if ((int)xv_get(cmd_hist_frame, XV_SHOW)== FALSE)  
     xv_set(cmd_hist_frame, XV_SHOW, TRUE, NULL);
+
 }
 
 
@@ -648,6 +751,9 @@ void close_hist_proc(item, event)
      Event *event;
 {
   /* unmaps the history window from screen */
+
+/*sprintf(msg, "cjm. in close_hist_proc!\n");
+print_msg(msg);*/
 
   if ((int)xv_get(cmd_hist_frame, XV_SHOW) == TRUE)
     xv_set(cmd_hist_frame, XV_SHOW, FALSE, NULL);
@@ -733,7 +839,7 @@ void refresh_win_proc(item, event)
   canvas = can_info->canvas;
 /*fprintf(stderr, "just before redraw proc.\n");*/
   
-  redraw_all_proc(canvas, can_info->xvwin, xv_get(canvas, XV_DISPLAY), can_info->win, NULL); 
+  redraw_all_proc(canvas, can_info->xvwin, (Display *)xv_get(canvas, XV_DISPLAY), can_info->win, NULL); 
 		/*re-set active plot*/
 
 /*fprintf(stderr, "after redraw.\n");*/
@@ -830,7 +936,7 @@ void canvas_event_proc(xvwindow, event)
       /* default case (mouse == 0) */
       if (data->mouse == 0 )
 	  print_xy(xloc, yloc);
-
+	
       if (data->mouse == 4 )
        {
 	 /* commit zoom */
@@ -1026,7 +1132,7 @@ void resize_proc(canvas, width, height)
   XClearWindow(dpy, win);
 
   can_info = wininfo.canvases[active_window];
-  redraw_all_proc(canvas, can_info->xvwin, xv_get(canvas, XV_DISPLAY), win, NULL); 
+  redraw_all_proc(canvas, can_info->xvwin, (Display *)xv_get(canvas, XV_DISPLAY), win, NULL); 
 
 }
 
@@ -1039,14 +1145,15 @@ void initialize(argc, argv)
   
   plot_error = -1;
   
-  max_col = 17;			/*start with 17, which is MAX limit*/
+  max_col = 33;			/*start with 33, which is MAX limit*/
   max_row = 10000;
   for (i = 0; i < max_col; ++i)
-    darray[i] = (float *)malloc((unsigned)(max_row*sizeof(float)));
+    darray[i] = (double *)malloc((unsigned)(max_row*sizeof(double)));
+    /*darray[i] = (float *)malloc((unsigned)(max_row*sizeof(float)));*/
     /*darray[i] = (float *)calloc((unsigned)max_row, (unsigned)4);*/
   
-  arrayx = (float *)malloc((unsigned)(max_row*sizeof(float)));
-  arrayy = (float *)malloc((unsigned)(max_row*sizeof(float)));
+  arrayx = (double *)malloc((unsigned)(max_row*sizeof(double)));
+  arrayy = (double *)malloc((unsigned)(max_row*sizeof(double)));
   /*arrayx = (float *)calloc((unsigned)max_row, (unsigned)4);
   arrayy = (float *)calloc((unsigned)max_row, (unsigned)4);*/
   

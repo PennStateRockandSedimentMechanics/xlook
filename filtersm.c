@@ -17,22 +17,22 @@ extern char msg[MSG_LENGTH];
 extern int action; 
 
 /** 
- * Read integer(s) from the data file.
+ * Read two-byte words (s) from the data file.
  * 
- * Reads \a count integers from \a file, and stores them at the given \a target. 
+ * Reads \a count two-byte words  from \a file, and stores them at the given \a target. 
  * Presumes that the file was written in big-endian (network) byte order, and 
  * swaps the bytes appropriately for the current architecture. 
  *
- * This function currently presumes that it is dealing with 32-bit integers.
+ * This function currently presumes that it is dealing with 32-bit words .
  *
  * @param target The buffer (size = sizeof(int) * count) where this function 
  *               should store the results.
- * @param count The number of integers to read from the file.
+ * @param count The number of two-byte words to read from the file.
  * @param file The open file descriptor to read from.
  * 
- * @return The number of integers that were successfully read from the file.
+ * @return The number of two-byte words that were successfully read from the file.
  */
-int read_int(int *target, int count, FILE *file) 
+int read_32(int *target, int count, FILE *file) 
 {
     int num_read, i;
     
@@ -45,6 +45,95 @@ int read_int(int *target, int count, FILE *file)
     return num_read;
 }
 
+/**   29.4.07 cjm --based on input from Scott Woods
+* Write 32-bit values to the data file.
+*
+* writes 32-bit values to file
+* Presumes that the file should be written in big-endian (network) byte order, and
+* swaps the bytes appropriately for the current architecture.
+*
+* This function currently presumes that it is dealing with 32-bit values.
+*
+* @param target The buffer (size = sizeof(int) * count) from which this function writes
+* @param count The number of values from the buffer to write to the file.
+* @param file The open file descriptor to write to.
+*
+* @return The number of values that were successfully written to the file.
+*/
+int write_32(int *target, int count, FILE *file)
+{
+   int num_written, written, i;
+   int swabbed_int;
+
+   num_written = 0;
+   for (i=0; i<count; i++)
+   {
+     /* convert each value to network byte order to ensure consistency across architectures. */
+        /* integers are always written to file in big-endian byte order */
+       swabbed_int = htonl(target[i]);
+       written = fwrite(&swabbed_int, 4, 1, file);
+
+        if (written == 1)
+           num_written++;
+        else
+           break;
+   }
+   return num_written;
+}
+
+/* 13.2.07 cjm
+*	Function to determine if the header is a 16 channel (old) version 
+*	or a 32 channel (new) version
+*	
+* 	11.2.2010: cjm: change so that we can read files with 8 byte real numbers 
+*
+*	return of 64 will indicate and 8-bit file with a 32 channel header
+*
+*	return is 16, 32, 64 or 0 (0 indicates an error)
+*/
+
+int  header_version(FILE *dfile)
+{
+  int total_bytes, head_bytes, data_bytes, nchan, nrec;
+
+  fseek(dfile,20L,SEEK_SET);		/* skip over title*/
+  read_32(&(nrec),1,dfile) ;
+  read_32(&(nchan),1,dfile) ;
+  fseek(dfile,0L,SEEK_END);
+  total_bytes = ftell(dfile);         /*determine the byte length of the file */
+  data_bytes = nchan*nrec*4;   /*assume 4 byte float for each data point; data part of the file is nchan*nrec*4 */ 
+				/*if it's a file of 8-byte doubles, we'll figure that out below*/ 
+  head_bytes = total_bytes - data_bytes;
+
+  fseek(dfile,0L,SEEK_SET);		/* put file pointer back to start*/
+
+/*fprintf(stderr,"total_bytes =%d, data bytes=%d, head_bytes=%d, nchan=%d, nrec=%d\n", total_bytes, data_bytes, head_bytes, nchan, nrec);*/
+  
+  if(head_bytes == 1380)
+  {
+  	sprintf(msg,"reading 16 channel file\n") ;
+  	print_msg(msg);
+	return 16;			/*this is an old file, with 16 channels in the header*/
+  }
+  else if(head_bytes == 2724)
+  {
+  	sprintf(msg,"reading 32 channel file of floats\n") ;
+  	print_msg(msg);
+	return 32;			/*this is an new file, with 32 channels in the header*/
+  }
+  else if(head_bytes == 2724 + data_bytes)
+  {
+  	sprintf(msg,"reading 32 channel file of doubles\n") ;
+  	print_msg(msg);
+	return 64;			/*this is a file of double-precision values with a 32 channel header*/
+  }
+  else
+  {
+  	sprintf(msg,"Problem reading file. nchan=%d, nrec=%d, total_bytes=%d, data_bytes=%d, head_bytes=%d\n",nchan, nrec, total_bytes, data_bytes, head_bytes) ;
+  	print_msg(msg);
+	return 0; 	/* hmmm..... there must be some sort of problem*/
+  }
+}
 
 /***************************** examin *******************************/
 /* done */
@@ -56,17 +145,18 @@ void examin(dfile)
     
   
   fread(&(temphead.title[0]),1,20,dfile) ;
-  read_int(&(temphead.nrec),1,dfile) ;
-  read_int(&(temphead.nchan),1,dfile) ;
-  read_int(&(temphead.swp),1,dfile) ;
-  read_int(&(temphead.dtime),1,dfile) ;
+  read_32(&(temphead.nrec),1,dfile) ;
+  read_32(&(temphead.nchan),1,dfile) ;
+  read_32(&(temphead.swp),1,dfile) ;
+  read_32((int *)(&(temphead.dtime)),1,dfile) ;
+  /*fread(&(temphead.dtime),4,1,dfile) ;*/
   for( i = 1; i < MAX_COL; ++i )
     {
       fread(&(temphead.ch[i].name[0]),1,13,dfile) ;
       fread(&(temphead.ch[i].units[0]),1,13,dfile) ;
-      read_int(&(temphead.ch[i].gain),1,dfile) ;
+      fread(&(temphead.ch[i].gain),4,1,dfile) ;
       fread(&(temphead.ch[i].comment[0]),1,50,dfile) ;
-      read_int(&(temphead.ch[i].nelem),1,dfile) ;
+      read_32(&(temphead.ch[i].nelem),1,dfile) ;
     }
   
   sprintf(msg,"%s\n",temphead.title) ;
@@ -84,10 +174,9 @@ void examin(dfile)
     }
 }
 
-/*********************************** rite *****************************/
-/* done */
-void rite(dfile)
-     FILE *dfile;
+#if 0
+/*********************************** rite_lookfile *****************************/
+void rite_lookfile(FILE *dfile)
 {
   int i ;
   
@@ -96,7 +185,7 @@ void rite(dfile)
   fwrite(&(head.nchan),4,1,dfile) ;
   fwrite(&(head.swp),4,1,dfile) ;
   fwrite(&(head.dtime),4,1,dfile) ;
-  for( i = 1; i < MAX_COL; ++i )
+  for( i = 1; i < MAX_COL; ++i ) /*for MAX_COL of 33, this will write a 32 channel header, each channel has 84 bytes of data*/
     {
       fwrite(&(head.ch[i].name[0]),1,13,dfile) ;
       fwrite(&(head.ch[i].units[0]),1,13,dfile) ;
@@ -107,30 +196,82 @@ void rite(dfile)
   
   for( i = 1; i < MAX_COL; ++i )
     {
-      if( (strncmp(&(head.ch[i].name[0]),"no_val",6) != 0))
-	{
-	  fwrite(darray[i],4,head.ch[i].nelem,dfile) ;
-	}
+      if( (strncmp(head.ch[i].name,"no_val",6) != 0))
+	  fwrite(darray[i],sizeof(double),head.ch[i].nelem,dfile) ;
     }
 }
 
+#endif
 
+/* cjm: 12.2.2010: use version above, w/o byte swapping, which is not important (?) for double precision ... ? */
+/* byte swapping preserved in version below*/
+/* BUT: note that the header in xlook is called 'head' rather than 'lookhead' (in lv2look), so be careful w/ copy/paste!*/
+
+/*********************************** rite_lookfile *****************************/
+void rite_lookfile(dfile)
+FILE *dfile;
+{
+  int i, j ;
+  double temp;
+
+  fwrite(&(head.title[0]),1,20,dfile) ;
+  write_32(&(head.nrec),1,dfile) ;
+  write_32(&(head.nchan),1,dfile) ;
+  write_32(&(head.swp),1,dfile) ;
+  write_32((int *)(&(head.dtime)),1,dfile) ;
+
+  for( i = 1; i < MAX_COL; ++i ) /*for MAX_COL of 33, this will write a 32 channel header, each channel has 84 bytes of data*/
+    {
+      fwrite(&(head.ch[i].name[0]),1,13,dfile) ;
+      fwrite(&(head.ch[i].units[0]),1,13,dfile) ;
+      write_32((int *)(&(head.ch[i].gain)),1,dfile) ;
+      fwrite(&(head.ch[i].comment[0]),1,50,dfile) ;
+      write_32(&(head.ch[i].nelem),1,dfile) ;
+    }
+
+/* fprintf(stderr, "before big rite \n");*/
+
+  for( i = 1; i < MAX_COL; ++i )
+    {
+     if( (strncmp(head.ch[i].name,"no_val",6) != 0))
+        fwrite(darray[i],sizeof(double),head.ch[i].nelem,dfile) ;
+
+    }
+
+}
 /********************************* reed ***************************/
 int reed(dfile,append)
      FILE	*dfile ;
      int	append;
 {
-  int i ;
+  int i,j ;
   int rec , chan, file1_nrec ;
   int file1_nelem[MAX_COL];
+  int head_version, head_channels;
   char title[20] ;
-    
-  
+  float *temp1, *temp2;
+
+/* 11.2.2010: cjm: change so that we can read files with 8 byte real numbers and/or with 16 chan headers and files with 32 chan. headers */
+/* 13.2.07: cjm: change so that we can read files with 16 chan headers and files with 32 chan. headers */
+/*MAX_COL is now 32, we can use this to set up arrays etc.*/
+/* we need to find out whether the file has a 16 chan header or a 32 chan header*/
+/* The 16 chan header is x bytes long*/
+
+  head_version = head_channels = header_version(dfile);		/*head_version will be 16, 32, 64 or 0*/
+  if(head_version == 0)
+  {
+      sprintf(msg,"Problem reading data file. Are you sure this is a look file? Header is neither 16 channels long nor 32 channels long. See filtersm.c \n");
+      print_msg(msg);
+      return 0 ;
+  }
+  else if(head_version == 64)
+	head_channels = 32;
+
   i = 2;
   file1_nrec = 0;
   fread(&(title[0]),1,20,dfile) ;
-  read_int(&(rec),1,dfile) ;
-  read_int(&(chan),1,dfile) ;
+  read_32(&(rec),1,dfile) ;
+  read_32(&(chan),1,dfile) ;
   
   if(append == TRUE)
     {
@@ -147,35 +288,40 @@ int reed(dfile,append)
   
   head.nrec = file1_nrec+rec ;
   head.nchan = chan ;
-  
+
   if(append == TRUE)	
     {
-      fseek(dfile,8, 1);	
-      for( i = 1; i < MAX_COL; ++i )
-        {
-	  fseek(dfile, 80, 1);	
+      fseek(dfile, 36, SEEK_SET);		/* changed 13.2.07. This should still point to begin of first channel*/
+      for( i = 1; i <= head_channels; ++i )	/*head_version will be 16, 32, or 64  depending on the header version and file type*/
+        {					/*head_channels will be 16 or 32*/
+	  fseek(dfile, 80, SEEK_CUR);	
 	  file1_nelem[i] = head.ch[i].nelem;	/* save old */
-	  read_int(&(head.ch[i].nelem),1,dfile) ;
+	  read_32(&(head.ch[i].nelem),1,dfile) ;
         }
     }
   else			 /* use the first file for title, gain etc */
     {
       strcpy(&(head.title[0]),&(title[0])) ;
       
-      read_int(&(head.swp),1,dfile) ;
-      read_int(&(head.dtime),1,dfile) ;
-      for( i = 1; i < MAX_COL; ++i )
+      fseek(dfile, 28, SEEK_SET);	/* changed 13.2.07. This should point to begin of swp, after 20 byte title and two 4-byte ints */
+      read_32(&(head.swp),1,dfile) ;
+      read_32((int *)(&(head.dtime)),1,dfile) ;
+      /*fread(&(head.dtime),4,1,dfile) ;*/
+      for( i = 1; i <= head_channels; ++i )
    	{
 	  fread(&(head.ch[i].name[0]),1,13,dfile) ;
 	  fread(&(head.ch[i].units[0]),1,13,dfile) ;
-	  read_int(&(head.ch[i].gain),1,dfile) ;
+	  read_32((int *)&(head.ch[i].gain),1,dfile) ;
 	  fread(&(head.ch[i].comment[0]),1,50,dfile) ;
-	  read_int(&(head.ch[i].nelem),1,dfile) ;
+	  read_32(&(head.ch[i].nelem),1,dfile) ;
 	  file1_nelem[i] = 0;
    	}
     }
   
-  for( i = 1; i < MAX_COL; ++i )
+  if(head_version != 64)	/*float array for byte swapping*/
+  	temp1 = (float *)malloc(head.nrec*sizeof(float));	
+
+  for( i = 1; i <= head_channels; ++i )		/*This is where we read in the data. They are either 4 byte floats or 8 byte doubles*/
     {
       if( (strncmp(&(head.ch[i].name[0]),"no_val",6) != 0))
 	{
@@ -187,254 +333,29 @@ int reed(dfile,append)
 	      print_msg(msg);
 	      head.ch[i].nelem = rec ;
 	    }
-	  read_int(&darray[i][file1_nelem[i]],head.ch[i].nelem,dfile) ;
+	  if(head_version == 64)
+		fread(&darray[i][file1_nelem[i]],sizeof(double),head.ch[i].nelem,dfile) ;
+	
+	  else
+	  {
+		temp2=temp1;
+		read_32((int *)(temp2),head.ch[i].nelem,dfile) ;  
+		for(j=0;j<head.ch[i].nelem;j++)
+			darray[i][file1_nelem[i]+j]=*temp2++;
+/*fprintf(stderr,"nelem =%d, first rec= %g, rec2=%g\n", head.ch[i].nelem, *temp1, *(temp1+1));*/
+		/*fread(&darray[i][file1_nelem[i]],sizeof(float),head.ch[i].nelem,dfile) ; not sure why this doesn't work...*/
+	  	/*read_32((int *)(&darray[i][file1_nelem[i]]),head.ch[i].nelem,dfile) ;  */
+	  }
+
 	  head.ch[i].nelem += file1_nelem[i];
 	}
     }
+  if(head_version != 64)	/*float array for byte swapping*/
+	free(temp1);
+
+  if(head_version == 16)		/* set up extra cols */ 
+  	for( i = 17; i < MAX_COL; ++i )		
+		null_col(i);
   return 1 ;
 }
-
-/* ----------------------------- STDASC -------------------------- */
-/* done */
-int stdasc(pfile, cr, fi)
-     FILE *pfile ;
-     char cr[20], fi[20];
-{
-  int i , j;
-  char headline[20];
-  float samp;
-  float tmax, tmin;
-  /* char *strcat() , *strcmp() ;*/
-  int chan , rec ;
-    
-  
-  while(strncmp(headline,"ivar",4) != 0)
-    {
-      fscanf(pfile,"%s\n",headline) ;
-    }
-  fscanf(pfile,"%6d\n",&(chan)) ;
-  while(strncmp(headline,"ndata",5) != 0)
-    {
-      fscanf(pfile,"%s,\n",headline) ;
-    }
-  fscanf(pfile,"%6d\n",&(rec)) ;
-  if( rec>=max_row || chan>=max_col )
-    {
-      sprintf(msg,"INSUFFICIENT ALLOCATION\nnrec = %d\nnchan = %d\n",rec,chan);
-      print_msg(msg);
-      return 0 ;
-    }
-  else
-    {
-      head.nrec = rec ;
-      head.nchan = chan ;
-    }
-  while(strncmp(headline,"samp",4) != 0)
-    {
-      fscanf(pfile,"%s,\n",headline) ;
-    }
-  fscanf(pfile,"%f\n",&samp) ;
-  while(strncmp(headline,"tmin",4) != 0)
-    {
-      fscanf(pfile,"%s,\n",headline) ;
-    }
-  fscanf(pfile,"%f\n",&tmin) ;
-  while(strncmp(headline,"tmax",4) != 0)
-    {
-      fscanf(pfile,"%s,\n",headline) ;
-    }
-  fscanf(pfile,"%f\n",&tmax) ;
-  while(strncmp(headline,"title",5) != 0)
-    {
-      fscanf(pfile,"%s,\n",headline) ;
-    }
-  fscanf(pfile,"%s,\n",&(head.title[0])) ;
-  while(strncmp(headline,"24,",3) != 0)
-    {
-      fscanf(pfile,"%s,\n",headline) ;
-    }
-  fscanf(pfile,"%f\n",&(head.ch[2].gain)) ;
-  while(strncmp(headline,"data",4) != 0)
-    {
-      fscanf(pfile,"%s\n",headline) ;
-    }
-  strcpy(headline, cr);
-  if(strncmp(headline,"comp",4) == 0)
-    {
-      strcpy(&(head.ch[1].name[0]),"ind_var") ;
-      strcpy(&(head.ch[1].units[0]),"no_info") ;
-      strcpy(&(head.ch[2].name[0]),"real") ;
-      strcpy(&(head.ch[2].units[0]),"no_info") ;
-      strcpy(&(head.ch[3].name[0]),"complex") ;
-      strcpy(&(head.ch[3].units[0]),"no_info") ;
-      head.nchan = 3 ;
-      head.nrec /= 2 ;
-    }
-  else
-    {
-      fprintf(stderr,"reading data as real numbers\n");
-      strcpy(&(head.ch[1].name[0]),"independ") ;
-      strcpy(&(head.ch[1].units[0]),"no_info") ;
-      strcpy(&(head.ch[2].name[0]),"depend") ;
-      strcpy(&(head.ch[2].units[0]),"no_info") ;
-      head.nchan = 2 ;
-/*      printf("float or scaled interger format??\n");
-      fscanf(stdin,"%s",headline); */
-      strcpy(headline, fi);
-    }
-  
-  /*	READ DATA    */
-  for ( i = 0; i < head.nrec; ++i)
-    {
-      for ( j = 1; j < 3; ++j)
-	{
-	  if ( j == 1 )
-	    {
-	      darray[j][i] = samp ;
-	    }
-	  else
-	    {
-	      if ( head.nchan == 2 )
-		{
-		  if(strncmp(headline, "float", 5) == 0)
-		    {
-		      fscanf(pfile," %f,\n",&(darray[j][i]));
-		    }
-		  else
-		    {
-		      fscanf(pfile," %f\n",&(darray[j][i]));
-		      darray[j][i] *= head.ch[2].gain;
-		    }
-		}
-	      if ( head.nchan == 3 )
-		{
-		  fscanf(pfile," %f,\n",&(darray[j][i]));
-		  darray[j][i] *= head.ch[2].gain;
-		  fscanf(pfile," %f,\n",&(darray[j+1][i]));
-		  darray[j+1][i] *= head.ch[2].gain;
-		}
-	    }
-	}
-    }
-  return 1 ;
-}
-
-
-/*------------------------------  TASC ----------------------------------*/ 
-/* done */
-int tasc(pfile, float_flag)
-     FILE *pfile ;
-     int  float_flag;
-{
-    
-  int i , j , temp_int , rec , chan;
-  char junk ;
-  char  end_head[5] , title[20];
-  /* char *strcat() , *strcmp() ;*/
-  float temp_float;
-
-  fscanf(pfile,"%s\n",&(title[0])) ;
-  fscanf(pfile,"%5d%5d\n",&(chan),&(rec)) ;
-  if (chan >= max_col || rec >= max_row)
-    {
-      sprintf(msg, "INSUFFICIENT ALLOCATION\nnrec = %d\nnchan = %d\n",rec,chan+1);
-      print_msg(msg);
-      return 0 ;
-    }
-  else
-    {
-      head.nrec = rec ;
-      head.nchan = chan ;
-      strcpy(&(head.title[0]),&title[0]) ;
-    }
-  fscanf(pfile,"%5d %e\n",&(head.swp),&(head.dtime)) ;
-  for ( i = 2; i <= head.nchan+1; ++i)
-    {
-      fscanf(pfile,"%e",&(head.ch[i].gain)) ;
-      fscanf(pfile,"%s %s\n",&(head.ch[i].name[0]),&(head.ch[i].units[0])) ;
-      strcpy(&(head.ch[i].comment[0]),"none") ;
-      head.ch[i].nelem = head.nrec ;
-    } 
-  i = 1 ;
-  strcpy(&(head.ch[i].name[0]),"deltatime") ;
-  strcpy(&(head.ch[i].units[0]),"seconds") ;
-  strcpy(&(head.ch[i].comment[0]),"none") ;
-  head.ch[i].gain = 1.0 ;
-  head.ch[i].nelem = head.nrec ;
-  head.nchan += 1 ;
-  
-  for ( i = 0; i < 5; ++i)
-    {
-      fscanf(pfile,"%e\n",&(head.extra[i])) ;
-    }
-  fscanf(pfile,"%s\n",&(end_head[0])) ;
-  
-  if (strncmp(&(end_head[0]) , "*EOH", 4 ) == 0)
-    {
-      sprintf(msg, "Header read successfully.\n");
-      print_msg(msg);
-    }
-  else
-    {
-      sprintf(msg, "Problem reading header info - sorry!\n");
-      print_msg(msg);
-      return 0 ;
-    }
-  
-  /*	READ DATA    */
-  
-  if(float_flag == 0)
-    sprintf(msg, "Reading data as int.\n");
-  else	
-    sprintf(msg, "Reading data as float.\n");
-  print_msg(msg);
-    
-  for ( i = 0; i < head.nrec; ++i)
-    {
-      for ( j = 1; j <= head.nchan; ++j)
-	{
-	  /*0 = int	1 = float	*/
-	  if(float_flag == 0) 
-	    {
-	      fscanf(pfile,"%10d",&temp_int) ; 
-	      
-	      if ( j == 1 )
-		{
-		  darray[j][i] = temp_int * head.dtime;
-		}
-	      else
-		{
-		  darray[j][i] = temp_int * head.ch[j].gain ;
-		}
-	    }
-
-	  else	
-	    {
-	      fscanf(pfile,"%e",&temp_float) ;
-	      
-	      if ( j == 1 )
-		{
-		  darray[j][i] = temp_float * head.dtime;
-		}
-	      else
-		{
-		  darray[j][i] = temp_float * head.ch[j].gain ;
-		}
-	    }
-	  
-	}
-      fscanf(pfile,"%c",&junk);
-      if ( junk == '\n' || junk == ' ' || junk == '\t' ) ;
-      else
-	{
-	  sprintf(msg, "Error reading data on line %d!\n",i) ;
-	  print_msg(msg);
-	  i = head.nrec ;
-	}
-      
-    }
-  fclose(pfile);
-  return 1 ;
-}
-/********************************************/
 

@@ -86,7 +86,7 @@ void clr_plots_proc(menu, menu_item)
   int i;
   char labels[MAX_PLOTS][256];
   void clr_plots_done_proc(), clr_plots_cancel_proc();
-  char msg_label[256];
+  char msg_label[MSG_LENGTH];
    
   /*  can_num = xv_get(menu, MENU_CLIENT_DATA);
   set_active_window(can_num); */

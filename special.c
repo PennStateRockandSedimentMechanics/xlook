@@ -7,7 +7,7 @@
 /* -------------------------------------------------------------------------*/
 void line(colx,coly,first,last,result)
 int *colx , *coly , *first , *last;
-float result[];		/*has 10 elements*/
+double result[];		/*has 10 elements*/
 {
 double y_mean = 0.0, x_mean = 0.0,  sumx=0.0 , sumy=0.0 , sumxy=0.0 , sumx2=0.0 , sumy2=0.0;
 double slope, intercept, sum_resid_sq, mean_error, std_slope, std_intercept, corr_coef;
@@ -77,38 +77,39 @@ void stats(col,first,last)
   sum_dev = 0.0;
   for( i = (*first); i <= (*last); ++i)
     {
-      max = (darray[*col][i]<(float)max)?max:(double)darray[*col][i] ;
-      min = (darray[*col][i]<(float)min)?(double)darray[*col][i]:min ;
-      mean += (double)darray[*col][i] ;
-      sum_sq += (double)darray[*col][i] * (double)darray[*col][i] ;
+      max = (darray[*col][i]<max) ? max : darray[*col][i] ;
+      min = (darray[*col][i]<min) ? darray[*col][i] : min ;
+      mean += darray[*col][i] ;
+      sum_sq += darray[*col][i] * darray[*col][i] ;
     }
   rec = (double)(*last) - (double)(*first) + 1.0;
   i = *last - *first + 1;
   col_stat.rec = i ;
-  col_stat.mean = (float)(mean / rec) ;
-  col_stat.max = (float)max ;
-  col_stat.min = (float)min ;
+  col_stat.mean = (mean / (double)rec) ;
+  col_stat.max = max ;
+  col_stat.min = min ;
   for( i = (*first); i <= (*last); ++i)
     {
-      sum_dev += pow(((double)darray[*col][i]-col_stat.mean),2.0);
+      sum_dev += pow((darray[*col][i]-col_stat.mean),2.0);
     }
-  col_stat.stddev = (float)sqrt( (sum_dev / (rec-1.0) ) );
+  col_stat.stddev = sqrt( (sum_dev / (double)(rec-1.0) ) );
 }
 
 /* -------------------------------------------------------------------------*/
 void median_smooth(col,new_col,start,end,window)
 int col, new_col, start, end, window;
 {
-static float *data, median;
+static double *data, median;
 int	i,j,k;
 int	half_window;
 void	mdian1();
 
+fprintf(stderr,"in special.c\n");
+
 	window=2*(int)(window/2) + 1;                /* force wind_size to be odd */	
 	half_window = (int)(window/2);
 
-	data = (float *)malloc((window+1)*sizeof(float));
-	/*data = (float *)calloc(window+1,sizeof(float));*/
+	data = (double *)malloc((window+1)*sizeof(double));
 	
 	for(j=start, i=0; i< half_window; ++i)
 		darray[new_col][j] = darray[col][j++];	
@@ -231,52 +232,5 @@ int col1, col2, new_col, start, end, window;
 
         for(i= 0 ; i < half_wind; ++i)
 		darray[new_col][end-i] = darray[new_col][end-half_wind-1];
-}
-/* -------------------------------------------------------------------------*/
-void greg_slope(xcol,ycol,newcol,interv)
-int *xcol , *ycol , *newcol , *interv;
-{
-     float strend[2];
-     int ppoints , npoints , i;
-     int recs;
-
-	if(head.ch[*xcol].nelem > head.ch[*ycol].nelem) 
-     	{
-		recs = head.ch[*xcol].nelem;
-		name(newcol,*xcol,NULL,NULL);
-     	}
-   	 
-     	else
-     	{
-		recs =  head.ch[*ycol].nelem ;
-     		name(newcol,*ycol,NULL,NULL) ;
-     	}
-
-
-     for ( i = 0; i < recs ; ++i )
-     {
-        if ( (i - (*interv)) < 0 )
-        {
-           npoints = 0 ;
-        }
-        else
-        {
-           npoints = (*interv) ;
-        }
-
-        if ( (i + (*interv)) > head.nrec )
-        {
-           ppoints = 0 ;
-        }
-        else
-        {
-           ppoints = (*interv) ;
-        }
-        npoints *= -1 ;
-        npoints += i ;
-        ppoints += i ;
-        line(xcol,ycol,&npoints,&ppoints,strend) ;
-        darray[*newcol][i] = strend[0] ;
-     }
 }
 /* -------------------------------------------------------------------------*/

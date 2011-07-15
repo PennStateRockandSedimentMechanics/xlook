@@ -21,15 +21,16 @@
 #include <simplexl.h>
 #include <strcmd.h>
 
-char tmp_cmd[256];
-char pathname[10][80];
-char default_path[80];
-char metapath[80];
-char data_file[32];
-char new_file[32];
-char headline[32];
+char tmp_cmd[1024];
+/* cjm 14.5.07; to solve problem with doit files: increased the size of path names. 1024's used to be 80, 512 used to be 32 */
+char pathname[10][1024];
+char default_path[1024];
+char metapath[1024];
+char data_file[512];
+char new_file[512];
+char headline[512];
 
-char qiparams[256];
+char qiparams[1024];
 
 FILE *data, *new;
 
@@ -399,45 +400,6 @@ void command_handler(input)
 	  action = HEAD_GET_FILENAME; 	
 	}
      }
-  
-
-  else if (strncmp(cmd, "tasc", 4) == 0)
-    {
-       if (nargs == 3)
-	{
-	  do_tasc(input); 	 	
-	  action = MAIN;
-	} 
-      else 	 	
-	{ 	
-	  if (nargs > 1)
-	    stripper(input, 1);
-	
-	  set_cmd_prompt("Filename: ");
-	  set_left_footer("Type the input filename");
-	  action = TASC_GET_FILENAME; 	
-	}
-     }
-  
-
-  else if (strncmp(cmd, "stdasc", 6) == 0)
-    {
-      if (nargs == 4)
-	{
-	  do_stdasc(input);
-	  action = MAIN;
-	}
-      else
-	{
-	  if (nargs > 1)
-	      stripper(input, 1);
-	
-	  set_cmd_prompt("Filename: ");
-	  set_left_footer("Type the input filename");
-	  action = STDASC_GET_FILENAME;
-	}
-    }
-
   
   else if (strncmp(cmd, "simplex", 7) == 0) 
     {
@@ -1887,10 +1849,15 @@ void process_action(arg)
 	}
       else
 	{
-	  if (nargs > 5) stripper(arg, 5);
-	  sprintf(tmp_cmd, "smooth %s ", arg);
-	  name_col(getcol(tmp_cmd, 3));
-	  action = SMOOTH_NAME;
+	  if (nargs > 5) 
+	  {
+		stripper(arg, 5);
+		sprintf(tmp_cmd, "smooth %s ", arg);
+		name_col(getcol(tmp_cmd, 3));
+		action = SMOOTH_NAME;
+	   }
+	   else
+		action = SMOOTH_NAME;
 	}
       break;
       
@@ -1898,6 +1865,8 @@ void process_action(arg)
       strcat(tmp_cmd, arg);
       do_smooth(tmp_cmd);
       break;
+
+/*fprintf(stderr,"in event.c at#200\n");*/
 
     case MEDIAN_SMOOTH:
       if (nargs == 7)
@@ -1907,10 +1876,15 @@ void process_action(arg)
 	}
       else
 	{
-	  if (nargs > 5) stripper(arg, 5);
-	  sprintf(tmp_cmd, "median_smooth %s ", arg);
-	  name_col(getcol(tmp_cmd, 3));
-	  action = MEDIAN_SMOOTH_NAME;
+	  if (nargs > 5) 
+	  {
+	  	stripper(arg, 5);
+	  	sprintf(tmp_cmd, "median_smooth %s ", arg);
+	  	name_col(getcol(tmp_cmd, 3));
+	  	action = MEDIAN_SMOOTH_NAME;
+	  }
+	  else 
+	  	action = MEDIAN_SMOOTH_NAME;
 	}
       break;
       
@@ -1942,7 +1916,8 @@ void process_action(arg)
 	}
       else
 	{
-	  if (nargs > 6) stripper(arg, 6);
+	  if (nargs > 6) 
+		stripper(arg, 6);
 	  sprintf(tmp_cmd, "slope %s ", arg);
 	  name_col(getcol(tmp_cmd, 4));
 	  action = SLOPE_NAME;
@@ -2731,7 +2706,6 @@ void process_action(arg)
 	  name_col(getcol(tmp_cmd, 6));
 	  action = MATH_NAME;
 	}
-      
       break; 
 
     case MATH_NAME:
@@ -3168,56 +3142,11 @@ void process_action(arg)
       break;
 
     case GETASCHEAD_GET_FILENAME:
-      do_head(arg);
+      do_getaschead(arg);
+      /*do_head(arg); cjm: 6.11.06*/
       action = MAIN;
       break;
 
-    case TASC_GET_FILENAME:
-      if (nargs == 2)
-	{
-	  sprintf(tmp_cmd, "tasc %s, ", arg); 
-	  do_tasc(tmp_cmd);
-	}
-      else
-	{
-	  if (nargs > 1)
-	    stripper(arg, 1);
-	  sprintf(tmp_cmd, "tasc %s, ", arg); 
-	  set_left_footer("Integer or float data?");
-	  set_cmd_prompt("integer/float: ");
-	  action = TASC_GET_FI;
-	}
-      break;
-      
-    case TASC_GET_FI:
-      strcat(tmp_cmd, arg);
-      do_tasc(tmp_cmd);
-      break;
-      
-    case STDASC_GET_FILENAME:
-      if (nargs > 1)
-	stripper(arg, 1);
-      sprintf(tmp_cmd, "stdasc %s, ", arg); 
-      set_left_footer("Read complex or real data?");
-      set_cmd_prompt("complex/real: ");
-      action = STDASC_GET_CR;
-      break;
-      
-    case STDASC_GET_CR:
-      if (nargs > 1)
-	stripper(arg, 1);
-      strcat(tmp_cmd, arg);
-      set_left_footer("Use float or scaled integer format?");
-      set_cmd_prompt("float/int: ");
-      action = STDASC_GET_FI;
-      break;
-      
-    case STDASC_GET_FI:
-      strcat(tmp_cmd, ", ");
-      strcat(tmp_cmd, arg);
-      do_stdasc(tmp_cmd);
-      break;
-      
     case DOIT:
       doit_proc(arg);
       break;

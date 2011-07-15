@@ -9,6 +9,7 @@ last modified
 	gets reduced only after 3 steps in the right direction.
 	12/8/94 changed format of op_file to include param info at bottom
 	14/8/94 changed to allow data table to be written automatically
+ 14.2.2010, cjm: change so that we don't model mu_o, but instead treat it as a known value
 
 */
 #include <math.h>
@@ -56,12 +57,12 @@ int exec_qi(converg_tol, lambda, wc, rsp)
   void	free_dm();
   void	set_rs_parameters();
   
-  ma=6;				/*set defaults*/
+  ma=5;				/*set defaults*/
   rsp->one_sv_flag=FALSE;
   
   if(rsp->dc2 < 0)
     {
-      ma=4;
+      ma=3;
       rsp->one_sv_flag=TRUE;
     }
   ndata=rsp->last_row - rsp->first_row+1;
@@ -111,7 +112,7 @@ int exec_qi(converg_tol, lambda, wc, rsp)
 	{
 	  data_table = fopen("data_table", "a");   /* append to default file */
 	  if( (int)ftell(data_table) == 0 )	/*write header if first line*/
-	    fprintf(data_table,"%8s,%8s,%9s,%9s,%9s,%9s,%8s,%8s,%9s,%9s,%8s,%8s,%9s,%s,%3s,%s,%6s,%10s\n","mu_o","std mu_o","a","std a","b1","std b1","Dc1","std Dc1","b2","std b2","Dc2","std Dc2","a-b","lin_term","wc","law","step","run date");
+	    fprintf(data_table,"%9s,%9s,%9s,%9s,%8s,%8s,%9s,%9s,%8s,%8s,%9s,%s,%3s,%s,%6s,%10s\n","a","std a","b1","std b1","Dc1","std Dc1","b2","std b2","Dc2","std Dc2","a-b","lin_term","wc","law","step","run date");
 	}
       fprintf(op_file,"\n**************************************************\n");
       time(&tp);
@@ -187,24 +188,25 @@ int exec_qi(converg_tol, lambda, wc, rsp)
  	strcat(msg, "\n");
       print_msg(msg);
       
-      fprintf(op_file,"Initial guesses for parameters:\n\tmu_init= %g,\ta= %g,\tb1= %g,\tdc1= %g,\tb2= %g,\tdc2= %g\n", rsp->muo, rsp->a, rsp->b1, rsp->dc1, rsp->b2, rsp->dc2);
+      fprintf(op_file,"Initial guesses for parameters, with mu_o=%g:\na= %g,\tb1= %g,\tdc1= %g,\tb2= %g,\tdc2= %g\n", rsp->muo, rsp->a, rsp->b1, rsp->dc1, rsp->b2, rsp->dc2);
     } 
 
   else
     op_file=stderr; /*redirect op to stderr if no log file used*/
   
-  /* a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) */
-  a[1] = rsp->muo;
-  a[2] = rsp->a;
-  a[3] = rsp->b1;
-  a[4] = rsp->dc1;
-  a[5] = rsp->b2;
-  a[6] = rsp->dc2;
+/* 14.2.2010, cjm: change so that we don't model mu_o, but instead treat it as a known value*/
+  /* pre 14.2 change: a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) */
+  /* post 14.2 change: a[1]=a, a[2]=b1, a[3]=log(dc1), a[4]=b2, a[5]=log(dc2) */
+  a[1] = rsp->a;
+  a[2] = rsp->b1;
+  a[3] = rsp->dc1;
+  a[4] = rsp->b2;
+  a[5] = rsp->dc2;
 
   /*solve for log of Dc, following RWIM*/
-  a[4] = log(a[4]);
+  a[3] = log(a[3]);
   if(!rsp->one_sv_flag)
-    a[6] = log(a[6]);
+    a[5] = log(a[5]);
   
   /* gen func. for setting a-b, mu_f etc */
   set_rs_parameters(rsp,a,NULL);		
@@ -319,7 +321,7 @@ int exec_qi(converg_tol, lambda, wc, rsp)
 	{
 	  fprintf(op_file,"new params for a\n");
 	  for(i=1;i<=ma; ++i)
-	    fprintf(op_file," %f%c",((i==4 || i==6) ? exp(a[i]) : a[i]), (i % ma)  ? '\t' : '\n');
+	    fprintf(op_file," %f%c",((i==3 || i==5) ? exp(a[i]) : a[i]), (i % ma)  ? '\t' : '\n');
 	  fprintf(op_file,"Iteration: %d \tchisq=%f\tdel_chisq=%g\t1-chisq/prev_chisq=%g\tL-M lambda=%g\n", iter,chisq,(chisq-prev_chisq),1-chisq/prev_chisq,lambda);
 	}
 
@@ -328,7 +330,7 @@ int exec_qi(converg_tol, lambda, wc, rsp)
       msg[0] = '\0';
       for(i=1;i<=ma; ++i)
 	{
-	  sprintf(tmp_msg, " %f%c",((i==4 || i==6) ? exp(a[i]) : a[i]), (i % ma)  ? '\t' : '\n');
+	  sprintf(tmp_msg, " %f%c",((i==3 || i==5) ? exp(a[i]) : a[i]), (i % ma)  ? '\t' : '\n');
 	  strcat(msg, tmp_msg);
 	}
       print_msg(msg);
@@ -409,41 +411,20 @@ int exec_qi(converg_tol, lambda, wc, rsp)
     for(j=1; j<=i; ++j)
       fprintf(op_file,"%11.6g%c",u[i][j],((i==j) ? '\n' : '\t'));
 
-  a_unscaled[4] = exp(a[4]); 			   /*unscaled model params */ 
-  std_a_unscaled[4] = exp(a[4]+std_a[4])-exp(a[4]);	/*unscaled std. dev. of model params */
+  a_unscaled[3] = exp(a[3]); 			   /*unscaled model params */ 
+  std_a_unscaled[3] = exp(a[3]+std_a[3])-exp(a[3]);	/*unscaled std. dev. of model params */
   if(!rsp->one_sv_flag) 
     {
-      a_unscaled[6] = exp(a[6]);
-      std_a_unscaled[6] = exp(a[6]+std_a[6])-exp(a[6]);  	/*treat +,- separately*/
+      a_unscaled[5] = exp(a[5]);
+      std_a_unscaled[5] = exp(a[5]+std_a[5])-exp(a[5]);  	/*treat +,- separately*/
     }
   
   fprintf(op_file,"\nunweighted Chi square error is %g\t\tvariance=chisq/dof = %g\n\n",chisq,chisq/(ndata-ma));
   
-  /*
-     fprintf(op_file,"parameters (best fit) which minimize chi_sq = |A a - b|^2\n");
-     fprintf(op_file,"mu_o     a         b1        dc1       b2        dc2       a-b\n");
-     for(i=1;i<=ma; ++i)
-     fprintf(op_file,"%11.6g%c",a_unscaled[i], ( (i % ma)  ? ' ' : ' '));
-     fprintf(op_file,"%11.6g\n",rsp->amb);
-     if((rsp->one_sv_flag))
-     fprintf(op_file,"%8.6f  %8.6f  %8.6f  %8.3f\n",a_unscaled[1],a_unscaled[2],a_unscaled[3],a_unscaled[4],rsp->amb);
-     else
-     fprintf(op_file,"%8.6f  %8.6f  %8.6f  %8.3f  %8.6f  %8.3f\n",a_unscaled[1],a_unscaled[2],a_unscaled[3],a_unscaled[4],a_unscaled[5],a_unscaled[6],rsp->amb);
-     
-     fprintf(op_file,"std_dev's  (real Dc's)\n");
-     for(i=1;i<=ma; ++i)
-     fprintf(op_file,"%11.6g%c",std_a_unscaled[i], ( (i % ma)  ? '\t' : '\n'));
-     if(rsp->one_sv_flag) 
-     fprintf(op_file,"%10c\t%10c\t%10c\t%11.6g\n",' ',' ',' ',exp(a[4]-std_a[4])-exp(a[4]));
-     else
-     fprintf(op_file,"%10c\t%10c\t%10c\t%11.6g\t%10c\t%11.6g\n",' ',' ',' ',exp(a[4]-std_a[4])-exp(a[4]),' ',exp(a[6]-std_a[6])-exp(a[6]));
-     
-     */
-
-
   /*best fit values*/
-  sprintf(msg, "parameters (best fit) which minimize chi_sq = |A a - b|^2\n");
-  fprintf(op_file,"parameters (best fit) which minimize chi_sq = |A a - b|^2\n");
+  sprintf(msg, "\nparameters (best fit) which minimize chi_sq = |A a - b|^2\nNote that mu_o is assumed to be known; it is not modeled\n");
+  print_msg(msg);
+  fprintf(op_file,"\nparameters (best fit) which minimize chi_sq = |A a - b|^2\nNote that mu_o is assumed to be known; it is not modeled\n");
   
   if(rsp->one_sv_flag)
     {
@@ -451,10 +432,10 @@ int exec_qi(converg_tol, lambda, wc, rsp)
       print_msg(msg);
       
       fprintf(op_file,"mu_o      a         b1        dc1       a-b\n");
-      sprintf(msg, "%8.6f %9.6f %9.6f %8.3f %9.6f\n",a_unscaled[1],a_unscaled[2],a_unscaled[3],a_unscaled[4],rsp->amb);
+      sprintf(msg, "%8.6f %9.6f %9.6f %8.3f %9.6f\n",rsp->muo,a_unscaled[1],a_unscaled[2],a_unscaled[3],rsp->amb);
       print_msg(msg);
 
-      fprintf(op_file,"%8.6f %9.6f %9.6f %8.3f %9.6f\n",a_unscaled[1],a_unscaled[2],a_unscaled[3],a_unscaled[4],rsp->amb);
+      fprintf(op_file,"%8.6f %9.6f %9.6f %8.3f %9.6f\n",rsp->muo,a_unscaled[1],a_unscaled[2],a_unscaled[3],rsp->amb);
     }
   else
     {
@@ -462,10 +443,10 @@ int exec_qi(converg_tol, lambda, wc, rsp)
       print_msg(msg);
       
       fprintf(op_file,"mu_o      a         b1        dc1      b2        dc2      a-b\n");
-      sprintf(msg, "%8.6f %9.6f %9.6f %8.3f %9.6f %8.3f %9.6f\n",a_unscaled[1],a_unscaled[2],a_unscaled[3],a_unscaled[4],a_unscaled[5],a_unscaled[6],rsp->amb);
+      sprintf(msg, "%8.6f %9.6f %9.6f %8.3f %9.6f %8.3f %9.6f\n",rsp->muo,a_unscaled[1],a_unscaled[2],a_unscaled[3],a_unscaled[4],a_unscaled[5],rsp->amb);
       print_msg(msg);
       
-      fprintf(op_file,"%8.6f %9.6f %9.6f %8.3f %9.6f %8.3f %9.6f\n",a_unscaled[1],a_unscaled[2],a_unscaled[3],a_unscaled[4],a_unscaled[5],a_unscaled[6],rsp->amb);
+      fprintf(op_file,"%8.6f %9.6f %9.6f %8.3f %9.6f %8.3f %9.6f\n",rsp->muo,a_unscaled[1],a_unscaled[2],a_unscaled[3],a_unscaled[4],a_unscaled[5],rsp->amb);
     }
 
   /*std deviations*/
@@ -474,21 +455,21 @@ int exec_qi(converg_tol, lambda, wc, rsp)
   fprintf(op_file,"std_dev's  (real Dc's)\n");
   if(rsp->one_sv_flag) 
     {
-      sprintf(msg, "%8.6f %9.6f %9.6f %8.3f\n",std_a_unscaled[1],std_a_unscaled[2],std_a_unscaled[3],std_a_unscaled[4]);
+      sprintf(msg, "         %9.6f %9.6f %8.3f\n",std_a_unscaled[1],std_a_unscaled[2],std_a_unscaled[3]);
       print_msg(msg);
-      sprintf(msg, "%37.3f\n",exp(a[4]-std_a[4])-exp(a[4]));
+      sprintf(msg, "%37.3f\n",exp(a[3]-std_a[3])-exp(a[3]));
       print_msg(msg);
-      fprintf(op_file,"%8.6f %9.6f %9.6f %8.3f\n",std_a_unscaled[1],std_a_unscaled[2],std_a_unscaled[3],std_a_unscaled[4]);
-      fprintf(op_file,"%37.3f\n",exp(a[4]-std_a[4])-exp(a[4]));
+      fprintf(op_file,"         %9.6f %9.6f %8.3f\n",std_a_unscaled[1],std_a_unscaled[2],std_a_unscaled[3]);
+      fprintf(op_file,"%37.3f\n",exp(a[3]-std_a[3])-exp(a[3]));
     }
   else
     {
-      sprintf(msg, "%8.6f %9.6f %9.6f %8.3f %9.6f %8.3f\n",std_a_unscaled[1],std_a_unscaled[2],std_a_unscaled[3],std_a_unscaled[4],std_a_unscaled[5],std_a_unscaled[6]);
+      sprintf(msg, "         %9.6f %9.6f %8.3f %9.6f %8.3f\n",std_a_unscaled[1],std_a_unscaled[2],std_a_unscaled[3],std_a_unscaled[4],std_a_unscaled[5]);
       print_msg(msg);
-      sprintf(msg, "%37.3f %18.3f\n",exp(a[4]-std_a[4])-exp(a[4]),exp(a[6]-std_a[6])-exp(a[6]));
+      sprintf(msg, "%37.3f %18.3f\n",exp(a[3]-std_a[3])-exp(a[3]),exp(a[5]-std_a[5])-exp(a[5]));
       print_msg(msg);
-      fprintf(op_file,"%8.6f %9.6f %9.6f %8.3f %9.6f %8.3f\n",std_a_unscaled[1],std_a_unscaled[2],std_a_unscaled[3],std_a_unscaled[4],std_a_unscaled[5],std_a_unscaled[6]);
-      fprintf(op_file,"%37.3f %18.3f\n",exp(a[4]-std_a[4])-exp(a[4]),exp(a[6]-std_a[6])-exp(a[6]));
+      fprintf(op_file,"         %9.6f %9.6f %8.3f %9.6f %8.3f\n",std_a_unscaled[1],std_a_unscaled[2],std_a_unscaled[3],std_a_unscaled[4],std_a_unscaled[5]);
+      fprintf(op_file,"%37.3f %18.3f\n",exp(a[3]-std_a[3])-exp(a[3]),exp(a[5]-std_a[5])-exp(a[5]));
     }
 
   sprintf(buf,";   fric_lin_term=%g \n", rsp->lin_term);
@@ -503,20 +484,20 @@ int exec_qi(converg_tol, lambda, wc, rsp)
 
   if(rsp->op_file_flag & 0x08) /*write to data table*/
     { 
-      if( !rsp->one_sv_flag && (a_unscaled[6] < a_unscaled[4]) ) 	/*dc1 < dc2*/
+      if( !rsp->one_sv_flag && (a_unscaled[5] < a_unscaled[3]) ) 	/*force dc1 < dc2*/
 	{
-	  temp_d=a_unscaled[4];				/*dc's*/
-	  a_unscaled[4] = a_unscaled[6];
-	  a_unscaled[6] = temp_d;
-	  temp_d=a_unscaled[3];				/*b's*/
+	  temp_d=a_unscaled[3];				/*dc's*/
 	  a_unscaled[3] = a_unscaled[5];
 	  a_unscaled[5] = temp_d;
-	  temp_d=std_a_unscaled[4];			/*dc's std*/
-	  std_a_unscaled[4] = std_a_unscaled[6];
-	  std_a_unscaled[6] = temp_d;
-	  temp_d=std_a_unscaled[3];			/*b's std*/
+	  temp_d=a_unscaled[2];				/*b's*/
+	  a_unscaled[2] = a_unscaled[4];
+	  a_unscaled[4] = temp_d;
+	  temp_d=std_a_unscaled[3];			/*dc's std*/
 	  std_a_unscaled[3] = std_a_unscaled[5];
 	  std_a_unscaled[5] = temp_d;
+	  temp_d=std_a_unscaled[2];			/*b's std*/
+	  std_a_unscaled[2] = std_a_unscaled[4];
+	  std_a_unscaled[4] = temp_d;
 	}
       strcpy(buf,head.title);
       sprintf(mess1,"%d",rsp->vs_row-1);
@@ -532,9 +513,9 @@ int exec_qi(converg_tol, lambda, wc, rsp)
       if(rsp->op_file_flag & 0x08)    /*eights bit on means write data table*/
 	{
 	  if(rsp->one_sv_flag) 
-	    fprintf(data_table,"%8.6f,%8.6f,%9.6f,%9.6f,%9.6f,%9.6f,%8.4g,%8.4g,%9s,%9s,%8s,%8s,%9.6f,%11g,%3g,%c,%s,%s",a_unscaled[1],std_a_unscaled[1],a_unscaled[2],std_a_unscaled[2],a_unscaled[3],std_a_unscaled[3],a_unscaled[4],std_a_unscaled[4]," "," "," "," ",rsp->amb,rsp->lin_term,wc,rsp->law,buf,mess1);
+	    fprintf(data_table,"%8.6f,%8.6f,%9.6f,%9.6f,%9.6f,%9.6f,%9s,%9s,%8s,%8s,%9.6f,%11g,%3g,%c,%s,%s",a_unscaled[1],std_a_unscaled[1],a_unscaled[2],std_a_unscaled[2],a_unscaled[3],std_a_unscaled[3]," "," "," "," ",rsp->amb,rsp->lin_term,wc,rsp->law,buf,mess1);
 	  else 
-	    fprintf(data_table,"%8.6f,%8.6f,%9.6f,%9.6f,%9.6f,%9.6f,%8.4g,%8.4g,%9.6f,%9.6f,%8.4g,%8.4g,%9.6f,%11g,%3g,%c,%s,%s",a_unscaled[1],std_a_unscaled[1],a_unscaled[2],std_a_unscaled[2],a_unscaled[3],std_a_unscaled[3],a_unscaled[4],std_a_unscaled[4],a_unscaled[5],std_a_unscaled[5],a_unscaled[6],std_a_unscaled[6],rsp->amb,rsp->lin_term,wc,rsp->law,buf,mess1);
+	    fprintf(data_table,"%8.6f,%8.6f,%9.6f,%9.6f,%9.6f,%9.6f,%8.4g,%8.4g,%9.6f,%9.6f,%9.6f,%11g,%3g,%c,%s,%s",a_unscaled[1],std_a_unscaled[1],a_unscaled[2],std_a_unscaled[2],a_unscaled[3],std_a_unscaled[3],a_unscaled[4],std_a_unscaled[4],a_unscaled[5],std_a_unscaled[5],rsp->amb,rsp->lin_term,wc,rsp->law,buf,mess1);
 	  fclose(data_table);
 	}
     }
@@ -557,7 +538,8 @@ int exec_qi(converg_tol, lambda, wc, rsp)
 /****************************************************************************/
 /*  calculation of the chisq err for a given vector of model parameters a[i] 
 
-	 a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=dc1, a[5]=b2, a[6]=dc2 
+   pre 14.2 change: a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) 
+   post 14.2 change: a[1]=a, a[2]=b1, a[3]=log(dc1), a[4]=b2, a[5]=log(dc2) 
 
 	 wv is a weighting vector, set in main() 
 */
@@ -642,7 +624,8 @@ void free_dm(m,row,col)
   are based on the method of Reinen and Weeks 1993, JGR 98, 15937-15950.
   */
 
-/* a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) */
+/*   pre 14.2 change: a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) 
+   post 14.2 change: a[1]=a, a[2]=b1, a[3]=log(dc1), a[4]=b2, a[5]=log(dc2) */
 
 /*
    da is the change in model parameters used to calculated the derivative 
@@ -699,7 +682,7 @@ int msvdfit(x,y,wv,ndata,a,ma,u,v,w,chisq,rsp,lambda)
       atry = (double *) calloc((unsigned)ma+1,sizeof(double));*/
 
       for(k=1;k<=ma;++k)
-	a_corr[k]= (k==4 || k==6) ? 10*exp(a[k]) : 10*a[k];	/*make 10x a so that da starts with 10% of a*/
+	a_corr[k]= (k==3 || k==5) ? 10*exp(a[k]) : 10*a[k];	/*make 10x a so that da starts with 10% of a*/
       return(0);								/* use real dc's, which can't be zero */
     }
 
@@ -906,15 +889,6 @@ int msvdfit(x,y,wv,ndata,a,ma,u,v,w,chisq,rsp,lambda)
 
   set_rs_parameters(rsp,a,a_corr);	/* re-set params */
 
-  /*
-     fprintf(op_file,"new params for a\n");
-     for(i=1;i<=ma; ++i)
-     fprintf(op_file," %f%c",((i==4 || i==6) ? exp(a[i]) : a[i]), (i % ma)  ? '\t' : '\n');
-     sprintf(msg, "new params for a\n");
-     for(i=1;i<=ma; ++i)
-     sprintf(msg, " %f%c",((i==4 || i==6) ? exp(a[i]) : a[i]), (i % ma)  ? '\t' : '\n');
-     
-     */
      return 0;
 }
 #undef DA_TOL 
@@ -928,11 +902,13 @@ int msvdfit(x,y,wv,ndata,a,ma,u,v,w,chisq,rsp,lambda)
    This should be called whenever a, b1, b2 is changed, such as by inversion routine.
    Callers should send null if they don't want to update from a[] or da[] 
    
-   a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) 
-
-   note that a[4]=dc1 and a[6]=dc2 are assumed to be log(dc1) and log(dc2)
-   
+   note that a[3]=dc1 and a[5]=dc2 are assumed to be log(dc1) and log(dc2)
 */
+
+/* 14.2.2010, cjm: change so that we don't model mu_o, but instead treat it as a known value*/
+  /* pre 14.2 change: a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) */
+  /* post 14.2 change: a[1]=a, a[2]=b1, a[3]=log(dc1), a[4]=b2, a[5]=log(dc2) */
+
 
 #define BIG_NUM 1e30
 
@@ -945,21 +921,20 @@ void set_rs_parameters(rsp,a,da)
 
   if(a != NULL)
     { 					/* update*/
-      rsp->muo = a[1];
-      rsp->a   = a[2];
-      rsp->b1  = a[3];
-      rsp->dc1 = exp(a[4]);		/*a[4] is really log of dc1*/	
-      rsp->b2  = (rsp->one_sv_flag) ? 0.0 : a[5];
-      rsp->dc2 = (rsp->one_sv_flag) ? BIG_NUM : exp(a[6]); /*a[6]=log(dc1)*/
+      rsp->a   = a[1];
+      rsp->b1  = a[2];
+      rsp->dc1 = exp(a[3]);		/*a[3] is really log of dc1*/	
+      rsp->b2  = (rsp->one_sv_flag) ? 0.0 : a[4];
+      rsp->dc2 = (rsp->one_sv_flag) ? BIG_NUM : exp(a[5]); /*a[5]=log(dc1)*/
     }
 
   if(da != NULL)				
     { 			/* these are size of last step (update) from svd solution*/
-      rsp->a_step   = da[2];		
-      rsp->b1_step  = da[3];
-      rsp->dc1_step = exp(a[4]+da[4])-exp(a[4]);	
-      rsp->b2_step  = (rsp->one_sv_flag) ? 0.0: da[5];
-      rsp->dc2_step = (rsp->one_sv_flag) ? 0.0: exp(a[6]+da[6])-exp(a[6]);
+      rsp->a_step   = da[1];		
+      rsp->b1_step  = da[2];
+      rsp->dc1_step = exp(a[3]+da[3])-exp(a[3]);	
+      rsp->b2_step  = (rsp->one_sv_flag) ? 0.0: da[4];
+      rsp->dc2_step = (rsp->one_sv_flag) ? 0.0: exp(a[5]+da[5])-exp(a[5]);
     }
 
   rsp->amb = rsp->a - (rsp->b1 + rsp->b2); 
@@ -1022,7 +997,8 @@ a linear term is also an option
    See office notes from about 15/7/94 for other laws and info..
    
    a is the ma vector of rs parameters: 
-   a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) 
+   pre 14.2 change: a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) 
+  post 14.2 change: a[1]=a, a[2]=b1, a[3]=log(dc1), a[4]=b2, a[5]=log(dc2) 
 
    x is the ndata vector of displacements at which mod_mu[i] is needed
 
@@ -1042,6 +1018,7 @@ a linear term is also an option
    25/3/99, Added option to return state or velocity rather than friction. But I haven't
 	check if this has any ramifications for inversion. I'm assuming it will be used 
 	only for forward modeling.
+ 14.2.2010, cjm: change so that we don't model mu_o, but instead treat it as a known value
    */
 
 int get_mu_at_x_t(x, mod_mu, ndata, rsp)
@@ -1142,7 +1119,7 @@ int get_mu_at_x_t(x, mod_mu, ndata, rsp)
 					/*deal with multiple velocity step (mvs) option*/
 					/*don't update psi etc. to steady state, just change lp_v*/
 	  rsp->v_lp = rsp->vf = rsp->vel_list[j++];            /*new load_point velocity*/
-	  next_h / 10;			/*make smaller, for safety*/
+	  next_h /= 10;			/*make smaller, for safety*/
 
 	  /* use muo for first step as reference velocity */	
 /* removed 30/5/96*/
@@ -1300,7 +1277,8 @@ int get_mu_at_x_t(x, mod_mu, ndata, rsp)
 /*	This func. does most of the work of solving the coupled
 	equations for rate/state friction and elastic interaction. It's called 
 	from get_mu_at_x_t(). 
-	a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) 
+   pre 14.2 change: a[1] = mu_o, a[2]=a, a[3]=b1, a[4]=log(dc1), a[5]=b2, a[6]=log(dc2) 
+   post 14.2 change: a[1]=a, a[2]=b1, a[3]=log(dc1), a[4]=b2, a[5]=log(dc2) 
 	*/
 
 #define	BIGNUM 1e20

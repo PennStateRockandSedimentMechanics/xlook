@@ -63,8 +63,6 @@ void do_offset_int(char arg[256]);
 void do_offset(char arg[256]);
 void simplex_info(void);
 void do_simplex(char arg[256]);
-void do_stdasc(char arg[256]);
-void do_tasc(char arg[256]);
 void do_head(char arg[256]);
 void do_getaschead(char arg[256]);
 void do_examin(char arg[256]);

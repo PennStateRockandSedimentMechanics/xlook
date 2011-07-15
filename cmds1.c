@@ -1,4 +1,5 @@
 #include <string.h>
+#include <unistd.h>
 #include <sys/file.h>
 
 #include <X11/Xlib.h>
@@ -22,12 +23,13 @@
 #include <special.h>
 #include <strcmd.h>
 
-char pathname[10][80];
-char default_path[80];
-char metapath[80];
-char data_file[32];
-char new_file[32];
-char headline[32];
+/* cjm 14.5.07; to solve problem with doit files: increased the size of path names. 1024's used to be 80, 512 used to be 32 */
+char pathname[10][1024];
+char default_path[1024];
+char metapath[1024];
+char data_file[512];
+char new_file[512];
+char headline[512];
 
 FILE *data, *new;
 
@@ -123,8 +125,7 @@ void set_active_plot(i)
 
   can_info->active_plot = i;
 
-  redraw_proc(can_info->canvas, can_info->xvwin, xv_get(can_info->canvas, XV_DISPLAY),
-                          can_info->win, NULL);
+  redraw_proc(can_info->canvas, can_info->xvwin, (Display *)xv_get(can_info->canvas, XV_DISPLAY), can_info->win, NULL);
 
   if(i < 0)			/*no active plot, no plots*/
   {
@@ -232,7 +233,7 @@ plot data pointers etc.*/
 		{
 	      		can_info->active_plot = i;
 	      		redraw_proc(can_info->canvas, can_info->xvwin, 
-			  xv_get(can_info->canvas, XV_DISPLAY), can_info->win, NULL); 
+			  (Display *)xv_get(can_info->canvas, XV_DISPLAY), can_info->win, NULL); 
 	    	}
 	}
 	if(can_info->alive_plots[j] == 0)     /*active plot got axed, use default*/
@@ -392,7 +393,7 @@ void do_plot(cmd)
   int begin, end;
   int xaxis, yaxis;
   int oldplot;
-  float xmax, xmin, ymax, ymin;
+  double xmax, xmin, ymax, ymin;
   int plot_num;
   Canvas canvas;
   Xv_Window canvas_xv_window;
@@ -529,7 +530,7 @@ should inform user if x and x nelem are not the same...*/
       }
       else if (strcmp(plot_cmd, "plotscale") == 0)
       {	
-	  if (sscanf(cmd, "%s %d %d %d %d %f %f %f %f", desire, 
+	  if (sscanf(cmd, "%s %d %d %d %d %lf %lf %lf %lf", desire, 
 		     &xaxis, &yaxis, &begin, &end,
 		     &xmax, &xmin,
 		     &ymax, &ymin) != 9)
@@ -670,8 +671,8 @@ should inform user if x and x nelem are not the same...*/
   data->zp1 = 0;
   data->zp2 = 0;
   
-  data->xarray = (float *)malloc(sizeof(float)*data->nrows_x);
-  data->yarray = (float *)malloc(sizeof(float)*data->nrows_x);
+  data->xarray = (double *)malloc(sizeof(double)*data->nrows_x);
+  data->yarray = (double *)malloc(sizeof(double)*data->nrows_x);
     
 
   /* copy data from darray to xarray and yarray (plot data arrays) */
@@ -709,6 +710,13 @@ should inform user if x and x nelem are not the same...*/
   redraw_proc(canvas, canvas_xv_window, (Display *)xv_get(canvas, XV_DISPLAY),
 	       (Window)xv_get(canvas_xv_window, XV_XID), NULL);
     
+/* 28.3.08 cjm, took out. I think this is the line I put in ~ 5/07 to get plots to appear when the plot window first opened
+but, since then I've found that the problem with blank plots was due to the xv_set command and these calls:
+WIN_CONSUME_EVENTS, WIN_NO_EVENTS, WIN_MOUSE_BUTTONS
+so
+  redraw_all_proc(canvas, can_info->xvwin, (Display *)xv_get(canvas, XV_DISPLAY), can_info->win, NULL);
+*/
+
   top();
   action = MAIN;
 }
@@ -724,7 +732,7 @@ void write_proc(arg)
 
   if ((new = fopen(new_file, "a")) == NULL)
     {
-      sprintf(msg, "Can't open file: %s.\n", new_file);
+      sprintf(msg, "Can't open file: %s. fopen in write_proc() failed. See cmds1.c\n", new_file);
       print_msg(msg);
       action =MAIN;
       top();
@@ -776,8 +784,10 @@ void write_proc(arg)
 	  return;	
 	}
       
-      rite(new);
+      rite_lookfile(new);
       fclose(new);
+      sprintf(msg, "File %s written. \n", new_file);
+      print_msg(msg);
       action =MAIN;
       top(); 
     }
@@ -793,7 +803,7 @@ void read_proc(cmd)
 
   if ((data = fopen(data_file, "r")) == NULL)
     {
-      sprintf(msg, "Can't open data file: %s.\n", data_file);
+      sprintf(msg, "Can't open data file: %s. fopen in read_proc() failed. Check filename, see cmds1.c\n", data_file);
       print_msg(msg);
       action = MAIN;
       top();

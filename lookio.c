@@ -5,7 +5,7 @@
 
 extern int action;
 extern int doit;
-extern char msg[256];
+extern char msg[MSG_LENGTH];
 
 
 /********************************* aschead ***********************************/
@@ -15,7 +15,7 @@ void aschead_file(ph,file)
 {
   struct header h ;
   int i ;
-  char eoh[5] ;
+  /*char eoh[5] ;*/
   
   h = *ph;
   fprintf(file,"%s\n",h.title) ;
@@ -27,12 +27,14 @@ void aschead_file(ph,file)
 	strcpy(h.ch[i].comment,"none");
       fprintf(file,"%14.7e %s %s %d %s \n",h.ch[i].gain,h.ch[i].name,h.ch[i].units,h.ch[i].nelem,h.ch[i].comment) ;
     } 
+/* 13.2.07, cjm. removed --header no longer uses extras or EOH
   for ( i = 0; i < 5; ++i)
     {
       fprintf(file,"%14.7e\n",h.extra[i]) ;
     }
   strncpy(eoh,"*EOH\0",5);
   fprintf(file,"%s\n",eoh) ;
+*/
 }
 
 void aschead_scrn(ph)
@@ -40,7 +42,7 @@ void aschead_scrn(ph)
 {
   struct header h ;
   int i ;
-  char eoh[5] ;
+/*char eoh[5] ;*/
   
   h = *ph;
   sprintf(msg,"%s\n",h.title) ;
@@ -58,6 +60,7 @@ void aschead_scrn(ph)
       print_msg(msg);
     }
   
+/* 13.2.07, cjm. removed --header no longer uses extras or EOH
   for ( i = 0; i < 5; ++i)
     {
       sprintf(msg,"%14.7e\n",h.extra[i]) ;
@@ -66,6 +69,7 @@ void aschead_scrn(ph)
   strncpy(eoh,"*EOH\0",5);
   sprintf(msg,"%s\n",eoh) ;
   print_msg(msg);
+*/
 }
 
 
@@ -76,7 +80,7 @@ int getaschead(ph,file)
 {
   struct header h ;
   int i ;
-  char title[20] , eoh[5];
+  char title[20] ;
   int rec , chan ;
    
   fscanf(file,"%s",title) ;
@@ -97,6 +101,14 @@ int getaschead(ph,file)
       fscanf(file,"%e %s %s %d %s\n",&(h.ch[i].gain),h.ch[i].name,
 			h.ch[i].units,&(h.ch[i].nelem),h.ch[i].comment);
     } 
+
+   sprintf(msg, "Header accepted.\n") ;
+   print_msg(msg);
+   *ph = h ;
+   display_active_file(1);
+   return 1 ;
+
+/* 13.2.07, cjm. removed --header no longer uses extras or EOH
   for ( i = 0; i < 5; ++i)
     {
       fscanf(file,"%e",&(h.extra[i])) ;
@@ -114,4 +126,5 @@ int getaschead(ph,file)
   fprintf(stderr,"Header not accepted.\n");
   print_msg(msg);
   return 0 ;
+*/ 
 }

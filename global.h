@@ -4,12 +4,16 @@
 #include	<string.h>
 #include 	<xview/canvas.h>
 
+/*13.2.07  NOTE: header no longer has 'extras' and no longer uses EOH at the end*/
+
 #define	TRUE 1
 #define FALSE 0
 #define DEBUG FALSE		/*use to turn debugging statements on and off in source*/
-#define MAX_COL   17		/*this is a default for memory allocation. It isn't a hard*/
+#define MAX_COL   33		/*set this at 33, which is 32 channels of data and a time channel */ 
+				/*this is a default for memory allocation. It isn't a hard*/
 				/*  limit. See allocate in "look_funcs.c" and the functions */
 				/*  in filtersm.c  Also, main.c does an initialization*/
+				/* Assume that data files, as recorded, are limited to 32 chans. */
 #define MAX_ROW 200000
 #define MAX_PLOTS 10		/*max number of plots for each window*/
 #define MAX_N_VSTEPS 20		/*max number of v_steps for multiple velocity step (mvs) option*/
@@ -32,6 +36,7 @@
 
 /*---------------------------------------------------------------*/
 char global_error;
+
 struct	channel 
 {
   char	name[13];
@@ -41,6 +46,8 @@ struct	channel
   int     nelem;
 };
 
+/*13.2.07  NOTE: header no longer has 'extras' and no longer uses EOH at the end*/
+
 struct	header 
 {
   char	title[20];
@@ -49,7 +56,6 @@ struct	header
   int	swp;
   float	dtime;
   struct	channel	ch[MAX_COL];
-  float	extra[5];
 };
 struct  header head ;
 
@@ -65,10 +71,10 @@ struct  plot_sum  plot_info ;
 struct statistics
 {
   int rec ;
-  float mean ;
-  float max ;
-  float min ;
-  float stddev ;
+  double mean ;
+  double max ;
+  double min ;
+  double stddev ;
 };
 struct statistics col_stat ;
 
@@ -135,21 +141,21 @@ struct rs_parameters rs_param ;
 
 /*--------------------------------------------------------------*/
 
-float     *darray[MAX_COL] ;
+double     *darray[MAX_COL] ;
 int        max_col ;
 int        max_row ;
 int     n_param;
 double  simp[MAX_PARAM+1][MAX_PARAM+1],temp[MAX_PARAM+1];
 
-float	*arrayx, *arrayy;
+double	*arrayx, *arrayy;
 
 FILE *command , *com_file[10] , *temp_com_file;
 
 
 typedef struct plot_array 
 {
-  float *xarray;
-  float *yarray;
+  double *xarray;
+  double *yarray;
   int nrows_x; /* probably need just one nrows */
   int nrows_y;
   int col_x;
@@ -216,7 +222,7 @@ up to 10 plots*/
 #define CAN_NUM (4)
 #define GRAF_FRAME (5)
 #define CAN_PLOT_ROWS (6)
-#define MSG_LENGTH 300
+#define MSG_LENGTH 1024
 
 
 /*************************  action DEFINE variables ********************/
@@ -229,8 +235,6 @@ up to 10 plots*/
 #define READ              (10)
 #define APPEND            (11)
 #define WRITE             (12)
-#define TASC              (13)
-#define STDASC            (14)
 #define HEAD              (15)
 #define GETASCHEAD         (16)
 #define EXAMIN            (17)
@@ -289,11 +293,13 @@ up to 10 plots*/
 #define EXAMIN_GET_FILENAME (71)
 #define HEAD_GET_FILENAME (72)
 #define GETASCHEAD_GET_FILENAME (73)
-#define TASC_GET_FILENAME (74)
-#define TASC_GET_FI (75)
-#define STDASC_GET_FILENAME (76)
-#define STDASC_GET_FI (77)
-#define STDASC_GET_CR (78)
+/*  These are not current/no-longer used. Removed 12.2.2010, cjm
+no longer used #define TASC_GET_FILENAME (74)
+no longer used #define TASC_GET_FI (75)
+no longer used #define STDASC_GET_FILENAME (76)
+no longer used #define STDASC_GET_FI (77)
+no longer used #define STDASC_GET_CR (78)
+*/
 #define INTERPOLATE_1 (79)
 #define INTERPOLATE_2 (80)
 #define MATH_FINAL_1 (81)

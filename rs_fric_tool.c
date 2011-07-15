@@ -36,7 +36,7 @@ extern Frame main_frame; /* main window frame */
 extern int qi_flag; /* flag indicating the tool is launched or not */
 extern int total_windows; /* number of plot windows */
 extern int active_window;
-extern char qiparams[256]; /* string of input parameters */ 
+extern char qiparams[1024]; /* string of input parameters */ 
 extern void command_handler(); /* command handling procedure event.c */
 extern Panel_item cmd_hist_panel_list; /* panel storing the command history */
 extern int cmd_num; /* index used in cmd_hist_panel_list */

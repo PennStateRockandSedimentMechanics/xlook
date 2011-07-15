@@ -30,7 +30,8 @@ extern char msg[MSG_LENGTH];
 extern char data_file[20], new_file[20];
 extern FILE *data, *fopen(), *new;
 extern int doit_des, doit_f_open;
-extern char pathname[10][80], default_path[80], metapath[80];
+/* cjm 14.5.07; to solve problem with doit files: increased the size of path names. 1024's used to be 80, 512 used to be 32 */
+extern char pathname[10][1024], default_path[1024], metapath[1024];
 extern int name_action;
 
 int simp_func_action;
@@ -47,9 +48,9 @@ int simp_xch[MAX_COL], simp_ych; /* used by scm */
 static int order; /* must use static, there's order() function in simplexl.c */
 
 
-float val2;
-float dx_increment;
-float trend[10];	/*used to pass results from line fit, see special.c*/
+double val2;
+double dx_increment;
+double trend[10];	/*used to pass results from line fit, see special.c*/
 float test1, test2;
 float temp_float;
 float init_h;
@@ -258,7 +259,7 @@ void do_col_power(arg)
   nocom(arg);
   
   if (sscanf(arg, "%s %d %d %d %s %s",
-	     desire, &col2, &col1, &col_out) != 6)
+	     desire, &col2, &col1, &col_out, name_arg, unit_arg) != 6)
     {
       nea();
       action = MAIN;
@@ -297,7 +298,7 @@ void do_power(arg)
 { 
   nocom(arg);
   
-  if (sscanf(arg, "%s %f %d %d %s %s",
+  if (sscanf(arg, "%s %lf %d %d %s %s",
 	     desire, &val2, &col1, &col_out, name_arg, unit_arg) != 6)
     {
       nea();
@@ -644,7 +645,7 @@ void do_scchisqr(arg)
     }
 
   for(i=0; i<head.ch[col1].nelem; ++i)
-    darray[col_out][i] = (float)scchisqr((double)darray[col1][i],dvar[0],dvar[1],dvar[2]); 
+    darray[col_out][i] = scchisqr(darray[col1][i],dvar[0],dvar[1],dvar[2]); 
 
   sprintf(msg, "SCCHISQR: DONE\n");
   print_msg(msg);
@@ -686,7 +687,7 @@ void do_chisqr(arg)
     }
 
   for(i=0; i<head.ch[col1].nelem; ++i) 
-    darray[col_out][i] = (float)chisqr((double)darray[col1][i],dvar[0]); 
+    darray[col_out][i] = chisqr((double)darray[col1][i],dvar[0]); 
  
   sprintf(msg, "CHISQR: DONE\n");
   print_msg(msg);
@@ -1353,8 +1354,8 @@ void do_polyfit(arg)
 void do_sort(arg)
      char arg[256];
 {
-  float ascend;
-  float *good_points;
+  double ascend;
+  double *good_points;
   
   nocom(arg);
   
@@ -1389,7 +1390,7 @@ void do_sort(arg)
       return;
     }
   
-  good_points = darray[0];	/*use col 0  of look table, store ints as floats*/
+  good_points = darray[0];	/*use col 0  of look table, store ints as double*/
   good_points[0] = first;		/* first point is "in order" by def. */
   for(i=first, j=0; i<last; )
     {
@@ -1398,13 +1399,13 @@ void do_sort(arg)
 	k++;	       /*find next point that's not out-of-order*/
       i += k;	
       if(i <= last)
-	good_points[++j] = (float)i;	/*skip points that are out of order*/
+	good_points[++j] = (double)i;	/*skip points that are out of order*/
     }
   
   temp_int = last-first-j;			/* number of points to ax */
 
   for(i=last;i<head.ch[col1].nelem;i++)
-    good_points[++j] = (float)i;	      /*skip points out of order*/
+    good_points[++j] = (double)i;	      /*skip points out of order*/
   
   for(h=1;h<max_col;++h)	/*loop over cols*/
     {
@@ -1539,7 +1540,7 @@ void do_math(arg)
 {
   nocom(arg);
   
-  if (sscanf(arg, "%s %d %c %f %c %d %s %s", desire, &col1, &opr, &val2, &type, &col_out, name_arg, unit_arg) != 8)
+  if (sscanf(arg, "%s %d %c %lf %c %d %s %s", desire, &col1, &opr, &val2, &type, &col_out, name_arg, unit_arg) != 8)
     {
       nea();
       action = MAIN;
@@ -1579,7 +1580,7 @@ void do_mathint(arg)
 {
   nocom(arg);
   
-  if (sscanf(arg, "%s %d %c %f %c %d %d %d %s %s", 
+  if (sscanf(arg, "%s %d %c %lf %c %d %d %d %s %s", 
 	     desire, &col1, &opr, &val2, &type, &col_out, &i, &j, name_arg, unit_arg) != 10)
     {
       nea();
@@ -2044,7 +2045,7 @@ void do_r_trend_input(arg)
 {
   nocom(arg);
 
-  if (sscanf(arg, "%s %s %s %d %d %d %f %f %s %s", desire, t_string, t_string_2, &col1, &col2, &col_out, &trend[0], &trend[1], name_arg, unit_arg) != 10)
+  if (sscanf(arg, "%s %s %s %d %d %d %lf %lf %s %s", desire, t_string, t_string_2, &col1, &col2, &col_out, &trend[0], &trend[1], name_arg, unit_arg) != 10)
     {
       nea();
       top();
@@ -2868,7 +2869,7 @@ void do_offset(arg)
 
 void simplex_info()
 {
-  sprintf(msg,"A listing of functions can be found in /lamont/lamont/boitnott/LCO/Simp_functions\n");
+  sprintf(msg,"This version only supports simplex for the rate/state friction laws\n");
     print_msg(msg);
 }
 
@@ -3022,100 +3023,6 @@ void do_simplex(arg)
   action = SIMP_FUNC;
   return;
   
-}
-
-
-/****************************** stdasc *************************/
-/* calls stdasc() in filtersm.c */
-
-void do_stdasc(arg)
-     char arg[256];
-{
-  char fi[20], cr[20];
-  int i;
-    
-  nocom(arg);
-  
-  if (sscanf(arg, "%s %s %s %s", desire, data_file, cr, fi) != 4)
-    {
-      nea();
-      action = MAIN;
-      top();
-      return;
-    }
-  
-  if ((data = fopen(data_file, "r")) == NULL)
-    {
-      sprintf(msg, "Can't open data file %s", data_file);
-      print_msg(msg);
-    }
-  else
-    {
-      if (stdasc(data, cr, fi) != 1)
-	{
-	  sprintf(msg, "Input error! stdasc command aborted.");
-	  print_msg(msg);
-	}
-      fclose(data);
-      for (i = (head.nchan+1); i<MAX_COL; ++i)
-	null_col(i);
-    }
-
-  sprintf(msg, "STDASC: DONE\n");
-  print_msg(msg);
-
-  action = MAIN;
-  top();
-}
-
-
-/********************************** tasc *******************************/
-/* calls tasc() in filtersm.c */
-
-void do_tasc(arg)
-     char arg[256];
-{
-  char fi[20];
-  int i, f_flag;
-    
-  nocom(arg);
-  
-  if (sscanf(arg, "%s %s %s", desire, data_file, fi) != 3)
-    {
-      nea();
-      action = MAIN;
-      top();
-      return;
-    }
-
-  if ((data = fopen(data_file, "r")) == NULL)
-    {
-      sprintf(msg, "Can't open data file %s.\n", data_file);
-      print_msg(msg);
-    }
-  else
-    {
-      if (fi[0] == 'f') f_flag = 1;
-      else f_flag = 0;
-      
-      if (tasc(data, f_flag) != 1)
-	{
-	  sprintf(msg, "Input error! tasc command aborted.\n");
-	  print_msg(msg);
-	}
-      fclose(data);
-      sprintf(msg, "Warning: assumed active columns are between 1 and head.nchan [%d]\n", head.nchan);
-      print_msg(msg);
-      
-      for (i = (head.nchan+1); i<MAX_COL; ++i)
-	null_col(i);
-    }
-
-  sprintf(msg, "TASC: DONE\n");
-  print_msg(msg);
-
-  action = MAIN;
-  top();
 }
 
 
@@ -3332,7 +3239,7 @@ void do_mem(arg)
 
   nocom(arg);
 
-  if (sscanf(arg, "%s %d , %d , %d , %d , %d , %d, %d , %d , %c, %c, %c", desire, &col1,&col2,&col_out,&temp_col,&first,&last,&n_freq,&n_poles,&type,&junk) != 11 )
+  if (sscanf(arg, "%s %d , %d , %d , %d , %d , %d, %d , %d ,  %c, %c", desire, &col1,&col2,&col_out,&temp_col,&first,&last,&n_freq,&n_poles,(char *)&type,(char *)&junk) != 11 )
     {
       nea();
       action = MAIN;
@@ -3466,6 +3373,8 @@ void do_median_smooth(arg)
   
   if (sscanf(arg,"%s %d %d %d %d %d %s %s", desire, &col1, &col_out, &first, &last, &temp_int, name_arg, unit_arg) != 8)
     {
+/*fprintf(stderr,"in cmds.c at#100 \n");*/
+
       nea();
       action = MAIN;
       top();
@@ -4174,7 +4083,7 @@ print_msg(msg);
   sprintf(msg, "> for weighting: i is relative to weight_row (this will normally be vs_row)\n");
 print_msg(msg);
 
-  sprintf(msg, "%f \n", mu_fit_mess_2);
+  sprintf(msg, "%s \n", mu_fit_mess_2);
   print_msg(msg);
 
   sprintf(msg, "> A linear term can be added to the friction law to account for hardening/weakening\n\t\t: mu = mu_* + a ln(V/V*) + b phi + (c)*dx, where c has units of 1/disp\n>\tSet c=0 for no lin_term\n");

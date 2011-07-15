@@ -53,7 +53,7 @@ int allocate(row,col)
 {
   int i , j ;
   unsigned unbytes ;
-  unbytes = (unsigned)(4*row) ;
+  unbytes = (unsigned)(sizeof(double)*row) ;
   if ( col >= MAX_COL || col <= 0 || row <= 0) 
     {
        	sprintf(msg,"Error. col >= MAX_COL || col <= 0 || row <= 0, You entered %d for ncol and %d for nrow.\n",col,row);
@@ -66,7 +66,7 @@ int allocate(row,col)
     {
       for( i=0; i<max_col; ++i)
 	{
-	  darray[i] = (float *)realloc((char *)darray[i],unbytes) ;
+	  darray[i] = (double *)realloc((char *)darray[i],unbytes) ;
 	  if( row>max_row-1 )
 	    {
 	      for (j=max_row; j<row; ++j)
@@ -77,7 +77,7 @@ int allocate(row,col)
 	}
       for( i=max_col; i<col; ++i )
 	{
-	  darray[i] = (float *)calloc((unsigned)row,(unsigned)4) ;
+	  darray[i] = (double *)calloc((unsigned)row,sizeof(double)) ;
 	}
     }
   if ( row<head.nrec )
@@ -93,8 +93,9 @@ int allocate(row,col)
   max_row = (row > max_row) ? row : max_row ;
   
   /* for plotting */
-  arrayx = (float *)realloc((char *)arrayx,(unsigned)(max_row * 4)) ;
-  arrayy = (float *)realloc((char *)arrayy,(unsigned)(max_row * 4)) ;
+/* These are defined and the allocation is done in main.c*/
+  arrayx = (double *)realloc((char *)arrayx,(unsigned)(max_row * sizeof(double))) ;
+  arrayy = (double *)realloc((char *)arrayy,(unsigned)(max_row * sizeof(double))) ;
   return 1 ;
 }
 
