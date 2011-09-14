@@ -1,0 +1,1611 @@
+/* cjm 21.1.08:  added a new line to plot window info, for xlook compile version and to
+deal with wrapping problem caused by OS 10.5*/
+
+/*
+This should really be called plot_window.c
+*/
+
+#include <gtk/gtk.h>
+#include <math.h>
+#include <assert.h>
+
+#include "config.h"
+#include "global.h"
+#include "messages.h"
+#include "can.h"
+#include "ui.h"
+
+extern char plot_cmd[256]; // FIXME: move to globals.h
+
+typedef enum {
+	PLOT_LABEL_LEFT_FOOTER= 0,
+	LABEL_X,
+	LABEL_Y,
+	LABEL_ROW_NUMBER,
+	LABEL_PLOT_ROWS,
+	NUMBER_OF_LABELS
+} PlotLabelID;
+
+enum
+{
+  PLOT_TREE_COLUMN_ACTIVE= 0,
+  PLOT_TREE_COLUMN_NAME,
+  NUMBER_OF_PLOT_TREE_COLUMNS
+} ;
+
+
+static int get_new_window_num();
+static void adjust_canvas_size(int index);
+static int window_index_from_window(GtkWindow *window);
+static GtkWindow *parent_gtk_window(GtkWidget *widget);
+static void set_left_footer_message(GtkWindow *parent, char *txt);
+static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, char *txt);
+static void erase_rectangle(GtkWidget *widget, int x, int y, int width, int height);
+static void draw_line(GtkWidget *widget, int x0, int y0, int x1, int y1);
+static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info);
+static void label_type0(GtkWidget *drawingArea, canvasinfo *can_info);
+static int get_row_number(canvasinfo *can_info, int nrow, float x1, float y1);
+static void invalidate_widget_drawing(GtkWidget *widget);
+static canvasinfo *canvas_info_for_widget(GtkWidget *widget);
+static void adjust_canvas_size(int index);
+static void rebuild_active_plot_combo_list(GtkComboBox *widget);
+static void invalidate_plot(GtkWindow *window);
+
+
+//extern Frame main_frame;
+//Xv_Cursor xhair_cursor;
+
+short canvas0_image[] = {
+#include "canvas.ico"
+};
+//Server_image c0image;
+//Icon cstate;
+
+struct plot_window
+{
+	GtkWindow *window;
+};
+
+
+struct plot_window *create_plot_window()
+{ 
+	struct plot_window *result= NULL;
+	int win_num = get_new_window_num();
+
+	if (win_num == -1)
+	{
+		sprintf(msg, "Reached limit of 10 windows. Ignored!\n");
+		print_msg(msg);
+		ui_globals.total_windows--;
+		return NULL;
+	} else {
+		int ii;
+		GtkBuilder *builder = gtk_builder_new ();
+		gtk_builder_add_from_file (builder, "plot_window.glade", NULL);
+
+		// load the rest of them...
+		GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (builder, "plotWindow"));
+
+		gtk_builder_connect_signals (builder, NULL);
+		g_object_unref (G_OBJECT (builder));
+
+		// set the window title...
+		sprintf(msg, "Plot Window %d", win_num+1);
+		gtk_window_set_title(GTK_WINDOW(window), msg);
+
+		// create the canvasinfo (this is sorta silly)
+		canvasinfo *can_info = (canvasinfo *) malloc(sizeof(canvasinfo));
+		if (can_info == NULL)
+		{
+			print_msg("Memory allocation error. Window cannot be created.");
+			return NULL;
+		}
+
+		ui_globals.old_active_window = ui_globals.active_window;
+		ui_globals.active_window = win_num;
+		fprintf(stderr, "Window pointer is %p\n", window);
+		can_info->canvas_num = ui_globals.active_window;
+		can_info->total_plots = 0;
+		can_info->active_plot = -1;
+
+		for (ii=0; ii<10; ii++)
+		{
+			can_info->alive_plots[ii] = 0;
+		}
+
+		// must do this before it is realized.
+		result= malloc(sizeof(struct plot_window));
+		if(result)
+		{
+			result->window= GTK_WINDOW(window);
+		}
+		
+		// store it.
+		can_info->plot_window= result;
+
+		display_active_window(ui_globals.active_window+1);
+		display_active_plot(0);
+
+		wininfo.windows[ui_globals.active_window] = 1;
+		wininfo.canvases[ui_globals.active_window] = can_info;
+
+
+		// okay; the "proper" way to do this would be to store wininfo off the GtkWindow, and iterate the window manager to figure out what we have up.
+		// sorta like this:
+		//g_object_set_data_full (G_OBJECT (event_box), "wininfo", g_strdup(user_name), (GDestroyNotify) g_free); (replacing allocater and free'r)
+		// however, at this point, I'm going to do it dirty.
+		adjust_canvas_size(ui_globals.active_window);
+
+		gtk_widget_show (window);
+	}
+
+	return result;
+}
+
+void set_active_plot_in_window(struct plot_window *pw, int i)
+{
+fprintf(stderr, "set active plot in window to %d\n", i);
+	assert(pw);
+	assert(pw->window);
+	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(pw->window));
+
+	/* set the active plot */
+	can_info->active_plot = i;
+
+	/* invalidate the drawing area */
+	invalidate_plot(pw->window);
+
+	if(i < 0)			/*no active plot, no plots*/
+	{
+		display_active_plot(can_info->active_plot);
+	}
+	else if (can_info->alive_plots[i] == 0)
+	{
+		sprintf(msg, "Plot does not exist, it can't be set active, error!\n");
+		print_msg(msg);
+		top();
+		ui_globals.action = MAIN;
+	}
+	else
+	{
+		display_active_plot(can_info->active_plot+1);
+	}
+	
+	// rebuild the combo list...
+	GtkComboBox *activeCombo= GTK_COMBO_BOX(lookup_widget_by_name(GTK_WIDGET(pw->window), "comboboxActivePlot"));
+	rebuild_active_plot_combo_list(activeCombo);
+}
+
+void remove_plot_in_window(struct plot_window *pw, int pn)
+{
+	assert(pw);
+	assert(pw->window);
+	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(pw->window));
+	int i, j, hole_index[MAX_PLOTS];
+  
+	pn--;					/*internal number starts at zero, instead of 1*/
+  
+	if (can_info->alive_plots[pn] == 0 || can_info->active_plot == -1 )
+	{
+		sprintf(msg, "Plot does not exist or there's no active plot (error!).\n");
+		print_msg(msg);
+		top();
+		ui_globals.action = MAIN;
+		return;
+	}
+  
+	can_info->alive_plots[pn] = 0;	/*make it dead*/
+	free(can_info->plots[pn]);		/*free space */
+
+	/*if killed plot was active, or if active plot was the last one
+	in the list, reset active plot*/
+	if( (pn == can_info->active_plot || can_info->active_plot == can_info->total_plots -1)
+		&& can_info->active_plot)
+    	can_info->active_plot--;
+
+	/*reshuffle the list, so that, say, removing plot #2 from a list of 4
+	results in #3 going to #2 and #4 going to #3. This will require repointing the 
+	plot data pointers etc.*/
+	for(j=i=0;i<MAX_PLOTS;i++)	/*first set up an index for holes (actually non-holes)*/
+	{
+		hole_index[i]=0;		/*default*/
+		if (can_info->alive_plots[i])	/*if alive, numbers will be the same */
+			hole_index[j++] = i; 
+	}
+
+	can_info->total_plots--;		/*now decrement this counter*/
+
+	for(j=i=0;i<can_info->total_plots;i++)		/*shuffle list*/	
+	{
+		can_info->alive_plots[i] = 1; /*set it live*/
+		can_info->plots[i] = can_info->plots[hole_index[i]];  /*repoint pointer to data*/
+	}
+
+	for(i=can_info->total_plots;i< MAX_PLOTS;i++) /* all the rest are dead*/
+		can_info->alive_plots[i] = 0;
+
+	// not sure why it's done more than once.
+	invalidate_plot(pw->window);
+
+	if(can_info->total_plots ==0)
+	{
+		can_info->active_plot = -1;
+	}
+	else
+	{
+		j=can_info->active_plot;		/*save active plot*/
+		for (i=0; i<MAX_PLOTS; i++)		/*re-draw */
+		{
+			if (can_info->alive_plots[i] == 1)
+			{
+				can_info->active_plot = i;
+				invalidate_plot(pw->window);
+			}
+		}
+		
+		if(can_info->alive_plots[j] == 0)     /*active plot got axed, use default*/
+		{
+			can_info->active_plot = can_info->total_plots-1;
+		}
+		else
+		{
+			can_info->active_plot = j;
+		}
+	}
+
+	set_active_plot_in_window(can_info->plot_window, can_info->active_plot);
+
+	ui_globals.action = MAIN;
+	top();
+}
+
+
+// FIXME: Make the window kill also call this.
+void kill_plot_window(struct plot_window *pw)
+{
+	int i;
+	
+	assert(pw);
+	assert(pw->window);
+	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(pw->window));
+
+	/* free all the plots in this window */
+	for (i=0; i<MAX_PLOTS; i++)
+	{
+		if(can_info->alive_plots[i])
+			free(can_info->plots[i]);
+	}
+
+	/* kill the xwindow */
+	gtk_widget_destroy(GTK_WIDGET(pw->window));
+
+	/* free the canvasinfo for this window */
+	free(can_info->plot_window);
+	free(can_info);
+}  
+
+void invalidate_plot_window(struct plot_window *pw)
+{
+	assert(pw);
+	assert(pw->window);
+	invalidate_plot(pw->window);
+}
+
+/* --------------------- Everything below here is local (static) code.  If it doesn't have static on the func def, it's because it's a late binding signal from Glade */
+static void invalidate_plot(GtkWindow *window)
+{
+	// now redraw the graphic..
+	GtkWidget *drawingArea= lookup_widget_by_name(GTK_WIDGET(window), "chartArea");
+	invalidate_widget_drawing(drawingArea);
+}
+
+static void adjust_canvas_size(int index)
+{
+	canvasinfo *can_info;
+	//  Canvas canvas;
+	int start_xaxis, start_yaxis, end_xaxis, end_yaxis;
+	int canvas_width, canvas_height;
+	int start_x, start_y, end_x, end_y;
+
+	can_info = wininfo.canvases[index];
+	GtkWidget *drawingArea= lookup_widget_by_name(GTK_WIDGET(can_info->plot_window->window), "chartArea");
+	canvas_width= drawingArea->allocation.width;
+	canvas_height= drawingArea->allocation.height;
+//	fprintf(stderr, "Width: %d Height: %d\n", canvas_width, canvas_height);
+
+	/* xaxis is from 0.15 to 0.85 canvas width */
+	start_xaxis = (int)canvas_width*0.15;
+	end_xaxis = canvas_width - (int)canvas_width*0.15;
+
+	/* yaxis is from 0.2 to 0.9 canvas height; 
+	  make room for title at the top (4 lines),
+	  make room for xaxis labels at the bottom (4 lines)
+	  and also 2 pixels of space between lines */
+	start_yaxis = canvas_height - 5*ui_globals.tickfontheight - 10;
+	end_yaxis = ui_globals.titlefontheight*4 + 10; 
+
+	/* plotting area */
+	start_x = start_xaxis + canvas_width/20;
+	end_x = end_xaxis - canvas_width/20; 
+
+	/* plotting area */
+	start_y = start_yaxis - canvas_height/20; 
+	end_y = end_yaxis;
+
+	can_info->start_x = start_x;
+	can_info->end_x = end_x;
+	can_info->start_y = start_y;
+	can_info->end_y = end_y;
+	can_info->start_xaxis = start_xaxis;
+	can_info->end_xaxis = end_xaxis;
+	can_info->start_yaxis = start_yaxis;
+	can_info->end_yaxis = end_yaxis;
+	can_info->point_plot = 0;
+}
+
+static int get_new_window_num()
+{
+	int i;
+
+	for (i = 0; i <MAXIMUM_NUMBER_OF_WINDOWS; i++)
+	{
+		if (wininfo.windows[i] == 0)
+			return i;
+	}
+	
+	/* reached plots limit.. need to delete one or more plots from window */
+	return(-1);
+}
+
+/*
+Mouse and button press signals to respond to input from the user. (Use gtk_widget_add_events() to enable events you wish to receive.)
+
+The "realize" signal to take any necessary actions when the widget is instantiated on a particular display. (Create GDK resources in response to this signal.)
+
+The "configure_event" signal to take any necessary actions when the widget changes size.
+
+The "expose_event" signal to handle redrawing the contents of the widget.
+
+Expose events are normally delivered when a drawing area first comes onscreen, or when it's covered by another window and then uncovered (exposed). 
+You can also force an expose event by adding to the "damage region" of the drawing area's window; gtk_widget_queue_draw_area() and gdk_window_invalidate_rect() 
+are equally good ways to do this. You'll then get an expose event for the invalid region.
+*/
+
+void on_chartArea_realize(GtkWidget *widget, gpointer user_data)
+{
+	GdkCursor *cursor= gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_CROSSHAIR);
+	gdk_window_set_cursor(gtk_widget_get_window(widget), cursor);
+}
+
+/* Handle the mouse motion in the box */
+gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data)
+{
+	GtkWindow *window= parent_gtk_window(widget);
+
+	int win_index= window_index_from_window(window);
+	if(win_index != NONE)
+	{
+		canvasinfo *can_info;
+		plotarray *data;
+		char xstring[MSG_LENGTH], ystring[MSG_LENGTH], rowstring[MSG_LENGTH];
+		float xval, yval;
+		float xmatch, ymatch;
+		int match_set= FALSE;
+		int nrows, row_num;
+
+		int xloc= (int) event->x;
+		int yloc= (int) event->y;
+	
+		can_info = wininfo.canvases[win_index];
+
+		if (can_info->active_plot == -1)
+		{
+//			sprintf(msg, "There is no plot in this window.\n");
+//			print_msg(msg);
+			return FALSE;
+		}
+
+		data = can_info->plots[can_info->active_plot];
+
+//		draw_crosshair(xloc, yloc);
+
+		xval = (xloc - can_info->start_x)/data->scale_x + data->xmin;
+		yval = (can_info->start_y - yloc)/data->scale_y + data->ymin;
+
+		nrows = data->nrows_x;
+		row_num = get_row_number(can_info, nrows, xval, yval);
+		if (row_num <= nrows && row_num != -1)
+		{
+			/* get x and y values from data (not screen) */
+			xmatch = data->xarray[row_num]; 
+			ymatch = data->yarray[row_num]; 
+			match_set= TRUE;
+		
+			row_num = row_num + data->begin; 
+			sprintf(rowstring, "Row Number: %d", row_num);
+			/* draw crosshair on point */
+//			draw_xhair(xval, yval);
+		}
+		else 
+		{
+			sprintf(rowstring, "Row Number: None");
+			sprintf(msg, "The point picked was not on the curve.\n");
+			print_msg(msg);
+		}
+
+		set_plot_label_message(window, LABEL_ROW_NUMBER, rowstring);
+
+		/*  print the x and y coord on the panels */
+		if(match_set)
+		{
+			sprintf(xstring, "X: %.5g (Data: %.5g)", xval, xmatch); 
+			set_plot_label_message(window, LABEL_X, xstring);
+			sprintf(ystring, "Y: %.5g (Data: %.5g)", yval, ymatch);
+			set_plot_label_message(window, LABEL_Y, ystring);
+		} else {
+			sprintf(xstring, "X: %.5g (No Match)", xval); 
+			set_plot_label_message(window, LABEL_X, xstring);
+			sprintf(ystring, "Y: %.5g  (No Match)", yval);
+			set_plot_label_message(window, LABEL_Y, ystring);
+		}
+
+		/*  print the x and y coord on the msg window */
+		if(match_set)
+		{
+			sprintf(xstring, "X: %.5g  Y: %.5g", xmatch, ymatch);
+		} else {
+			sprintf(xstring, "X: %.5g  Y: %.5g", xval, yval);
+		}
+//		draw_string(widget, xloc+10, yloc, xstring);
+		strcat(xstring, "\n");
+		print_msg(xstring);
+	}
+
+	return FALSE;
+}
+
+gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer data)
+{
+	// erase to white.
+	GtkWindow *window= parent_gtk_window(widget);
+
+	int win_index= window_index_from_window(window);
+	if(win_index != NONE)
+	{
+		int i;
+		float x1, x2, y1, y2;
+		canvasinfo *can_info;
+		int plot, plots;
+		plotarray *data;
+		float xmax, xmin, ymax, ymin;
+		int start_x, start_y, end_x, end_y;
+		float scale_x, scale_y;
+		char rows_string[64];    
+
+		can_info = wininfo.canvases[win_index];
+		plot = can_info->active_plot;
+		plots = can_info->total_plots;
+
+		// clear it out...
+		GdkColor black;
+		
+		black.red= black.green= black.blue= 0;
+
+		erase_rectangle(widget, 0, 0, widget->allocation.width, widget->allocation.height);
+		gdk_gc_set_rgb_fg_color(widget->style->fg_gc[gtk_widget_get_state (widget)],	&black);
+
+		if(plots == 0) 			/*window's been cleared, no plots*/
+		{
+			sprintf(rows_string, "PLOT ROWS:  ");
+			set_plot_label_message(window, LABEL_PLOT_ROWS, rows_string);
+			set_left_footer_message(window, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position");
+			return FALSE;
+		}
+		display_active_plot(plot+1);
+
+		data = can_info->plots[plot];
+
+		/*display row numbers for active plot*/
+		sprintf(rows_string, "PLOT ROWS: %d to %d", data->begin, data->end);
+		set_plot_label_message(window, LABEL_PLOT_ROWS, rows_string);
+
+		xmin = data->xmin;
+		ymin = data->ymin;
+		xmax = data->xmax;
+		ymax = data->ymax;
+
+		start_x = can_info->start_x;
+		end_x = can_info->end_x;
+		start_y = can_info->start_y;
+		end_y = can_info->end_y;
+
+		scale_x = (float)(end_x - start_x)/(xmax - xmin);
+		scale_y = (float)(start_y - end_y)/(ymax - ymin);
+
+		data->scale_x = scale_x;
+		data->scale_y = scale_y;
+
+		/* print the labels */
+		if (data->label_type)
+		{
+			label_type1(widget, can_info);
+		}
+		else
+		{
+			label_type0(widget, can_info);
+		}
+
+		/* plot each point  */
+		if (can_info->point_plot == 1)
+		{
+			/* plot the individual points */
+			for (i=0; i < data->nrows_x -1; i++)
+			{
+				x1 = data->xarray[i] - xmin;
+				y1 = data->yarray[i] - ymin;
+
+			 	gdk_draw_point(
+					widget->window, 
+					widget->style->fg_gc[gtk_widget_get_state (widget)],
+					start_x + (int)(x1*scale_x),
+					start_y - (int)(y1*scale_y));
+			}
+		}
+		else
+		{
+			// plot 0 is the measured values.
+			// plot 1 is the curve
+			/* connect the points */
+			for (i=0; i < data->nrows_x -1; i++)
+			{
+				x1 = data->xarray[i] - xmin;
+				x2 = data->xarray[i+1] - xmin;
+				y1 = data->yarray[i] - ymin;
+				y2 = data->yarray[i+1] - ymin;
+
+			 	draw_line(widget,
+					start_x + (int)(x1*scale_x),
+					start_y - (int)(y1*scale_y),
+					start_x + (int)(x2*scale_x),
+					start_y - (int)(y2*scale_y));
+			}
+		}
+
+		/*set footer info. This should be redundant since it only gets set or changed from the panel buttons  --do anyway just to be safe...*/
+		switch(can_info->plots[plot]->mouse)
+		{
+			case 0:
+				set_left_footer_message(window, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position");
+				break;
+			case 1:
+				set_left_footer_message(window, "Draw Line Mode: left button picks 1st point, middle picks 2nd, right button quits mode");
+				break;
+			case 2:
+				set_left_footer_message(window, "Vertical Line Mode: left & middle buttons draw vertical line, right button quits mode");
+				break;
+			case 3:
+				set_left_footer_message(window, "Distance Mode: left button picks 1st point, middle picks 2nd, right button quits mode");
+				break;
+			case 4:
+				set_left_footer_message(window, "Zoom Mode: left button picks 1st point, middle picks 2nd, right button commits zoom");
+				break;
+		}
+	} else {
+		fprintf(stderr, "something has gone bellyup.\n");
+	}
+
+	return TRUE; // should be false?
+}
+
+gboolean on_chartArea_configure_event (GtkWidget *widget, GdkEventConfigure *event, gpointer user_data)
+{
+	// which one are we?
+	int win_index= window_index_from_window(parent_gtk_window(widget));
+	if(win_index != NONE)
+	{
+		adjust_canvas_size(win_index);
+	}
+		
+	return FALSE;
+}
+
+void on_btnPlotType_clicked(GtkButton *button, gpointer user_data)
+{
+	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(button));
+	// change from plot lines to plot points and vice versa
+	const gchar *current_label= gtk_button_get_label(button); // DO NOT FREE (owned by button)
+	
+	if(strcmp(current_label, "Plot Lines")==0)
+	{
+		gtk_button_set_label(button, "Plot Points");
+		info->point_plot= 1;
+	} else {
+		gtk_button_set_label(button, "Plot Lines");
+		info->point_plot= 0;
+	}
+	
+	// now redraw the graphic..
+	invalidate_plot(parent_gtk_window(GTK_WIDGET(button)));
+}
+
+static void invalidate_widget_drawing(GtkWidget *widget)
+{
+	gtk_widget_queue_draw_area(widget, 0, 0, widget->allocation.width, widget->allocation.height);
+}
+
+static canvasinfo *canvas_info_for_widget(GtkWidget *widget)
+{
+	GtkWindow *window;
+	canvasinfo *result= NULL;
+	
+	if(GTK_IS_WINDOW(widget))
+	{
+		window= GTK_WINDOW(widget);
+	} else {
+		window= parent_gtk_window(widget);
+	}
+
+	int win_index= window_index_from_window(window);
+	if(win_index != NONE)
+	{
+		result= wininfo.canvases[win_index];
+	}
+	
+	return result;
+}
+
+static void set_left_footer_message(GtkWindow *parent, char *txt)
+{
+	set_plot_label_message(parent, PLOT_LABEL_LEFT_FOOTER, txt);
+}
+
+static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, char *txt)
+{
+	char *names[]= { "label_LeftFooter", "label_X", "label_Y", "label_RowNumber", "label_PlotRows" };
+	
+	assert(id>=0 && id<ARRAY_SIZE(names));
+	GtkLabel *label= GTK_LABEL(lookup_widget_by_name(GTK_WIDGET(parent), names[id]));
+	assert(label);
+	gtk_label_set_text(label, txt);
+}
+
+static GtkWindow *parent_gtk_window(GtkWidget *widget)
+{
+	GtkWindow *result= NULL;
+	
+	
+	if(GTK_IS_WINDOW(widget))
+	{
+		result= GTK_WINDOW(widget);
+	} else {
+		GtkWidget *parent= widget;
+		
+		// walk up the parents...
+		do {
+			// this looks wrong, but should be correct unless there is really weird multithreading going on.
+			g_object_get (parent, "parent", &parent, NULL);
+//			fprintf(stderr, "Parent: %p\n", parent);
+			if(GTK_IS_WINDOW(parent))
+			{
+				result= GTK_WINDOW(parent);
+			}
+			g_object_unref(parent);
+			
+			
+		} while(result==NULL && parent!=NULL);
+	}
+	
+	return result;
+}
+
+
+
+static int window_index_from_window(GtkWindow *window)
+{
+	int i;
+	
+	for (i = 0; i <MAXIMUM_NUMBER_OF_WINDOWS; i++)
+	{
+//		fprintf(stderr, "Checking %d for window %p...", i, window);
+		if (wininfo.windows[i] == 1 && GTK_WINDOW(wininfo.canvases[i]->plot_window->window)==window)
+		{
+//			fprintf(stderr, "Found!\n");
+			return i;
+		} else {
+//			fprintf(stderr, "Nope!\n");
+		}
+	}
+	return NONE;
+}
+
+
+static void draw_string(GtkWidget *widget, int x, int y, char *string)
+{
+	gtk_draw_string(
+		gtk_widget_get_style(widget), 
+		widget->window, 
+		gtk_widget_get_state(widget), 
+		x, y, string);
+/*
+
+	gdk_draw_string(widget->window,
+    	NULL, // GdkFont *font,
+		widget->style->fg_gc[gtk_widget_get_state (widget)],
+		x, y, string);
+*/
+}
+
+static void draw_line(GtkWidget *widget, int x0, int y0, int x1, int y1)
+{
+	gdk_draw_line(widget->window, 
+		widget->style->fg_gc[gtk_widget_get_state (widget)],
+		x0, y0, 
+		x1, y1);
+}
+
+
+static void erase_rectangle(GtkWidget *widget, int x, int y, int width, int height)
+{
+	GdkColor white;
+	
+	white.red= white.green= white.blue= 0xffff;
+	gdk_gc_set_rgb_fg_color(widget->style->fg_gc[gtk_widget_get_state (widget)],&widget->style->white);
+	gdk_draw_rectangle(
+		widget->window, 
+		widget->style->fg_gc[gtk_widget_get_state (widget)],
+	    TRUE,
+		x, y, 
+		width, height);
+	gdk_gc_set_rgb_fg_color(widget->style->fg_gc[gtk_widget_get_state (widget)], &widget->style->black);
+}
+
+
+/* cjm, 3/19/96: I think "label_type" refers to the way ticks and tick spacing is done*/
+static void label_type0(GtkWidget *drawingArea, canvasinfo *can_info)
+{
+	int plot;
+	plotarray *data;
+	int tickx, ticky;
+	double ten = 10.000;
+	char string[256];
+	int stringlen;  
+	float xmax, xmin, ymax, ymin;
+	int start_xaxis, start_yaxis, end_xaxis, end_yaxis;
+	int start_x, start_y, end_x, end_y;
+	int width, height;
+
+	plot = can_info->active_plot;
+	data = can_info->plots[plot];
+
+	width = drawingArea->allocation.width;
+	height = drawingArea->allocation.height;
+
+	start_xaxis = can_info->start_xaxis;
+	start_yaxis = can_info->start_yaxis;
+	end_xaxis = can_info->end_xaxis;
+	end_yaxis = can_info->end_yaxis;
+
+	xmin = data->xmin;
+	ymin = data->ymin;
+	xmax = data->xmax;
+	ymax = data->ymax;
+
+	start_x = can_info->start_x;
+	end_x = can_info->end_x;
+	start_y = can_info->start_y;
+	end_y = can_info->end_y;
+
+	if (can_info->total_plots != 0)
+	{
+		erase_rectangle(drawingArea, 0, 0, width, end_yaxis-1);
+
+		erase_rectangle(drawingArea,
+			0, end_y-1, 
+			start_x-1, start_y-end_y+2);
+			
+		erase_rectangle(drawingArea,
+			end_x+1, end_y-1, 
+			width-end_x, start_y-end_y+2);
+			
+		erase_rectangle(drawingArea,
+		 	0, start_y+1, width, height-start_y);
+	}
+  
+   /* x-axis  (bottom) */
+	draw_line(drawingArea,
+		start_xaxis, start_yaxis, 
+		end_xaxis, start_yaxis);
+
+	/* left y-axis  */
+	draw_line(drawingArea,
+		start_xaxis, start_yaxis,
+		start_xaxis, end_yaxis); 
+
+	/* right y-axis  */
+	draw_line(drawingArea,
+		end_xaxis, start_yaxis,
+		end_xaxis, end_yaxis);
+
+
+	/* sizes for the tick marks */
+	ticky=(int)width*0.02/2;
+	tickx=(int)height*0.02/2;
+
+	/* tick and label for ymin */
+	draw_line(drawingArea,
+		start_xaxis, start_y,
+		start_xaxis+ticky, start_y);
+	draw_line(drawingArea,
+		end_xaxis, start_y,
+		end_xaxis-ticky, start_y);
+
+	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+		pow(ten, (double)ymin) : ymin);
+	draw_string(drawingArea,
+	      start_xaxis - ui_globals.tickfontwidth*(strlen(string)+1),
+	      start_y + ui_globals.tickfontheight/2,
+	      string);
+
+	/* tick and label for ymax */ 
+	draw_line(drawingArea,
+		start_xaxis, end_y,
+		start_xaxis+ticky, end_y);
+	draw_line(drawingArea,
+		end_xaxis, end_y,
+		end_xaxis-ticky, end_y);
+	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+		pow(ten, (double)ymax) : ymax);
+
+	draw_string(drawingArea,
+		start_xaxis - ui_globals.tickfontwidth*(strlen(string)+1),
+		end_y + ui_globals.tickfontheight/2,
+		string);
+
+	/* tick and label for y mid */ 
+	draw_line(drawingArea,
+		start_xaxis, end_y + (start_y - end_y)/2,
+		start_xaxis+ticky, end_y + (start_y - end_y)/2);
+	draw_line(drawingArea,
+		end_xaxis, end_y + (start_y - end_y)/2,
+		end_xaxis-ticky, end_y + (start_y - end_y)/2);
+	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+		pow(ten, (double)(ymax-ymin)/2) : (ymax+ymin)/2);
+	draw_string(drawingArea,
+		start_xaxis - ui_globals.tickfontwidth*(strlen(string)+1),
+		end_y + (start_y - end_y)/2 + ui_globals.tickfontheight/2,
+		string);
+
+	/* min x axis */
+	draw_line(drawingArea,
+		start_x, start_yaxis,
+		start_x, start_yaxis - ticky);
+	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+		pow(ten, (double)xmin) : xmin);
+	draw_string(drawingArea,
+		start_x - ui_globals.tickfontwidth*stringlen/2,
+		start_yaxis + ui_globals.tickfontheight + 2,
+		string);
+
+	/* max x axis */
+	draw_line(drawingArea,
+		end_x, start_yaxis,
+		end_x, start_yaxis - ticky);
+	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+		pow(ten, (double)xmax) : xmax);
+	draw_string(drawingArea,
+		end_x - ui_globals.tickfontwidth*stringlen/2,
+		start_yaxis + ui_globals.tickfontheight + 2,
+		string);
+
+	/* mid x axis */
+	draw_line(drawingArea,
+		start_x + (end_x-start_x)/2, start_yaxis,
+		start_x + (end_x-start_x)/2, start_yaxis - ticky);
+	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+		pow(ten, (double)(xmax-xmin)/2) : (xmax+xmin)/2);
+	draw_string(drawingArea,
+		start_x + (end_x-start_x)/2 - ui_globals.tickfontwidth*stringlen/2,
+		start_yaxis + ui_globals.tickfontheight + 2,
+		string);
+
+	sprintf(string, "%d.   %s  vs  %s", 
+		plot+1,
+		head.ch[data->col_x].name, 
+		head.ch[data->col_y].name);
+
+	draw_string(drawingArea,
+		start_xaxis, ui_globals.titlefontheight+2, 
+		string);
+
+	sprintf(string,"%s",head.title);	/*add title, right justified*/
+
+	draw_string(drawingArea,
+		end_xaxis-ui_globals.titlefontwidth*strlen(string), ui_globals.titlefontheight+2,
+		string);
+}
+
+
+static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
+{
+	int plot;
+	plotarray *data;
+	double ten = 10.000;
+	char string[256];
+	float xmax, xmin, ymax, ymin;
+	float scale_x, scale_y;
+	int start_xaxis, start_yaxis, end_xaxis, end_yaxis;
+	int start_x, start_y, end_x, end_y;
+	int width, height;
+	int a;
+	float big_tickx, big_ticky;
+	int tickx, ticky;
+	double diffx, diffy;
+	double decx, decy;
+	float stop_xmin, stop_xmax, stop_ymin, stop_ymax;
+	int where_x, where_y;
+	int stringlen;
+
+
+	plot = can_info->active_plot;
+	data = can_info->plots[plot];
+
+	width = drawingArea->allocation.width;
+	height = drawingArea->allocation.height;
+
+	start_xaxis = can_info->start_xaxis;
+	start_yaxis = can_info->start_yaxis;
+	end_xaxis = can_info->end_xaxis;
+	end_yaxis = can_info->end_yaxis;
+
+	xmin = data->xmin;
+	ymin = data->ymin;
+	xmax = data->xmax;
+	ymax = data->ymax;
+
+	start_x = can_info->start_x;
+	end_x = can_info->end_x;
+	start_y = can_info->start_y;
+	end_y = can_info->end_y;
+
+	scale_x = data->scale_x;
+	scale_y = data->scale_y;
+
+	if (can_info->total_plots != 0)
+	{
+		/* clear title */
+		erase_rectangle(drawingArea, 0, 0, width, end_yaxis-1);
+
+		/* clear left y axis */
+		erase_rectangle(drawingArea,
+			0, end_y-1, 
+			start_x-1, start_y-end_y+2);
+
+		/* clear right y axis */
+		erase_rectangle(drawingArea,
+			end_x+1, end_y-1, 
+			width-end_x, start_y-end_y+2);
+
+		/* clear x axis */
+		erase_rectangle(drawingArea,
+			0, start_y+1, width, height-start_y);
+	}
+
+	/* x-axis  (bottom) */
+	draw_line(drawingArea,
+		start_xaxis, start_yaxis, 
+		end_xaxis, start_yaxis);
+		
+	/* left y-axis  */
+	draw_line(drawingArea,
+		start_xaxis, start_yaxis,
+		start_xaxis, end_yaxis); 
+	
+	/* right y-axis  */
+	draw_line(drawingArea,
+		end_xaxis, start_yaxis,
+		end_xaxis, end_yaxis);
+
+
+	/* sizes for the tick marks */
+	ticky=(int)width*0.02;
+	tickx=(int)height*0.02;
+
+	diffx = xmax - xmin;
+	diffy = ymax - ymin;
+
+	stop_xmax = xmax + diffx/20;
+	stop_ymax = ymax + diffy/20;
+
+	stop_xmin = xmin - diffx/20;
+	stop_ymin = ymin - diffy/20;
+
+	decx=(double)floor(log10(diffx));
+	decy=(double)floor(log10(diffy));
+
+	big_tickx= ceil(xmin*pow(ten,-decx)) * pow(ten, decx);
+	big_ticky= ceil(ymin*pow(ten,-decy)) * pow(ten, decy);
+
+	/* y axis big tick marks */
+	for (a=0;big_ticky<=stop_ymax;a++)
+	{
+		where_y = start_y-(int)((big_ticky-ymin)*scale_y);
+
+		draw_line(drawingArea,
+			start_xaxis, where_y,
+			start_xaxis+ticky, where_y);
+
+		draw_line(drawingArea,
+			end_xaxis, where_y,
+			end_xaxis-ticky, where_y);
+
+		sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+			pow(ten, (double)big_ticky) : big_ticky);
+
+		draw_string(drawingArea,
+			start_xaxis - ui_globals.tickfontwidth*(strlen(string)+1),
+			start_y-(int)((big_ticky-ymin)*scale_y)+ui_globals.tickfontheight/2,
+			string);
+
+		big_ticky += pow(ten, decy);
+	}
+
+	/* y axis small tick marks */
+	if (a<2)
+	{
+		big_ticky -= 1.5 * pow(ten, decy);
+		if (big_ticky < stop_ymin) big_ticky += pow(ten, decy);
+
+		while (big_ticky < stop_ymax)
+		{
+			where_y = start_y-(int)((big_ticky-ymin)*scale_y);
+
+			draw_line(drawingArea,
+				start_xaxis, where_y,
+				start_xaxis+ticky, where_y);
+
+			draw_line(drawingArea,
+				end_xaxis, where_y,
+				end_xaxis-ticky, where_y);
+
+			sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+				pow(ten, (double)big_ticky) : big_ticky);
+
+			draw_string(drawingArea,
+				start_xaxis - ui_globals.tickfontwidth*(stringlen+1),
+				start_y-(int)((big_ticky-ymin)*scale_y)+ui_globals.tickfontheight/2,
+				string);
+
+			big_ticky += pow(ten, decy);
+		}
+	}
+
+	/*  x axis big tick marks */
+	for (a=0;big_tickx<=stop_xmax;a++)
+	{
+		where_x= start_x + (int)((big_tickx-xmin)*scale_x);
+
+		draw_line(drawingArea,
+			where_x, start_yaxis,
+			where_x, start_yaxis - tickx);
+
+		sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+			pow(ten, (double)big_tickx) : big_tickx);
+
+		draw_string(drawingArea,
+			where_x - ui_globals.tickfontwidth*stringlen/2,
+			start_yaxis + ui_globals.tickfontheight + 2,
+			string);
+
+		big_tickx += pow(ten, decx);
+	}
+
+	/* x axis small tick marks */
+	if (a<2)
+	{
+		big_tickx -= 1.5 * pow(ten, decx);
+	
+		if (big_tickx < stop_xmin) big_tickx += pow(ten, decx);
+		while (big_tickx < stop_xmax)
+		{
+			where_x=start_x + (int)((big_tickx-xmin)*scale_x);
+
+			draw_line(drawingArea,
+				where_x, start_yaxis,
+				where_x, start_yaxis - tickx);
+
+			sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
+				pow(ten, (double)big_tickx) : big_tickx);
+			
+			draw_string(drawingArea,
+				where_x - ui_globals.tickfontwidth*stringlen/2,
+				start_yaxis + ui_globals.tickfontheight + 2,
+				string);
+
+			big_tickx += pow(ten, decx);
+		}
+	}
+
+	sprintf(string, "%d.   %s  vs  %s", 
+		plot+1,
+		head.ch[data->col_x].name, 
+		head.ch[data->col_y].name);
+
+	draw_string(drawingArea,
+		start_xaxis, ui_globals.titlefontheight+2, 
+		string);
+
+	sprintf(string,"%s",head.title);	/*add title, right justified*/
+
+	draw_string(drawingArea,
+		end_xaxis-ui_globals.titlefontwidth*strlen(string), ui_globals.titlefontheight+2,
+		string);
+}
+
+
+static int get_row_number(canvasinfo *can_info, int nrow, float x1, float y1)
+{
+	int   ii, j	;
+	int	*list;
+	float	xmax,xmin,ymax,ymin;
+	double min_dist, dist;
+	plotarray *data;
+	int rownum;
+	double *x, *y;
+
+	if (can_info->active_plot == -1)
+	{
+		sprintf(msg, "There is no plot in this window.\n");
+		print_msg(msg);
+		return -1;
+	}
+	data = can_info->plots[can_info->active_plot];
+
+	list = (int *)malloc((unsigned)(nrow*sizeof(int)));
+	/*list = (int *)calloc((unsigned)nrow,sizeof(int));*/
+
+	xmax = data->xmax;
+	xmin = data->xmin;
+	ymax = data->ymax;
+	ymin = data->ymin;
+	x = data->xarray;
+	y = data->yarray;
+
+	j = 0;
+	rownum = -1;		/* default value for "nothing fits" */
+
+	for(ii = 0; ii < nrow; ++ii)
+	{
+		/* this doesn't do too well if x[ii] = x[ii+1] */
+		if( (x1 >= x[ii]) && (x1 <= x[ii+1]) )
+			list[j++] = ii;		
+		/* in case function is multiply defined, search for */
+		/*   all cases where "picked x" is between two points */
+	}		
+
+	/* then calc. dist. to each point and take min. */
+	min_dist = 1e100;
+
+	for(ii = 0; ii < j; ++ii)
+	{
+		/* check both point in list and next point (the two that bracket x1) */
+		/* to see which fits best */
+		if( (dist = sqrt( (x1-x[list[ii]])*(x1-x[list[ii]]) + (y1-y[list[ii]])*(y1-y[list[ii]]) ) ) < min_dist)
+		{
+			min_dist = dist;	
+			rownum = list[ii];
+		}
+
+		if( (dist = sqrt( (x1-x[list[ii]+1])*(x1-x[list[ii]+1]) + (y1-y[list[ii]+1])*(y1-y[list[ii]+1]) ) ) < min_dist)
+		{
+			min_dist = dist;	
+			rownum = list[ii]+1;
+		}
+	}
+
+	free(list);
+	
+	return rownum;
+}
+
+
+
+/* ------------------------- Activating Plots & The Plot Combobox */
+enum {
+	ACTIVE_PLOT_NAME= 0,
+	ACTIVE_PLOT_INDEX,
+	NUMBER_OF_ACTIVE_PLOT_COLUMNS
+};
+
+void on_comboboxActivePlot_realize(GtkWidget *widget, gpointer user_data)
+{
+	// create the model for this combobox..
+	GtkListStore *store = gtk_list_store_new (NUMBER_OF_ACTIVE_PLOT_COLUMNS, G_TYPE_STRING, G_TYPE_INT);
+	
+	/* set the model */
+	gtk_combo_box_set_model(GTK_COMBO_BOX(widget), GTK_TREE_MODEL(store));
+
+	/* set the renderer */
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new ();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(widget), renderer, TRUE);
+	gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(widget), renderer, "text", ACTIVE_PLOT_NAME);
+
+	// setup the menu (initial conditions)
+	rebuild_active_plot_combo_list(GTK_COMBO_BOX(widget));
+}
+
+// on every popdown, we should reset it (maybe?)
+
+// when it is changed..
+void on_comboboxActivePlot_changed(GtkComboBox *widget, gpointer user_data)
+{
+	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(widget));
+
+fprintf(stderr, "Active changed!\n");
+	gchar *active_plot_text= gtk_combo_box_get_active_text(widget);
+	if(active_plot_text)
+	{
+		int i;
+		
+		for(i=0; i<MAX_PLOTS; i++)
+		{
+			if (can_info->alive_plots[i])
+			{
+				char temp[512];
+				sprintf(temp, "%d. %s  vs  %s", i+1,
+					head.ch[can_info->plots[i]->col_x].name, 
+					head.ch[can_info->plots[i]->col_y].name);
+					
+				if(strcmp(temp, active_plot_text)==0)
+				{
+					if(can_info->active_plot != i)
+					{
+						set_active_plot_in_window(can_info->plot_window, i);
+						invalidate_plot(parent_gtk_window(GTK_WIDGET(widget)));
+					}
+					break;
+				}
+			}
+	    }
+		
+		g_free(active_plot_text);
+	}
+}
+
+static void rebuild_active_plot_combo_list(GtkComboBox *widget)
+{
+	int i;
+	gint activeIndex= NONE;
+	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(widget));
+	char temporary[512];
+
+	GtkListStore *store= GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(widget)));
+
+	// clear everything in there currently...
+	gtk_list_store_clear(store);
+   
+fprintf(stderr, "Building List\n");
+	for(i=0; i<MAX_PLOTS; i++)
+	{
+		if (can_info->alive_plots[i])
+		{
+			GtkTreeIter iter;
+			sprintf(temporary, "%d. %s  vs  %s", i+1,
+				head.ch[can_info->plots[i]->col_x].name, 
+				head.ch[can_info->plots[i]->col_y].name);
+fprintf(stderr, "Found %s\n", temporary);
+				
+			if(can_info->active_plot==i)
+			{
+				activeIndex= i;
+			}
+
+			/* Add a new row to the model */
+			gtk_list_store_append (store, &iter);
+			gtk_list_store_set (store, &iter,
+				ACTIVE_PLOT_NAME, temporary,
+				ACTIVE_PLOT_INDEX, i,
+				-1);
+		}
+    }
+
+	// set the initial selection...
+	if(activeIndex != NONE)
+	{
+		gtk_combo_box_set_active(GTK_COMBO_BOX(widget), activeIndex);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef FIXME
+	Frame graf_frame;
+  Canvas canvas;
+  Xv_Window xvwin;
+  Window win;
+  
+  Panel canvas_menu_panel;
+  /*Panel canvas_info_panel;*/
+  Panel_item X, Y, ROW, PLOT_ROWS;
+  Panel_item XLOOK_VERSION;
+  canvasinfo *can_info;
+  int win_num;
+  int i;
+  Menu clr_plot_menu, act_plot_menu, mouse_menu, zoom_menu;
+
+  extern void canvas_event_proc(), redraw_proc(), resize_proc(), refresh_win_proc();
+  extern void clr_plots_proc(), clr_all_plots_proc(), clr_plots_notify_proc();
+  extern void clear_win_proc(), kill_graf_proc(), zoom_plot_proc(), zoom_new_plot_proc(); 
+  extern void zoom_clr_all_plots_proc(), zoom_clr_plots_notify_proc();
+  extern void create_act_plot_menu_proc(), get_act_item_proc();
+  extern void line_plot_proc(), mouse_mu_proc(), dist_proc();
+  extern void point_plot_proc();
+ 
+/* 
+sprintf(msg, "cjm. in can.c window menu, main frame!\n");
+print_msg(msg);
+*/
+  win_num = get_new_window_num();
+  
+  if (win_num == -1)
+  {
+      sprintf(msg, "Reached limit of 10 windows. Ignored!\n");
+      print_msg(msg);
+      ui_globals.total_windows--;
+      return;
+  }
+/*----------------ICON SETUP---------------------------------*/
+  c0image = (Server_image) xv_create (XV_NULL, SERVER_IMAGE,
+      XV_WIDTH,        64,
+      XV_HEIGHT,       64,
+      SERVER_IMAGE_BITS,  canvas0_image,
+      NULL );
+
+  cstate = (Icon) xv_create (XV_NULL, ICON,
+                          ICON_IMAGE, c0image,
+                          ICON_LABEL, "Xlook",
+                          NULL );
+
+  sprintf(msg, "Plot Window %d", win_num+1);
+  
+  graf_frame = (Frame)xv_create(main_frame, FRAME,
+				FRAME_ICON, cstate,
+				FRAME_LABEL, msg,
+				XV_HEIGHT, 500, 
+				XV_WIDTH, 800,
+				FRAME_SHOW_FOOTER, TRUE,
+				NULL);
+
+  canvas_menu_panel = (Panel)xv_create(graf_frame, PANEL, XV_HEIGHT, 85, NULL);
+  
+  XLOOK_VERSION = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
+			    PANEL_LABEL_STRING, "xlook version: working.2011",
+			    PANEL_VALUE_DISPLAY_LENGTH, 20,
+			    NULL);
+
+ /*move Kill button to top row;  This works fine for 10.4.11*/ 
+
+  (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+		   PANEL_LABEL_STRING, "Kill Window",
+		   PANEL_NOTIFY_PROC, kill_graf_proc,
+		   PANEL_CLIENT_DATA, win_num,
+		   NULL);
+
+  act_plot_menu = (Menu) xv_create(XV_NULL, MENU,
+				   NULL);
+  
+  (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+			    PANEL_NEXT_ROW, -1,
+		   PANEL_LABEL_STRING, "Activate Plot",
+		   PANEL_ITEM_MENU, act_plot_menu,
+		   PANEL_NOTIFY_PROC, create_act_plot_menu_proc,
+		   PANEL_CLIENT_DATA, win_num,
+		   NULL);
+
+  clr_plot_menu = (Menu) xv_create(XV_NULL, MENU,
+				   MENU_GEN_PIN_WINDOW, 
+				   graf_frame, "Clear Plots", 
+				   MENU_CLIENT_DATA, win_num,
+				   MENU_ACTION_ITEM, 
+				   "Clear All Plots", clr_all_plots_proc,
+				   MENU_ACTION_ITEM,
+				  "Select Plots...", clr_plots_proc,
+				   NULL);
+  
+  (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+		   PANEL_LABEL_STRING, "Clear Plot(s)",
+		   PANEL_ITEM_MENU, clr_plot_menu,
+		   PANEL_NOTIFY_PROC, clr_plots_notify_proc,
+		   PANEL_CLIENT_DATA, win_num,
+		   NULL);
+
+  (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+		   PANEL_LABEL_STRING, "Plot Points",
+		   PANEL_NOTIFY_PROC, point_plot_proc,
+		   PANEL_CLIENT_DATA, win_num,
+		   NULL);
+
+  zoom_menu     = (Menu) xv_create(XV_NULL, MENU, 
+				   MENU_GEN_PIN_WINDOW, 
+/* cjm 22.1.08*, change to graf frame, main_frame is the other --main-- window, seems like this was a mistake
+				   main_frame, "Zoom", */
+				   graf_frame, "Zoom", 
+				   MENU_CLIENT_DATA, win_num,
+				   MENU_ACTION_ITEM, 
+				   "Zoom and Clear", zoom_clr_all_plots_proc,
+				   MENU_ACTION_ITEM,
+				  "Zoom", zoom_plot_proc,
+				   MENU_ACTION_ITEM,
+				  "Zoom New Window", zoom_new_plot_proc,
+				   NULL);
+
+  (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+		   PANEL_LABEL_STRING, "Zoom",
+		   PANEL_ITEM_MENU, zoom_menu,
+		   PANEL_CLIENT_DATA, win_num,
+		   NULL);			   
+		   /*PANEL_NOTIFY_PROC, zoom_clr_plots_notify_proc,*/
+  
+  mouse_menu = (Menu) xv_create(XV_NULL, MENU,
+				MENU_GEN_PIN_WINDOW, 
+/* cjm 22.1.08*, change to graf frame, main_frame is the other --main-- window, seems like this was a mistake
+				main_frame, "Mouse", */
+				graf_frame, "Mouse", 
+				MENU_CLIENT_DATA, win_num,
+				MENU_ACTION_ITEM, 
+				"Line Plot", line_plot_proc,
+				MENU_ACTION_ITEM, 
+				"Vertical Line", mouse_mu_proc,
+				MENU_ACTION_ITEM, 
+				"Distance", dist_proc,
+				NULL);
+  
+  (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+		   PANEL_LABEL_STRING, "Mouse",
+		   PANEL_ITEM_MENU, mouse_menu,
+		   PANEL_CLIENT_DATA, win_num,
+		   NULL);
+
+ (void) xv_create(canvas_menu_panel, PANEL_BUTTON,
+		   PANEL_LABEL_STRING, "Refresh",
+		   PANEL_NOTIFY_PROC, refresh_win_proc,
+		   PANEL_CLIENT_DATA, win_num,
+		   NULL);
+
+  /*canvas_info_panel=(Panel)xv_create(graf_frame, PANEL, XV_HEIGHT, 30, NULL);*/
+
+  X = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
+			    PANEL_NEXT_ROW, -1,
+			    PANEL_LABEL_STRING, "X: ",
+			    PANEL_VALUE_DISPLAY_LENGTH, 8,
+			    NULL);
+  
+  Y = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
+                            PANEL_LABEL_STRING, "Y: ",
+			    XV_X, xv_col(canvas_menu_panel, 15),
+			    PANEL_VALUE_DISPLAY_LENGTH, 8,
+			    NULL);
+  
+  ROW = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
+  			      PANEL_LABEL_STRING, "ROW#: ",
+			      XV_X, xv_col(canvas_menu_panel, 25),
+			      PANEL_VALUE_DISPLAY_LENGTH, 8,
+			      NULL);
+  
+  PLOT_ROWS = (Panel_item)xv_create(canvas_menu_panel, PANEL_MESSAGE,
+  			      PANEL_LABEL_STRING, "PLOT ROWS: ",
+			      XV_X, xv_col(canvas_menu_panel, 50),
+			      PANEL_VALUE_DISPLAY_LENGTH, 10,
+			      NULL);
+  
+/*cjm: 10.4.07 this is the fix for buttons that don't work. Must be something in PANEL_TEXT that activates*/
+  (void) xv_create(canvas_menu_panel, PANEL_TEXT,
+                   PANEL_LABEL_STRING, "",
+                   PANEL_VALUE_DISPLAY_LENGTH, 1,
+		   XV_X, xv_col(canvas_menu_panel, 80),
+/*                   PANEL_VALUE, parameter_strs[0],
+                   PANEL_NOTIFY_LEVEL, PANEL_SPECIFIED,
+                   PANEL_NOTIFY_PROC, get_options, */
+                   NULL);
+
+  canvas = (Canvas)xv_create(graf_frame, CANVAS, 
+			     CANVAS_RESIZE_PROC, resize_proc, 
+			     CANVAS_RETAINED, TRUE,
+			     CANVAS_REPAINT_PROC, redraw_proc,
+			     WIN_BELOW, canvas_menu_panel,
+			     CANVAS_AUTO_SHRINK, TRUE,
+			     CANVAS_AUTO_EXPAND, TRUE,
+			     CANVAS_X_PAINT_WINDOW, TRUE, 
+			     NULL); 
+  
+  xv_set(canvas_paint_window(canvas),
+	 WIN_CURSOR, xhair_cursor, NULL);
+
+/*
+  // cjm 28.3.08 this makes plot windows open with no data (plot) in them...
+  xv_set(canvas_paint_window(canvas), 
+	WIN_EVENT_PROC, canvas_event_proc,
+	 NULL);
+*/
+
+  // rdm 22.6.11 - readded to get the move events for the mouse rubber band */
+  // taking out the events makes the open dialog not crash as soon as loading is complete.
+  xv_set(canvas_paint_window(canvas), 
+	WIN_EVENT_PROC, canvas_event_proc,
+	WIN_CONSUME_EVENTS, 
+		WIN_NO_EVENTS, 
+		WIN_MOUSE_BUTTONS, 
+		LOC_DRAG, 
+		LOC_MOVE, 
+		NULL,
+	 NULL);
+
+  xv_set(canvas, XV_KEY_DATA, CAN_X, X,  NULL);
+  xv_set(canvas, XV_KEY_DATA, CAN_Y, Y,  NULL);
+  xv_set(canvas, XV_KEY_DATA, CAN_ROW, ROW, NULL);
+  xv_set(canvas, XV_KEY_DATA, CAN_NUM, win_num, NULL);
+  xv_set(canvas, XV_KEY_DATA, GRAF_FRAME, graf_frame, NULL);
+  xv_set(canvas, XV_KEY_DATA, CAN_PLOT_ROWS, PLOT_ROWS, NULL);
+  
+  window_fit(graf_frame);
+
+  can_info = (canvasinfo *) malloc(sizeof(canvasinfo));
+  if (can_info == NULL)
+    {
+      print_msg("Memory allocation error. Window cannot be created.");
+      return;
+    }
+  
+  ui_globals.old_active_window = ui_globals.active_window;
+  ui_globals.active_window = win_num;
+  can_info->canvas_num = ui_globals.active_window;
+  can_info->total_plots = 0;
+  can_info->active_plot = -1;
+  
+  for (i=0; i<10; i++)
+    can_info->alive_plots[i] = 0 ;
+  
+  can_info->canvas = canvas;
+  xvwin = (Xv_Window)canvas_paint_window(canvas);
+  can_info->xvwin = xvwin;
+  win = (Window) xv_get(xvwin, XV_XID);
+  can_info->win = win;
+    
+  display_active_window(ui_globals.active_window+1);
+  display_active_plot(0);
+  
+  wininfo.windows[ui_globals.active_window] = 1;
+  wininfo.canvases[ui_globals.active_window] = can_info;
+
+  setup_canvas();
+  xv_set(graf_frame, XV_SHOW, TRUE, NULL);
+
+/*  sprintf(msg, "(create_canvas) Window #%d is active.\n", active_window+1);
+  print_msg(msg); 
+  sprintf(msg, "(create_canvas)total windows = %d\n", total_windows+1);
+  print_msg(msg);
+
+  sprintf(msg, "(create_canvas) Window #%d is old active window.\n", old_active_window+1);
+  print_msg(msg); */
+#endif
