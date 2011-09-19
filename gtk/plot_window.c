@@ -1,10 +1,6 @@
 /* cjm 21.1.08:  added a new line to plot window info, for xlook compile version and to
 deal with wrapping problem caused by OS 10.5*/
 
-/*
-This should really be called plot_window.c
-*/
-
 #include <gtk/gtk.h>
 #include <math.h>
 #include <assert.h>
@@ -12,7 +8,7 @@ This should really be called plot_window.c
 #include "config.h"
 #include "global.h"
 #include "messages.h"
-#include "can.h"
+#include "plot_window.h"
 #include "ui.h"
 
 extern char plot_cmd[256]; // FIXME: move to globals.h
@@ -37,7 +33,6 @@ enum
 static int get_new_window_num();
 static void adjust_canvas_size(int index);
 static int window_index_from_window(GtkWindow *window);
-static GtkWindow *parent_gtk_window(GtkWidget *widget);
 static void set_left_footer_message(GtkWindow *parent, char *txt);
 static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, char *txt);
 static void erase_rectangle(GtkWidget *widget, int x, int y, int width, int height);
@@ -668,37 +663,6 @@ static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, char *txt)
 	assert(label);
 	gtk_label_set_text(label, txt);
 }
-
-static GtkWindow *parent_gtk_window(GtkWidget *widget)
-{
-	GtkWindow *result= NULL;
-	
-	
-	if(GTK_IS_WINDOW(widget))
-	{
-		result= GTK_WINDOW(widget);
-	} else {
-		GtkWidget *parent= widget;
-		
-		// walk up the parents...
-		do {
-			// this looks wrong, but should be correct unless there is really weird multithreading going on.
-			g_object_get (parent, "parent", &parent, NULL);
-//			fprintf(stderr, "Parent: %p\n", parent);
-			if(GTK_IS_WINDOW(parent))
-			{
-				result= GTK_WINDOW(parent);
-			}
-			g_object_unref(parent);
-			
-			
-		} while(result==NULL && parent!=NULL);
-	}
-	
-	return result;
-}
-
-
 
 static int window_index_from_window(GtkWindow *window)
 {

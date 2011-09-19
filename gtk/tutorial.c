@@ -1,5 +1,7 @@
 #include <gtk/gtk.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <getopt.h>
 
 #include "global.h"
 #include "cmds1.h"
@@ -27,13 +29,16 @@ extern char default_path[80];
 
 ui_globals_struct ui_globals;
 char msg[MSG_LENGTH];
-
+char delayed_file_to_open[1024];
 
 
 static gboolean open_filter_function(const GtkFileFilterInfo *filter_info, gpointer data);
 static FileType file_type_with_path(const char *path);
-static void initialize(int argc, char *argv[]);
-
+static int initialize(int argc, char *argv[]);
+static int set_initial_path(const char *path);
+static int load_command_line_file(const char *filename);
+static void print_usage(int argc, char *argv[]);
+static void handle_open_filepath(const char *filename);
 
 void quit_xlook()
 {
@@ -49,6 +54,8 @@ void on_window_destroy (
 
 static void initialize_globals()
 {
+	*delayed_file_to_open= '\0';
+	
 	memset(&ui_globals, 0, sizeof(ui_globals));
 	ui_globals.active_window = -1;
 	ui_globals.old_active_window = -1;
@@ -74,32 +81,44 @@ int main(
 	int argc, 
 	char *argv[])
 {
-	GtkBuilder *builder;
+	int exit_code= 0;
 	
 	initialize_globals();
-	initialize(argc, argv);
+	if(initialize(argc, argv))
+	{
+		GtkBuilder *builder;
+		
+		gtk_init (&argc, &argv);
 
+		builder = gtk_builder_new ();
+		gtk_builder_add_from_file (builder, "xlook.glade", NULL);
 
-	gtk_init (&argc, &argv);
+		// load the rest of them...
+		ui_globals.main_window = GTK_WIDGET (gtk_builder_get_object (builder, "mainWindow"));
 
-	builder = gtk_builder_new ();
-	gtk_builder_add_from_file (builder, "xlook.glade", NULL);
+		gtk_builder_connect_signals (builder, NULL);          
+		g_object_unref (G_OBJECT (builder));
 
-	// load the rest of them...
-	ui_globals.main_window = GTK_WIDGET (gtk_builder_get_object (builder, "mainWindow"));
+		// set the messages appropriately
+		display_active_window(0);
+		display_active_plot(0);
+		display_active_file(0);
 
-	gtk_builder_connect_signals (builder, NULL);          
-	g_object_unref (G_OBJECT (builder));
-
-	// set the messages appropriately
-	display_active_window(0);
-	display_active_plot(0);
-	display_active_file(0);
-
-	gtk_widget_show (ui_globals.main_window);       
-	gtk_main ();
-
-	return 0;
+		gtk_widget_show (ui_globals.main_window);       
+		
+		// open if we should from command line.
+		if(strlen(delayed_file_to_open))
+		{
+			handle_open_filepath(delayed_file_to_open);
+		}
+		
+		gtk_main ();
+		exit_code= 0;
+	} else {
+		exit_code= -1;
+	}
+	
+	return exit_code;
 }
 
 /* ------------- entering return in command prompt */
@@ -160,21 +179,26 @@ void on_open_menu_item_activate( // as expected, the signals can't be static or 
 	if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
 	{
 		char *filename= gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		switch(file_type_with_path(filename))
-		{
-			case _file_type_script:
-			    doit_proc(filename);
-				break;
-			case _file_type_data:
-				read_proc(filename);
-				break;
-			default:
-				break;
-		}		
+		handle_open_filepath(filename);
 	    g_free (filename);
 	}
 	// dialog takes ownership of the filter, so we don't have to do anything to free it.
 	gtk_widget_destroy(dialog);
+}
+
+static void handle_open_filepath(const char *filename)
+{
+	switch(file_type_with_path(filename))
+	{
+		case _file_type_script:
+		    doit_proc(filename);
+			break;
+		case _file_type_data:
+			read_proc(filename);
+			break;
+		default:
+			break;
+	}		
 }
 
 static gboolean open_filter_function(
@@ -219,9 +243,10 @@ static FileType file_type_with_path(const char *path)
 
 // FIXME: Move these into globals- if at all possible
 // max_col, max_row, plot_error, arrayx, arrayy, darray
-static void initialize(int argc, char *argv[])
+static int initialize(int argc, char *argv[])
 {
 	int i;
+	int abort_launch= FALSE;
 
 	plot_error = -1;
 
@@ -239,25 +264,120 @@ static void initialize(int argc, char *argv[])
 
 	for (i=0; i<MAX_COL; ++i) null_col(i);
 
-	if (argc > 1)
+
+//	if (argc > 1)
 	{
-		if (argc == 2)
+		if (argc == 2 && strcmp(argv[1], "-?")!=0 && strcmp(argv[1], "-h")!=0 && strcmp(argv[1], "--help")!=0)
 		{
-			if (access(argv[1], 4) == 0)
-			{
-				strcpy(default_path, argv[1]);
-				fprintf(stderr, "Pathname for DOIT files is %s\n", default_path);
-				if (default_path[strlen(default_path)-1] != '/')
-					strcat(default_path, "/");
-			}
-			else
-				fprintf(stderr, "Inaccessible pathname \n%s IGNORED\n", argv[1]);
+			set_initial_path(argv[1]);
 		}
 		else
 		{
-			fprintf(stderr, "Don't understand argument list\n");
-			fprintf(stderr, "EXPECTED: %s default_path\n", argv[0]);
-			exit(-1);
+			int c;
+			static struct option long_options[] = {
+				{"path", 1, 0, 0}, // name, has_arg, flag, val
+				{"file", 1, 0, 0},
+				{"help", 0, 0, 0},
+				{NULL, 0, NULL, 0}
+			};
+			int option_index = 0;
+			while ((c = getopt_long_only(argc, argv, "p:f:?h", long_options, &option_index)) != -1) 
+			{
+				switch (c) 
+				{
+					case 0:
+						switch(option_index)
+						{
+							case 0: // path
+								abort_launch= set_initial_path(optarg);
+								break;
+							case 1: // file
+								abort_launch= load_command_line_file(optarg);
+								break;
+							case 2: // file
+								abort_launch= TRUE;
+								break;
+						}
+						break;
+					case 'p':
+						abort_launch= set_initial_path(optarg);
+						break;
+					case 'f':
+						abort_launch= load_command_line_file(optarg);
+						break;
+					case '?':
+					case 'h':
+					default:
+						abort_launch= TRUE;
+						break;
+				}
+			}
+
+			if (optind < argc) 
+			{
+//				printf ("non-option ARGV-elements: ");
+				while (optind < argc)
+				{
+//					printf ("%s ", argv[optind++]);
+				}
+//				printf ("\n");
+			}
+			
+			if(abort_launch)
+			{
+				print_usage(argc, argv);
+			}
 		}
 	}
+	
+	return !abort_launch;
+}
+
+static int set_initial_path(const char *path)
+{
+	int abort_launch= FALSE;
+	
+	if(path != NULL)
+	{
+		if (access(path, 4) == 0)
+		{
+			strcpy(default_path, path);
+			fprintf(stderr, "Pathname for DOIT files is %s\n", default_path);
+			if (default_path[strlen(default_path)-1] != '/')
+				strcat(default_path, "/");
+		}
+		else
+		{
+			fprintf(stderr, "Inaccessible pathname \n%s IGNORED\n", path);
+		}
+	} else {
+		fprintf(stderr, "Pathname missing from parameter!\n");
+		abort_launch= TRUE;
+	}
+	
+	return abort_launch;
+}
+
+static int load_command_line_file(const char *filename)
+{
+	int abort_launch= FALSE;
+	
+	// should set the path if the filename is longer than just a name.
+	if(filename != NULL)
+	{
+		strcpy(delayed_file_to_open, filename);
+	} else {
+		fprintf(stderr, "Filename missing from parameter!\n");
+		abort_launch= TRUE;
+	}
+	
+	return abort_launch;
+}
+
+static void print_usage(int argc, char *argv[])
+{
+	fprintf(stdout, "Usage: %s [args] where args are:\n", argv[0]);
+	fprintf(stdout, "  --path PATHNAME - Sets the default path to PATHNAME\n");
+	fprintf(stdout, "  --file FILENAME - Launches the application then runs doit(FILENAME)\n");
+	fprintf(stdout, "  --help - Prints this usage information.\n");
 }

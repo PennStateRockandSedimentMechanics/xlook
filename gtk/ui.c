@@ -13,12 +13,34 @@ static GtkLabel *labelFromID(UILabelFieldIdentifier id);
 
 void ui_textfield_clear(UITextFieldIdentifier id)
 {
-// textsw_reset(fileinfo_window, 0, 0);	
+	GtkTextView *textView= textViewFromID(id);
+	if(textView)
+	{
+		char *clear= "";
+		GtkTextBuffer *buffer= gtk_text_view_get_buffer(textView);
+		assert(buffer);
+		gtk_text_buffer_set_text(buffer, clear, strlen(clear));
+	}
 } 
 
 void ui_textfield_normalize(UITextFieldIdentifier id)
 {
+return;
 	// textsw_normalize_view(fileinfo_window, 1);	
+	GtkTextView *textView= textViewFromID(id);
+	if(textView)
+	{
+		GtkTextBuffer *buffer= gtk_text_view_get_buffer(textView);
+        GtkTextIter iter;
+
+		assert(buffer);
+
+        /* get end iter */
+        gtk_text_buffer_get_end_iter (buffer, &iter);
+
+        /* scroll to end iter */
+        gtk_text_view_scroll_to_iter(textView, &iter, 0.0, FALSE, 0, 0);
+	}
 } 
 
 void ui_textfield_insert(
@@ -33,7 +55,33 @@ void ui_textfield_insert(
 		{
 			GtkTextBuffer *buffer= gtk_text_view_get_buffer(textView);
 			assert(buffer);
-			gtk_text_buffer_insert_at_cursor(buffer, txt, len);
+
+			if(FALSE)
+			{
+				/* insert the text */
+				gtk_text_buffer_insert_at_cursor(buffer, txt, len);
+			} else {
+				GtkTextIter end_start_iter;
+				GtkTextMark *insert_mark;
+
+				/* get end iter */
+				gtk_text_buffer_get_end_iter (buffer, &end_start_iter);
+
+				/* set the text in the buffer  */
+				gtk_text_buffer_insert(buffer, &end_start_iter, txt, len);
+
+				/* get end iter again */
+				gtk_text_buffer_get_end_iter (buffer, &end_start_iter); 
+
+				/* get the current ( cursor )mark name */
+				insert_mark = gtk_text_buffer_get_insert(buffer);
+
+				/* move mark and selection bound to the end */
+				gtk_text_buffer_place_cursor(buffer, &end_start_iter);
+
+				/* scroll to the end view */
+				gtk_text_view_scroll_to_mark(textView, insert_mark, 0.0, TRUE, 0.0, 1.0);
+			}
 		}
 	}
 }
@@ -67,7 +115,7 @@ static GtkTextView *textViewFromID(UITextFieldIdentifier id)
 }
 
 
-GtkWidget *lookup_widget_by_name(GtkWidget *parent, char *name)
+GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name)
 {
 	GtkWidget *result= NULL;
 	
@@ -91,6 +139,35 @@ GtkWidget *lookup_widget_by_name(GtkWidget *parent, char *name)
 			}
 			g_list_free(initial_list);
 		}
+	}
+	
+	return result;
+}
+
+GtkWindow *parent_gtk_window(GtkWidget *widget)
+{
+	GtkWindow *result= NULL;
+	
+	
+	if(GTK_IS_WINDOW(widget))
+	{
+		result= GTK_WINDOW(widget);
+	} else {
+		GtkWidget *parent= widget;
+		
+		// walk up the parents...
+		do {
+			// this looks wrong, but should be correct unless there is really weird multithreading going on.
+			g_object_get (parent, "parent", &parent, NULL);
+//			fprintf(stderr, "Parent: %p\n", parent);
+			if(GTK_IS_WINDOW(parent))
+			{
+				result= GTK_WINDOW(parent);
+			}
+			g_object_unref(parent);
+			
+			
+		} while(result==NULL && parent!=NULL);
 	}
 	
 	return result;

@@ -2,19 +2,18 @@
 #include <unistd.h>
 #include <sys/file.h>
 
-#include "can.h"
+#include "plot_window.h"
 #include "cmds1.h"
 #include "config.h"
-//#include "drawwin.h"
 #include "event.h"
 #include "filtersm.h"
 #include "global.h"
 #include "look_funcs.h"
 #include "messages.h"
 #include "notices.h"
-#include "rs_fric_tool.h"
 #include "special.h"
 #include "strcmd.h"
+#include "rs_fric_window.h"
 
 /* cjm 14.5.07; to solve problem with doit files: increased the size of path names. 1024's used to be 80, 512 used to be 32 */
 char pathname[10][1024];
@@ -29,7 +28,6 @@ FILE *data, *new;
 int doit_des, doit_f_open, meta_fd;
 int plot_error;
 int read_flag = 0; 
-int qi_flag = 0;
 
 extern char plot_cmd[256], trig_cmd[256];
 
@@ -46,25 +44,21 @@ void new_win_proc()
 
 void qi_win_proc()
 {
-
- if (read_flag != 0) {
-#ifdef FIXME
-    if (qi_flag == 1) 
-      update_params();
-    else {
-      create_qi_canvas();
-      qi_flag = 1;
-    }
-#endif
-  } 
- else {
-   sprintf(msg, "File has not been read yet. File must be read first.\n");
-   print_msg(msg);
-   set_left_footer("Type the data file to read");	  
-   ui_globals.action = READ;
-   set_cmd_prompt("Filename: ");
- }
-
+	if (read_flag != 0) {
+		if(ui_globals.rs_window==NULL)
+		{
+			ui_globals.rs_window= create_rs_fric_window();
+		} else {
+			update_parameters(ui_globals.rs_window); // was update_params
+		}
+	} 
+	else {
+		sprintf(msg, "File has not been read yet. File must be read first.\n");
+		print_msg(msg);
+		set_left_footer("Type the data file to read");	  
+		ui_globals.action = READ;
+		set_cmd_prompt("Filename: ");
+	}
 }
 
 

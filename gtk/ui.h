@@ -18,5 +18,6 @@ void ui_textfield_insert(UITextFieldIdentifier id, char *txt, int len); // check
 void ui_label_set(UILabelFieldIdentifier id, char *txt);
 
 #ifdef __GTK_H__
-GtkWidget *lookup_widget_by_name(GtkWidget *parent, char *name);
+GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name);
+GtkWindow *parent_gtk_window(GtkWidget *widget);
 #endif

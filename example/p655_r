@@ -1,7 +1,7 @@
 begin
 com_file
 
-read p655intact100l
+read example/p655intact100l
 
 
 #Ran two slabs of Ghost Rocks from Kodiak Alaska, collected by Rowe/McKiernan

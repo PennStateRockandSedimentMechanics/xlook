@@ -6,8 +6,6 @@ xlook_SOURCES = \
 		tutorial.c \
         array.c \
         array.h \
-        can.c \
-        can.h \
         cmds.c \
         cmds.h \
         cmds1.c \
@@ -38,10 +36,14 @@ xlook_SOURCES = \
         nrutil.h \
         perrfl.c \
         perrfl.h \
+        plot_window.c \
+        plot_window.h \
         polyfit.c \
         polyfit.h \
         qi_look.c \
         qi_look.h \
+		rs_fric_window.c \
+		rs_fric_window.h \
         simplexl.c \
         simplexl.h \
         sort.c \

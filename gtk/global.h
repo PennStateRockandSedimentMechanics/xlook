@@ -229,6 +229,7 @@ struct windows_info wininfo;
 typedef struct
 {
 	struct GtkWidget *main_window;
+	struct rs_fric_window *rs_window; // was qi_flag.
 	int active_window;
 	int old_active_window;
 	int total_windows;

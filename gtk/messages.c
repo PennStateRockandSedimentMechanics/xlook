@@ -10,7 +10,7 @@ void top()
 {
 	/* default prompt */
 
-	/* clear the file info warnindow */
+	/* clear the file info window */
 	ui_textfield_clear(TEXT_FIELD_FILE_INFO_WINDOW);
 
 	/* print the new file info */

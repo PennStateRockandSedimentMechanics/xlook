@@ -1,0 +1,540 @@
+#include <gtk/gtk.h>
+#include <math.h>
+#include <assert.h>
+
+#include "config.h"
+#include "global.h"
+#include "messages.h"
+#include "ui.h"
+#include "rs_fric_window.h"
+#include "strcmd.h" // for nocom
+
+extern char qiparams[1024]; /* string of input parameters */ 
+
+typedef char parameter_str[20]; /* parameter string */
+
+enum {
+	_parameter_law_options= 0,
+	_parameter_disp_col,
+	_parameter_mu_col,
+	_parameter_mu_fit_col,
+	_parameter_first_row, 
+	_parameter_vs_row,
+	_parameter_last_row,
+	_parameter_weight_row,
+	_parameter_lin_term,
+	_parameter_c_tol,
+	_parameter_lambda, 
+	_parameter_wc,
+	_parameter_stiff, 
+	_parameter_v_initial,
+	_parameter_v_final,
+	_parameter_mu_initial,
+	_parameter_a,
+	_parameter_b1,
+	_parameter_dc1,
+
+	// optional parameters based on the other settings.
+	_parameter_b2, // 19
+	_parameter_dc2, // 20
+	NUMBER_OF_PARAMETERS
+};
+
+/* ------------ structures */
+struct rs_fric_window
+{
+	GtkWindow *window;
+	parameter_str parameter_strs[NUMBER_OF_PARAMETERS]; /* array of parameter strings */
+	/* to manage dynamically created text inputs */
+	int alt_wt_flag, mvs_flag, second_set_flag;
+	int dc2_flag;
+	struct rs_fric_window *next;
+};
+
+/* ------------ strings */
+static const char *parameter_names[]= { "options", "disp_col", "mu_col", "mu_fit_col", "first_row", "vs_row", "last_row", "weight_row", "lin_term", "c_tol", 
+	"lambda", "wc", "stiff", "v_initial", "v_final", "mu_initial", "a", "b1", "dc1", "b2", "dc2" };
+
+static const char *stateVariableButtons[]= { "btn_OneStateVariable", "btn_TwoStateVariables" };
+static const char *twoVariableComponentNames[]= { "lbl_b2", "lbl_dc2", "b2", "dc2" };
+static const char *modelDirectionButtons[]= { "btn_ModelForward", "btn_ModelInversion" };
+static const char *weightingButtons[]= { "btn_WeightingNormal", "btn_WeightingAlternative" };
+static const char *velocityButtons[]= { "btn_VelocitySingle", "btn_VelocityMultiple" };
+static const char *multipleVelocityComponentNames[]= { "lbl_QiMVS", "qi_mvs" };
+static const char *alternativeWeightingComponentNames[]= { "lbl_RowNumber", "row_number" };
+
+/* ------------ local globals */
+static struct rs_fric_window *first_window= NULL;
+
+
+/* ------------------- local prototypes */
+static void parse_command_line(struct rs_fric_window *rs_fric_window, char *command_line);
+static void toggle_buttons(GtkWidget *widget, const char *names[]);
+static void set_initial_toggle_button_state_by_index(GtkWindow* window, int index, const char *names[]);
+static struct rs_fric_window *rs_fric_window_from_gtk_window(GtkWindow *window);
+static void update_parameters_display(struct rs_fric_window *rs_fric_window, int start, int last);
+static void left_footer(struct rs_fric_window *rs_fric_window, char *msg);
+static void change_widget_visibility(GtkWindow *window, const char *names[], int length, gboolean show);
+
+/* ---------------------- code */
+struct rs_fric_window *create_rs_fric_window(void)
+{
+	struct rs_fric_window *result= NULL;
+	GtkBuilder *builder = gtk_builder_new ();
+	
+	// load the builder
+	gtk_builder_add_from_file (builder, "rs_fric_window.glade", NULL);
+
+	// load the rest of them...
+	GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (builder, "rsfricWindow"));
+	gtk_builder_connect_signals (builder, NULL);
+	g_object_unref (G_OBJECT (builder));
+
+	// create the canvasinfo (this is sorta silly)
+	fprintf(stderr, "RS Fric Window is %p\n", window);
+
+	// must do this before it is realized.
+	result= malloc(sizeof(struct rs_fric_window));
+	if(result)
+	{
+		// clear.
+		memset(result, 0, sizeof(struct rs_fric_window));
+		
+		result->window= GTK_WINDOW(window);
+
+		// add to our linked list of windows.
+		result->next= first_window;
+		first_window= result;
+
+		// update the parameters...
+		update_parameters(result);
+		
+		// and show the window.
+		gtk_widget_show (window);
+	} else {
+		// close out, failure.
+		gtk_widget_destroy(GTK_WIDGET(window));
+	}
+
+	return result;
+}
+
+void update_parameters(struct rs_fric_window *rs_fric_window) // was update_params
+{
+	GtkWindow *window= rs_fric_window->window;
+	
+	// parse the command line.
+	parse_command_line(rs_fric_window, qiparams);
+	
+	// now sync to the parameters.
+	assert(ARRAY_SIZE(parameter_names)==NUMBER_OF_PARAMETERS);
+	update_parameters_display(rs_fric_window, 0, NUMBER_OF_PARAMETERS);
+	
+	// rs_fric_window->dc2_flag sets the one or two variables buttons...
+	if(rs_fric_window->dc2_flag) rs_fric_window->second_set_flag= 1;
+	set_initial_toggle_button_state_by_index(window, rs_fric_window->dc2_flag, stateVariableButtons);
+
+	float lambda_flag = atof(rs_fric_window->parameter_strs[_parameter_lambda]);  /* returns 0 if no given lambda */
+	int lambda_choice;
+	if (lambda_flag <= 0) /* forward model */
+		lambda_choice = 0;
+	else                  /* inversion model */
+		lambda_choice = 1;
+	set_initial_toggle_button_state_by_index(window, lambda_choice, modelDirectionButtons);
+
+	float wc_flag = atof(rs_fric_window->parameter_strs[11]);
+	int wc_choice;
+	if (wc_flag < 0) /* alternative weighting */
+		wc_choice = 1;
+	else             /* normal weighting */
+		wc_choice = 0;
+	set_initial_toggle_button_state_by_index(window, wc_choice, weightingButtons);
+
+	set_initial_toggle_button_state_by_index(window, rs_fric_window->mvs_flag, velocityButtons);
+	
+	// FIXME: sync the buttons.
+}
+
+/* ----------------- signals */
+
+/* -------------- StateVariables */
+void on_btn_TwoStateVariables_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+{
+	if(gtk_toggle_button_get_active(togglebutton))
+	{
+		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
+		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
+
+		fprintf(stderr, "Two State Variables Set!\n");
+	
+		// set the flag. (FIXME)
+		fric_window->dc2_flag= 1;
+		fric_window->second_set_flag= 1;
+
+		// clear the parameters.
+		strcpy(fric_window->parameter_strs[_parameter_b2], "");
+		strcpy(fric_window->parameter_strs[_parameter_dc2], "");
+		update_parameters_display(fric_window, _parameter_b2, _parameter_dc2);
+	
+		// set the footer.
+		left_footer(fric_window, "Enter values for b2 and dc2");
+	
+		// show the two other panels.
+		change_widget_visibility(window, twoVariableComponentNames, ARRAY_SIZE(twoVariableComponentNames), TRUE);
+	}
+/*
+if ((value == 1)&&(second_set_flag == 0)) { 
+xv_set(b2, XV_SHOW, TRUE, PANEL_VALUE, "", NULL);
+xv_set(dc2, XV_SHOW, TRUE, PANEL_VALUE, "", NULL);
+strcpy(parameter_strs[19], "");
+strcpy(parameter_strs[20], "");
+second_set_flag = 1;
+dc2_flag = 1;
+left_footer("Enter values for b2 and dc2.");
+*/
+}
+
+void on_btn_OneStateVariable_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+{
+	if(gtk_toggle_button_get_active(togglebutton))
+	{
+		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
+		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
+
+		fprintf(stderr, "One State Variables Set!\n");
+
+		// clear the flag. (FIXME)
+		fric_window->dc2_flag= 0;
+		fric_window->second_set_flag= 0;
+
+		// clear the parameters.
+		strcpy(fric_window->parameter_strs[_parameter_b2], "1");
+		strcpy(fric_window->parameter_strs[_parameter_dc2], "-1");
+		update_parameters_display(fric_window, _parameter_b2, _parameter_dc2);
+
+		// set the footer.
+		left_footer(fric_window, "dc2 < 0");
+
+		// hide the two other panels.
+		change_widget_visibility(window, twoVariableComponentNames, ARRAY_SIZE(twoVariableComponentNames), FALSE);
+	}
+/*
+if ((value == 0)&&(second_set_flag == 1)) { 
+  xv_set(b2, XV_SHOW, FALSE, PANEL_VALUE, "1", NULL);
+  xv_set(dc2, XV_SHOW, FALSE, PANEL_VALUE, "-1", NULL);
+  strcpy(parameter_strs[19], "1");
+  strcpy(parameter_strs[20], "-1");
+  second_set_flag = 0;
+  dc2_flag = 0;
+  left_footer("dc2 < 0"); 
+}
+*/
+}
+
+
+gboolean on_btn_StateVariables_button_release_event(
+	GtkWidget *widget, 
+	GdkEventButton *event, 
+	gpointer user_data)
+{
+	toggle_buttons(widget, stateVariableButtons);
+	return TRUE;
+}
+
+/* --------- Model Direction */
+void on_btn_ModelForward_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+{
+	if(gtk_toggle_button_get_active(togglebutton))
+	{
+		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
+		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
+
+		fprintf(stderr, "Forward set!\n");
+
+		float temp = -1*fabs(atof(fric_window->parameter_strs[_parameter_lambda]));	/*doing forward modeling, change lambda to negative value*/
+		if(temp == 0) temp = -0.1;
+
+		// this should be a function, as we use this for different things (including updating the text on focus change)
+		sprintf(fric_window->parameter_strs[_parameter_lambda], "%g", temp);
+		update_parameters_display(fric_window, _parameter_lambda, _parameter_lambda);
+		left_footer(fric_window, "lambda < 0, Forward Modeling");
+	}
+}
+
+void on_btn_ModelInversion_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+{
+	if(gtk_toggle_button_get_active(togglebutton))
+	{
+		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
+		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
+
+		fprintf(stderr, "Inverse set!\n");
+		float temp = fabs(atof(fric_window->parameter_strs[_parameter_lambda]));	/*doing inversion, change lambda to positive value*/
+		if(temp == 0) temp = 0.1;
+
+		// this should be a function, as we use this for different things (including updating the text on focus change)
+		sprintf(fric_window->parameter_strs[_parameter_lambda], "%g", temp);
+		update_parameters_display(fric_window, _parameter_lambda, _parameter_lambda);
+		left_footer(fric_window, "lambda > 0, Inversion");
+	}
+}
+
+gboolean on_btn_Model_button_release_event(
+	GtkWidget *widget, 
+	GdkEventButton *event, 
+	gpointer user_data)
+{
+	toggle_buttons(widget, modelDirectionButtons);
+	return TRUE;
+}
+
+/* -------------- Weighting */
+void on_btn_WeightingNormal_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+{
+	if(gtk_toggle_button_get_active(togglebutton))
+	{
+		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
+		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
+
+		fprintf(stderr, "Normal Weighting set!\n");
+
+		// show the two other panels.
+		change_widget_visibility(window, alternativeWeightingComponentNames, ARRAY_SIZE(alternativeWeightingComponentNames), FALSE);
+	}
+}
+
+void on_btn_WeightingAlternative_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+{
+	if(gtk_toggle_button_get_active(togglebutton))
+	{
+		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
+		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
+
+		fprintf(stderr, "Alternative Weighting set!\n");
+
+		// show the two other panels.
+		change_widget_visibility(window, alternativeWeightingComponentNames, ARRAY_SIZE(alternativeWeightingComponentNames), TRUE);
+	}
+}
+
+gboolean on_btn_Weighting_button_release_event(
+	GtkWidget *widget, 
+	GdkEventButton *event, 
+	gpointer user_data)
+{
+	toggle_buttons(widget, weightingButtons);
+	return TRUE;
+}
+
+/* -------------- Weighting */
+void on_btn_VelocitySingle_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+{
+	if(gtk_toggle_button_get_active(togglebutton))
+	{
+		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
+		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
+
+		fprintf(stderr, "Single Velocity set!\n");
+
+		// hide the two other panels.
+		change_widget_visibility(window, multipleVelocityComponentNames, ARRAY_SIZE(multipleVelocityComponentNames), FALSE);
+	}
+}
+
+void on_btn_VelocityMultiple_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+{
+	if(gtk_toggle_button_get_active(togglebutton))
+	{
+		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
+		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
+
+		fprintf(stderr, "Multiple Velocity set!\n");
+
+		// show the two other panels.
+		change_widget_visibility(window, multipleVelocityComponentNames, ARRAY_SIZE(multipleVelocityComponentNames), TRUE);
+	}
+}
+
+gboolean on_btn_Velocity_button_release_event(
+	GtkWidget *widget, 
+	GdkEventButton *event, 
+	gpointer user_data)
+{
+	toggle_buttons(widget, velocityButtons);
+	return TRUE;
+}
+
+
+/* ---------------------------------------------- internal code */
+static void left_footer(struct rs_fric_window *rs_fric_window, char *msg)
+{
+	GtkLabel *label= GTK_LABEL(lookup_widget_by_name(GTK_WIDGET(rs_fric_window->window), "lbl_LeftFooterRS"));
+	assert(label);
+	gtk_label_set_text(label, msg);
+}
+
+static void parse_command_line(struct rs_fric_window *rs_fric_window, char *command_line)
+{
+	char *ptr, qi_head[12];
+	char qi_cmd_str[160];
+	char *t_string= "\t ,"; /*make init call to read past first tok-options*/ 
+	char *qi_tool_mvs= "qi_tool_mvs";
+	int ii;
+	
+	// clear out the parameters..
+	for(ii= 0; ii<NUMBER_OF_PARAMETERS; ii++)
+	{
+		rs_fric_window->parameter_strs[ii][0]= '\0'; // clear
+	}
+	
+	nocom(command_line); /* removes commas and substitute with spaces  */
+
+	/********** do command line parsing ********/
+	rs_fric_window->mvs_flag = 0;
+	/*printf("before string stuff\n");*/
+	if(  (ptr = strchr(command_line, '.')) != NULL)	/* allow for absence of options or calls to create_qi_canvas() without a command line */
+	{
+		/*points to dot, increment one char beyond*/
+		++ptr;
+		
+		/*save command line section after dot*/
+		strcpy(qi_cmd_str, ptr);
+		
+		/*save command line section preceeding dot*/
+		sscanf(command_line, "%s", qi_head); // buffer overrun issue here FIXME
+		
+		/*get options from tok following dot*/
+		sscanf(ptr, "%s", rs_fric_window->parameter_strs[0]);
+	}
+
+	/*this is used below as a flag for plotting*/
+	int tok_cnt = 0;
+	if( (strtok(command_line, t_string)) != NULL)
+	{
+		/* printf("after string stuff, before tok_cnt, qiparams string is %s\n",qiparams); */
+		for(tok_cnt=1; tok_cnt<NUMBER_OF_PARAMETERS; tok_cnt++)
+		{
+			ptr = strtok(NULL, t_string);
+			if(ptr == NULL)
+			{
+				break;
+			}
+			else
+			{
+				sscanf(ptr, "%s", rs_fric_window->parameter_strs[tok_cnt]);
+			}
+		}
+
+		/* printf("after tok cnt ,tok_cnt %d=\n",tok_cnt); */
+		if (strncmp(qi_head, qi_tool_mvs, strlen(qi_tool_mvs)) == 0 ) 
+		{
+			rs_fric_window->mvs_flag = 1;
+		}
+	}
+	
+	if (atof(rs_fric_window->parameter_strs[_parameter_dc2]) < 0 )
+	{
+		/* one state variable model */	
+		rs_fric_window->dc2_flag= 0;
+	} else {
+		rs_fric_window->dc2_flag= 1;
+	}
+}
+
+static void set_initial_toggle_button_state_by_index(GtkWindow* window, int index, const char *names[])
+{
+	int ii;
+	// we do this twice, so that we KNOW the toggled callback is called...
+	for(ii= 0; ii<2; ii++)
+	{
+		GtkToggleButton *button= GTK_TOGGLE_BUTTON(lookup_widget_by_name(GTK_WIDGET(window), names[ii]));
+		gtk_toggle_button_set_active(button, FALSE);
+		if(ii==index)
+		{
+			gtk_toggle_button_set_active(button, TRUE);
+		}
+	}
+}
+
+static void toggle_buttons(GtkWidget *widget, const char *names[])
+{
+	const char *name= gtk_widget_get_name(GTK_WIDGET(widget));
+	int index_hit= NONE;
+	int ii;
+
+	// get the name of this one, and untoggle the other
+	for(ii= 0; ii<2; ii++)
+	{
+		if(strcmp(names[ii], name)==0)
+		{
+			index_hit= ii;
+			break;
+		}
+	}
+	
+//	fprintf(stderr, "OnButtonReleaseEvent: %s (%d)\n", name, index_hit);
+	
+	// return false, everything happens as normal.  Return true, however, and nothing else happens unless we make it happen.
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
+	{
+		// if we're active, we don't do anything (don't change, yadda yadda yadda.)
+	} else {
+		// we togle, and untoggle our friend.
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), TRUE);
+
+		if(index_hit != NONE)
+		{
+			int other_index= !index_hit;
+
+			GtkToggleButton *other_button= GTK_TOGGLE_BUTTON(lookup_widget_by_name(GTK_WIDGET(parent_gtk_window(widget)), names[other_index]));
+			gtk_toggle_button_set_active(other_button, FALSE);
+		}
+	}
+
+	return;
+}
+
+static struct rs_fric_window *rs_fric_window_from_gtk_window(GtkWindow *window)
+{
+	struct rs_fric_window *test= first_window;
+	
+	while(test != NULL && test->window != window)
+	{
+		test= test->next;
+	}
+	
+	return test;
+}
+
+static void update_parameters_display(struct rs_fric_window *rs_fric_window, int start, int last)
+{
+	GtkWindow *window= rs_fric_window->window;
+	int ii;
+
+	assert(start>=0 && start<ARRAY_SIZE(parameter_names));
+	assert(last>=0 && last<=ARRAY_SIZE(parameter_names));
+	assert(last>=start);
+
+	if(last==NUMBER_OF_PARAMETERS) last -= 1; // allow passing in NUMBER_OF_PARAMETERS
+	for(ii= start; ii<=last; ii++)
+	{
+		GtkEntry *entry= GTK_ENTRY(lookup_widget_by_name(GTK_WIDGET(window), parameter_names[ii]));
+		assert(entry);
+		gtk_entry_set_text(entry, rs_fric_window->parameter_strs[ii]);
+	}	
+}
+
+static void change_widget_visibility(GtkWindow *window, const char *names[], int length, gboolean show)
+{
+	int ii;
+	for(ii= 0; ii<length; ii++)
+	{
+		GtkWidget *w= lookup_widget_by_name(GTK_WIDGET(window), names[ii]);
+		if(show)
+		{
+			gtk_widget_show(w);
+		} else {
+			gtk_widget_hide(w);
+		}
+	}
+}
