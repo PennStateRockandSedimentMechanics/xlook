@@ -1,0 +1,29 @@
+TODO:
+
+MAIN WINDOW:
+View:
+	New Window
+	Activate Window... (should be done by View menu, right? (aw))
+	Kill Window... (This is shortcut for the command kw)
+	
+
+RS FRIC:
+Play with it; check compared to main window.
+
+Plot Window:
+Clear Plots:
+	Clear All Plots
+	Clear XXX
+	
+Zoom:
+	Zoom and Clear
+	Zoom
+	Zoom New Window
+	
+Mouse:
+	Line Plot
+	Vertical Line
+	Distance
+	
+	
+	
