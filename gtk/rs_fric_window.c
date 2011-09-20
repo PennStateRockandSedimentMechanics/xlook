@@ -640,8 +640,17 @@ void on_btn_CloseWindow_clicked(
 	gpointer user_data)
 {
 	fprintf(stderr, "Close Window\n");
+	gtk_widget_destroy(GTK_WIDGET(parent_gtk_window(button)));
 }
 
+
+void on_rsfricWindow_destroy(
+	GtkObject *object,
+	gpointer   user_data)
+{
+	// clear out our global variable so we do the right thng next time (recreate me)
+	ui_globals.rs_window= NULL;
+}
 /* ---------------------------------------------- internal code */
 static void left_footer(struct rs_fric_window *rs_fric_window, const char *msg)
 {

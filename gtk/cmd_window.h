@@ -1,5 +1,8 @@
 /* cmd_window.h */
 
-struct command_window *open_command_window();
-
 void record_command(char *cmd);
+void show_command_window();
+
+#ifdef __GTK_H__
+void setup_command_window(GtkWindow *window);
+#endif

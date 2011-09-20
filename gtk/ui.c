@@ -46,7 +46,7 @@ return;
 void set_command_text(char *txt)
 {
 	GtkEntry *entry= GTK_ENTRY(lookup_widget_by_name(GTK_WIDGET(ui_globals.main_window), "textEntry_Command"));
-	assert(command);
+	assert(entry);
 	
 	gtk_entry_set_text(entry, txt);
 }

@@ -641,197 +641,191 @@ void write_proc(arg)
 }
 
 
-void read_proc(cmd)
-     char cmd[256];
+void read_proc(const char cmd[256])
 {
-  char dummy[256];
-  
-  sscanf(cmd, "%s %s", dummy, data_file);
+	char dummy[256];
 
-  if ((data = fopen(data_file, "r")) == NULL)
-    {
-      sprintf(msg, "Can't open data file: %s. fopen in read_proc() failed. Check filename, see cmds1.c\n", data_file);
-      print_msg(msg);
-      ui_globals.action = MAIN;
-      top();
-      return;
-    }
-  else
-    {
-      sprintf(msg, "Reading %s...\n", data_file);
-      print_msg(msg);
-      
-      /*  reed is in filtersm.c   */
-      if (reed(data, ((strncmp(dummy, "append", 6) == 0) ? TRUE : FALSE)) != 1)
+	sscanf(cmd, "%s %s", dummy, data_file);
+
+	if ((data = fopen(data_file, "r")) == NULL)
 	{
-          display_active_file(0);
-	  fclose(data);
-	  ui_globals.action = MAIN;
-	  top();
-	  return;
+		sprintf(msg, "Can't open data file: %s. fopen in read_proc() failed. Check filename, see cmds1.c\n", data_file);
+		print_msg(msg);
+		ui_globals.action = MAIN;
+		top();
+		return;
 	}
-      display_active_file(1);
-      fclose(data);
-      sprintf(msg, "Reading %s done.\n", data_file);
-      print_msg(msg);
-      ++read_flag; /* file successfully opened */
-      ui_globals.action = MAIN;
-      top();
-    }
+	else
+	{
+		sprintf(msg, "Reading %s...\n", data_file);
+		print_msg(msg);
+
+		/*  reed is in filtersm.c   */
+		if (reed(data, ((strncmp(dummy, "append", 6) == 0) ? TRUE : FALSE)) != 1)
+		{
+			display_active_file(0);
+			fclose(data);
+			ui_globals.action = MAIN;
+			top();
+			return;
+		}
+		display_active_file(1);
+		fclose(data);
+		sprintf(msg, "Reading %s done.\n", data_file);
+		print_msg(msg);
+		++read_flag; /* file successfully opened */
+		ui_globals.action = MAIN;
+		top();
+	}
 }
   
 
-void doit_proc(arg)
-     char arg[256];
+void doit_proc(const char arg[256])
 {
-  /* reads a doit file and passes the commands to command_handler() directly */  
-  char *fgets();
-  char cmd[256];
-  int i, j, error;
-  
-  
-  if ((doit_f_open+1) > 9)
-    {
-      sprintf(msg, "Sorry but you can only nest up to 10 doit files.\n");
-      print_msg(msg);
-      ui_globals.action=MAIN;
-      top();
-      return;
-    }
-
-  /* need to set action to MAIN here so that the commands in doit file can use action */
-  ui_globals.action = MAIN;
+	/* reads a doit file and passes the commands to command_handler() directly */  
+	char *fgets();
+	char cmd[256];
+	int i, j, error;
 
 
-  strcpy(pathname[doit_f_open+1], default_path);  	/*set up file path name*/
-  strcat(pathname[doit_f_open+1], arg);
-  /*strcpy(data_file, arg);
-  strcat(pathname[doit_f_open+1], data_file);*/
-
-
-/* open file, do some initial checking, then add to array of open doit files*/
-  if ( (temp_com_file = fopen(pathname[doit_f_open+1], "r")) == NULL)
-  {
-        sprintf(msg, "Open failed- can't open data file: \"%s\"\n",  pathname[doit_f_open+1]);
-        print_msg(msg);
-        ui_globals.action = MAIN;
-        top();
-        return;
-  }
-  else
-  {
-	if (fscanf(temp_com_file, "%s", cmd) != 1)
+	if ((doit_f_open+1) > 9)
 	{
-	      sprintf(msg,"Cannot read file.\n");
-	      print_msg(msg);
-	      fclose(temp_com_file);
-	      ui_globals.action = MAIN;
-	      top();
-	      return;
-	}
-	if (strncmp(cmd, "begin", 5) != 0)
-	{
-	      sprintf(msg, "doit file must begin with the string: begin\n");
-	      print_msg(msg);
-	      fclose(temp_com_file);
-	      ui_globals.action = MAIN;
-	      top();
-	      return;
+		sprintf(msg, "Sorry but you can only nest up to 10 doit files.\n");
+		print_msg(msg);
+		ui_globals.action=MAIN;
+		top();
+		return;
 	}
 
-/* loop thru the file until EOF; read the file line by line, put the string (whole line) in cmd
-	    pass cmd to command_handler() */
-
-	doit_f_open++;				/*add to list of open doit files*/
-	com_file[doit_f_open] = temp_com_file;  
-	
-/*clear first line (should be "begin" at this point, report errors*/
-
-	i=1;	/*use to count lines*/
-	if( fgets(cmd, 256, com_file[doit_f_open]) == NULL)
-	{
-	      sprintf(msg, "Error from doit file \"%s\", unexpected EOF on line %d, see cmds1.c \n",  pathname[doit_f_open+1], i);
-              print_msg(msg);
-	      fclose(com_file[doit_f_open]);
-	      if (--doit_f_open < 0)
-		doit_f_open = 0;
-              ui_globals.action = MAIN;
-              top();
-              return;
-	}
-
-/* the global_error flag is set in messages.c when the error functions are called*/
-	while( fgets(cmd, 256, com_file[doit_f_open]) != NULL && global_error == FALSE)
-	{
-/*read a line from doit file*/
-		i++;				/*increment line counter*/
-		if( cmd == NULL)
-	  	{
-	      		sprintf(msg, "Error from doit file \"%s\", unexpected EOF on line %d, see cmds1.c \n",  pathname[doit_f_open+1], i);
-              		print_msg(msg);
-	      		fclose(com_file[doit_f_open]);
-	      		if (--doit_f_open < 0)
-				doit_f_open = 0;
-              		ui_globals.action = MAIN;
-              		top();
-              		return;
-	  	}
-
-/*make sure line returned by fgets was "whole" --i.e. contained a NEWLINE, otherwise */
-/*	lines may be longer than 256 (too long)*/
-		j=0; error=TRUE;
-	        while(j < 256)			
-		{
- 		  if(cmd[j] == '\n')		/*find end of lines and replace with nulls*/
-		  {
-		  	cmd[j] = '\0';
-			error=FALSE;
-			break;	
-		  }
-		  j++;
-		}
-		if(error)
-		{
-	      		sprintf(msg, "Error from doit file \"%s\", line %d too long. Lines must be < 256 chars. But this should be easy to fix, see cmds1.c \n",  pathname[doit_f_open+1], i);
-              		print_msg(msg);
-	      		fclose(com_file[doit_f_open]);
-	      		if (--doit_f_open < 0)
-				doit_f_open = 0;
-              		ui_globals.action = MAIN;
-              		top();
-              		return;
-		}
-
-		if (strncmp(cmd, "#", 1) != 0)
-		{
-			sprintf(msg, "Command: %s\n", cmd);
-		  	print_msg(msg);
-		}
-		  
-		if (strncmp(cmd, "end", 3) == 0)
-		{
-		      sprintf(msg, "Closing doit file %s.\n",pathname[doit_f_open]);
-		      print_msg(msg);
-		      fclose(com_file[doit_f_open]);
-		      if (--doit_f_open < 0)
-			doit_f_open = 0;
-		      break;
-		}
-		  
-		else if (strncmp(cmd, "#", 1) == 0)
-		{
-		      continue;
-		}
-
-		else 
-		{
-		      command_handler(cmd);
-		}
-	}
-	cmd[0] = '\0';	/*empty cmd buffer*/
+	/* need to set action to MAIN here so that the commands in doit file can use action */
 	ui_globals.action = MAIN;
-	top();
-   }
+
+	strcpy(pathname[doit_f_open+1], default_path);  	/*set up file path name*/
+	strcat(pathname[doit_f_open+1], arg);
+	/*strcpy(data_file, arg);
+	strcat(pathname[doit_f_open+1], data_file);*/
+
+	/* open file, do some initial checking, then add to array of open doit files*/
+	if ( (temp_com_file = fopen(pathname[doit_f_open+1], "r")) == NULL)
+	{
+		sprintf(msg, "Open failed- can't open data file: \"%s\"\n",  pathname[doit_f_open+1]);
+		print_msg(msg);
+		ui_globals.action = MAIN;
+		top();
+		return;
+	}
+	else
+	{
+		if (fscanf(temp_com_file, "%s", cmd) != 1)
+		{
+			sprintf(msg,"Cannot read file.\n");
+			print_msg(msg);
+			fclose(temp_com_file);
+			ui_globals.action = MAIN;
+			top();
+			return;
+		}
+		if (strncmp(cmd, "begin", 5) != 0)
+		{
+			sprintf(msg, "doit file must begin with the string: begin\n");
+			print_msg(msg);
+			fclose(temp_com_file);
+			ui_globals.action = MAIN;
+			top();
+			return;
+		}
+
+		/* loop thru the file until EOF; read the file line by line, put the string (whole line) in cmd
+		pass cmd to command_handler() */
+
+		doit_f_open++;				/*add to list of open doit files*/
+		com_file[doit_f_open] = temp_com_file;  
+
+		/*clear first line (should be "begin" at this point, report errors*/
+
+		i=1;	/*use to count lines*/
+		if( fgets(cmd, 256, com_file[doit_f_open]) == NULL)
+		{
+			sprintf(msg, "Error from doit file \"%s\", unexpected EOF on line %d, see cmds1.c \n",  pathname[doit_f_open+1], i);
+			print_msg(msg);
+			fclose(com_file[doit_f_open]);
+			if (--doit_f_open < 0)
+				doit_f_open = 0;
+			ui_globals.action = MAIN;
+			top();
+			return;
+		}
+
+		/* the global_error flag is set in messages.c when the error functions are called*/
+		while( fgets(cmd, 256, com_file[doit_f_open]) != NULL && global_error == FALSE)
+		{
+			/*read a line from doit file*/
+			i++;				/*increment line counter*/
+			if( cmd == NULL)
+			{
+				sprintf(msg, "Error from doit file \"%s\", unexpected EOF on line %d, see cmds1.c \n",  pathname[doit_f_open+1], i);
+				print_msg(msg);
+				fclose(com_file[doit_f_open]);
+				if (--doit_f_open < 0)
+					doit_f_open = 0;
+				ui_globals.action = MAIN;
+				top();
+				return;
+			}
+
+			/*make sure line returned by fgets was "whole" --i.e. contained a NEWLINE, otherwise */
+			/*lines may be longer than 256 (too long)*/
+			j=0; error=TRUE;
+			while(j < 256)			
+			{
+				if(cmd[j] == '\n')		/*find end of lines and replace with nulls*/
+				{
+					cmd[j] = '\0';
+					error=FALSE;
+					break;	
+				}
+				j++;
+			}
+			if(error)
+			{
+				sprintf(msg, "Error from doit file \"%s\", line %d too long. Lines must be < 256 chars. But this should be easy to fix, see cmds1.c \n",  pathname[doit_f_open+1], i);
+				print_msg(msg);
+				fclose(com_file[doit_f_open]);
+				if (--doit_f_open < 0)
+					doit_f_open = 0;
+				ui_globals.action = MAIN;
+				top();
+				return;
+			}
+
+			if (strncmp(cmd, "#", 1) != 0)
+			{
+				sprintf(msg, "Command: %s\n", cmd);
+				print_msg(msg);
+			}
+
+			if (strncmp(cmd, "end", 3) == 0)
+			{
+				sprintf(msg, "Closing doit file %s.\n",pathname[doit_f_open]);
+				print_msg(msg);
+				fclose(com_file[doit_f_open]);
+				if (--doit_f_open < 0)
+					doit_f_open = 0;
+				break;
+			}
+			else if (strncmp(cmd, "#", 1) == 0)
+			{
+				continue;
+			}
+			else 
+			{
+				command_handler(cmd);
+			}
+		}
+		cmd[0] = '\0';	/*empty cmd buffer*/
+		ui_globals.action = MAIN;
+		top();
+	}
 }
 
      

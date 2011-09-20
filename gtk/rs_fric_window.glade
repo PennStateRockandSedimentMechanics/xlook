@@ -4,6 +4,7 @@
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkWindow" id="rsfricWindow">
     <property name="title" translatable="yes">R/S Fric Tool</property>
+    <signal name="destroy" handler="on_rsfricWindow_destroy"/>
     <child>
       <object class="GtkVBox" id="vbox1">
         <property name="visible">True</property>

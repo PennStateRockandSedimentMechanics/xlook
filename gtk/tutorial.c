@@ -26,6 +26,8 @@ typedef enum {
 
 extern int plot_error;
 extern char default_path[80];
+extern char qiparams[1024];
+extern char plot_cmd[256];
 
 ui_globals_struct ui_globals;
 char msg[MSG_LENGTH];
@@ -97,7 +99,10 @@ int main(
 		gtk_builder_add_from_file (builder, "xlook.glade", NULL);
 
 		// load the rest of them...
-		ui_globals.main_window = GTK_WIDGET (gtk_builder_get_object (builder, "mainWindow"));
+		ui_globals.main_window = (struct GtkWidget *)(gtk_builder_get_object (builder, "mainWindow"));
+		ui_globals.command_history = (struct GtkWidget *)(gtk_builder_get_object (builder, "commandWindow"));
+
+		setup_command_window(GTK_WINDOW(ui_globals.command_history));
 
 		gtk_builder_connect_signals (builder, NULL);          
 		g_object_unref (G_OBJECT (builder));
@@ -107,7 +112,7 @@ int main(
 		display_active_plot(0);
 		display_active_file(0);
 
-		gtk_widget_show (ui_globals.main_window);       
+		gtk_widget_show(GTK_WIDGET(ui_globals.main_window));       
 		
 		// open if we should from command line.
 		if(strlen(delayed_file_to_open))
@@ -157,6 +162,122 @@ void on_quit_menu_item_activate(
 	quit_xlook();
 }
 
+void on_menu_ShowRSFric_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	fprintf(stderr, "SHOW RSFric!\n");
+	strcpy(qiparams, "");
+	qi_win_proc();
+}
+
+void on_menu_ShowCommandWindow_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	show_command_window();
+}
+
+// wow; can't believe i have to write this; i've had my libs so long I didn't realize this wasn't core.
+static char *strtolower(char *str)
+{
+	char *src= str;
+	while(*src) *src= tolower(*src), src++;
+
+	return str;
+}
+
+void on_plot_item_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	const gchar *label= gtk_menu_item_get_label(GTK_MENU_ITEM(object));
+	char *plot1_commands[]= { "plotall", "plotover", "plotsr" };
+	char *plot2_commands[]= { "plotauto", "plotlog", "plotsame", "plotscale", "pa" };
+	int found= FALSE;
+	char temporary[512];
+	int ii;
+
+	strcpy(temporary, label);
+	strtolower(temporary);
+
+	// expects to have ellipsis at the end..
+	if(strlen(temporary)>3)
+	{
+		temporary[strlen(temporary)-3]= '\0';
+	}
+
+	for(ii= 0; ii<ARRAY_SIZE(plot1_commands); ii++)
+	{
+		if(strcmp(plot1_commands[ii], temporary)==0)
+		{
+			strcpy(plot_cmd, temporary);
+			set_left_footer("Type the x-axis and y-axis");
+			set_cmd_prompt("X-AXIS Y-AXIS: ");
+			ui_globals.action = PLOT_GET_XY; 
+			found= TRUE;
+		}
+	}
+	
+	if(!found)
+	{
+		for(ii= 0; ii<ARRAY_SIZE(plot2_commands); ii++)
+		{
+			if(strcmp(plot2_commands[ii], temporary)==0)
+			{
+				strcpy(plot_cmd, temporary);
+				set_left_footer("Type the x-axis and y-axis");
+				set_cmd_prompt("X-AXIS Y-AXIS: ");
+				ui_globals.action = PLOT_GET_BE; 
+				found= TRUE;
+			}
+		}
+	}
+
+	if(!found)
+	{
+		fprintf(stderr, "Didn't find plot command: %s\n", temporary);
+	}
+}
+
+void on_save_menu_item_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	GtkWidget *dialog;
+	char previous_filename[100];
+	
+	*previous_filename= '\0';
+
+	dialog = gtk_file_chooser_dialog_new ("Save Xlook File",
+		GTK_WINDOW(ui_globals.main_window),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+		NULL);
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+
+	if (strlen(previous_filename)==0)
+	{
+//		gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), default_folder_for_saving);
+		gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (dialog), "Untitled document");
+	}
+	else
+		gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (dialog), previous_filename);
+
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+	{
+		char *filename;
+		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+
+		// perform the save.
+		write_proc(filename);
+
+		g_free (filename);
+	}
+	gtk_widget_destroy (dialog);
+}
+
 /* ------------- Opening Files */
 void on_open_menu_item_activate( // as expected, the signals can't be static or they won't latebind.
 	GtkObject *object,
@@ -164,7 +285,7 @@ void on_open_menu_item_activate( // as expected, the signals can't be static or 
 {
 	GtkWidget *dialog;
 	
-	dialog= gtk_file_chooser_dialog_new("Open XView File", 
+	dialog= gtk_file_chooser_dialog_new("Open Xlook File", 
 		GTK_WINDOW(ui_globals.main_window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
