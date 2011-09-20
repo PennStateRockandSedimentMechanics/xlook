@@ -6,6 +6,8 @@ xlook_SOURCES = \
 		tutorial.c \
         array.c \
         array.h \
+		cmd_window.c \
+		cmd_window.h \
         cmds.c \
         cmds.h \
         cmds1.c \

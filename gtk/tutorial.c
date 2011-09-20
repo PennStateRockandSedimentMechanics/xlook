@@ -9,7 +9,7 @@
 #include "filtersm.h"
 #include "look_funcs.h"
 #include "event.h"
-
+#include "cmd_window.h"
 
 short state0_image[] = {
 #include "xlook.ico"
@@ -138,10 +138,8 @@ void on_textEntry_Command_activate(
 	/*only do something if a command was entered. Don't do anything if user just hit return*/
 	if(strcspn(cmd_buffer," ,\n\t"))
 	{
-#ifdef FIXME
-		xv_set(cmd_hist_panel_list, PANEL_LIST_INSERT, cmd_num, PANEL_LIST_STRING, cmd_num, cmd_text, NULL);
-		cmd_num++;
-#endif
+		/* remember it */
+		record_command(cmd_buffer);
 
 		/* call cmd multiplexor  */
 		command_handler(cmd_buffer);
