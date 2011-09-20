@@ -13,6 +13,7 @@
 #include "notices.h"
 #include "simplexl.h"
 #include "strcmd.h"
+#include "plot_window.h"
 
 char tmp_cmd[1024];
 /* cjm 14.5.07; to solve problem with doit files: increased the size of path names. 1024's used to be 80, 512 used to be 32 */
@@ -34,7 +35,7 @@ extern char msg[MSG_LENGTH];
 int nargs;
 char *args_left;
 
-extern char mu_fit_mess_1[512];
+//extern char mu_fit_mess_1[512];
 
 
 void command_handler(input) 
@@ -86,9 +87,7 @@ void command_handler(input)
 	    }
 	  }
 
-#ifdef FIXME
-          clr_mult_plots_proc(intar2);
-#endif
+	clear_multiple_plots(wininfo.canvases[ui_globals.active_window]->plot_window, intar2);
 	  ui_globals.action = MAIN;
 	}
       else
@@ -1459,8 +1458,8 @@ void command_handler(input)
       print_msg(msg);
       sprintf(msg, "rsm_h gives a detailed description of this function. See also cm_h \n");
       print_msg(msg);
-      sprintf(msg, mu_fit_mess_1);
-      print_msg(msg);
+//      sprintf(msg, mu_fit_mess_1); // this variable was never set (rdm)
+//      print_msg(msg);
       
       if (nargs == 16)
 	{ 

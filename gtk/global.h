@@ -191,25 +191,21 @@ typedef struct plot_array
 
 typedef struct canvas_info 
 {
-//  Canvas canvas; // rdm
-//  Xv_Window xvwin;
-//  Window win;
-//  struct GtkWidget *window;
 	struct plot_window *plot_window;
-  plotarray *plots[10];
-  int canvas_num;
-  int active_plot;
-  int total_plots;
-  int alive_plots[10];
-  int start_x;		/*these are in pixel coords and refer to the whole window*/
-  int start_y;
-  int end_x;
-  int end_y;
-  int start_xaxis;
-  int start_yaxis;
-  int end_xaxis;
-  int end_yaxis;
-  char point_plot;
+	plotarray *plots[MAX_PLOTS];
+	int canvas_num;
+	int active_plot;
+	int total_plots;
+	int alive_plots[MAX_PLOTS];
+	int start_x;		/*these are in pixel coords and refer to the whole window*/
+	int start_y;
+	int end_x;
+	int end_y;
+	int start_xaxis;
+	int start_yaxis;
+	int end_xaxis;
+	int end_yaxis;
+	char point_plot;
 } canvasinfo;
 
 #define ARRAY_SIZE(x) ((sizeof(x)/sizeof(x[0])))

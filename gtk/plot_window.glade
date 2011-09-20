@@ -5,8 +5,10 @@
   <object class="GtkWindow" id="plotWindow">
     <property name="title" translatable="yes">Plot Window</property>
     <property name="window_position">center-on-parent</property>
-    <property name="default_width">800</property>
+    <property name="default_width">796</property>
     <property name="default_height">500</property>
+    <signal name="destroy" handler="on_plotWindow_destroy"/>
+    <signal name="delete_event" handler="on_plotWindow_delete_event"/>
     <child>
       <object class="GtkVBox" id="vbox1">
         <property name="visible">True</property>

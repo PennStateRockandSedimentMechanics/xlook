@@ -48,7 +48,9 @@ void print_msg(
      char *txt)
 {
 	ui_textfield_insert(TEXT_FIELD_MESSAGE_WINDOW, txt, strlen(txt));
-#ifdef FIXME    
+
+// don't think we care about this- I think we can have unlimited scrollbacks now?
+#if FALSE    
   /*Menu m;*/
   /*int notice_msg;*/
   char filename[20];

@@ -65,8 +65,8 @@ double	converg_tol, lambda, wc;		/* used by do_qi -inversion */
 char desire[256];
 char t_string[300], t_string_2[300];
 char opr, type;
-char mu_fit_mess_1[512];	/* help message for scm, cm, rsm */
-char mu_fit_mess_2[512];	/* help message for scm, cm, rsm */
+//char mu_fit_mess_1[512];	/* help message for scm, cm, rsm */
+//char mu_fit_mess_2[512];	/* help message for scm, cm, rsm */
 char name_arg[256], unit_arg[256];
 char *junkp, *strtok();
 
@@ -3208,8 +3208,8 @@ void print_cm_help_info()
   sprintf(msg, "> The pre-step mu value is extended back 100 rows in the model output.\n\n");
   print_msg(msg);
   
-  sprintf(msg, mu_fit_mess_1); 
-  print_msg(msg);
+//  sprintf(msg, mu_fit_mess_1);  // rdm - this var is never set.
+//  print_msg(msg);
 }
 
 
@@ -4082,8 +4082,8 @@ print_msg(msg);
   sprintf(msg, "> for weighting: i is relative to weight_row (this will normally be vs_row)\n");
 print_msg(msg);
 
-  sprintf(msg, "%s \n", mu_fit_mess_2);
-  print_msg(msg);
+//  sprintf(msg, "%s \n", mu_fit_mess_2); // rdm- this var is never set
+//  print_msg(msg);
 
   sprintf(msg, "> A linear term can be added to the friction law to account for hardening/weakening\n\t\t: mu = mu_* + a ln(V/V*) + b phi + (c)*dx, where c has units of 1/disp\n>\tSet c=0 for no lin_term\n");
   print_msg(msg);
@@ -4292,7 +4292,8 @@ void do_simp_weight_l2(arg)
 
   nocom(arg);
   
-  if (sscanf(arg, "%d %d %d %lf %lf %lf %lf %lf", temp_int, &rs_param.peak_row, &rs_param.weight_pts, &rs_param.a_er, &rs_param.dc1_er, &rs_param.total_er,&rs_param.a_step,&rs_param.dc1_step) != 8)
+	// changed temp_int to &temp_int; should have blown up big before. (rdm) 
+  if (sscanf(arg, "%d %d %d %lf %lf %lf %lf %lf", &temp_int, &rs_param.peak_row, &rs_param.weight_pts, &rs_param.a_er, &rs_param.dc1_er, &rs_param.total_er,&rs_param.a_step,&rs_param.dc1_step) != 8)
     {
       nea();
       top();
@@ -4330,8 +4331,9 @@ void do_simp_weight(arg)
 {
   nocom(arg);
   
+	// changed temp_int to &temp_int; should have blown up big before. (rdm) 
   if (sscanf(arg, "%d %d %d %lf %lf %lf %lf %lf %lf %lf %lf %lf", 
-	     temp_int, &rs_param.peak_row, &rs_param.weight_pts, 
+	     &temp_int, &rs_param.peak_row, &rs_param.weight_pts, 
 	     &rs_param.a_er, &rs_param.b1_er,
 	     &rs_param.dc1_er, &rs_param.dc2_er, &rs_param.total_er, 
 	     &rs_param.a_step, &rs_param.b1_step,
@@ -4690,8 +4692,8 @@ void do_scm_help()
   print_msg(msg);
   sprintf(msg,"> The pre-step mu value is extended back 15 rows in the model output.\n");
   print_msg(msg);
-  sprintf(msg, mu_fit_mess_1);
-  print_msg(msg);
+//  sprintf(msg, mu_fit_mess_1); // rdm - this var is never set.
+//  print_msg(msg);
   /*sprintf(msg,"> To get a one state variable fit set Dc2 to < 0. ");
     print_msg(msg);
     sprintf(msg,"> 	In this case b1 will be set automatically ");

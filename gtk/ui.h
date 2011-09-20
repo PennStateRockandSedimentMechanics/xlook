@@ -17,6 +17,8 @@ void ui_textfield_normalize(UITextFieldIdentifier id); // textsw_normalize_view(
 void ui_textfield_insert(UITextFieldIdentifier id, char *txt, int len); // check and handle 0 length
 void ui_label_set(UILabelFieldIdentifier id, char *txt);
 
+void set_command_text(char *txt);
+
 #ifdef __GTK_H__
 GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name);
 GtkWindow *parent_gtk_window(GtkWidget *widget);

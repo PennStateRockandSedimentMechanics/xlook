@@ -1,6 +1,6 @@
 #include <gtk/gtk.h>
 #include <stdio.h>
-#include <assert.h> // FIXME
+#include <assert.h>
 
 
 #include "global.h"
@@ -42,6 +42,15 @@ return;
         gtk_text_view_scroll_to_iter(textView, &iter, 0.0, FALSE, 0, 0);
 	}
 } 
+
+void set_command_text(char *txt)
+{
+	GtkEntry *entry= GTK_ENTRY(lookup_widget_by_name(GTK_WIDGET(ui_globals.main_window), "textEntry_Command"));
+	assert(command);
+	
+	gtk_entry_set_text(entry, txt);
+}
+
 
 void ui_textfield_insert(
 	UITextFieldIdentifier id, 

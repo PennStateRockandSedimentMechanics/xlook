@@ -45,11 +45,14 @@ void quit_xlook()
 	gtk_main_quit();
 }
 
-void on_window_destroy (
-	GtkObject *object, 
-	gpointer user_data)
+gboolean on_mainWindow_destroy_event(
+	GtkWidget *widget,
+	GdkEvent  *event,
+	gpointer   user_data)
 {
 	quit_xlook();
+
+	return FALSE;
 }
 
 static void initialize_globals()
@@ -111,7 +114,7 @@ int main(
 		{
 			handle_open_filepath(delayed_file_to_open);
 		}
-		
+
 		gtk_main ();
 		exit_code= 0;
 	} else {
