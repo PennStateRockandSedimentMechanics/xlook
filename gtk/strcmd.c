@@ -5,6 +5,7 @@
 #include "global.h"
 #include "messages.h"
 #include "strcmd.h"
+#include "ui.h"
 
 /* "private" function prototypes */
 

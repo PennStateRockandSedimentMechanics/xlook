@@ -586,7 +586,7 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 		int i;
 		float x1, x2, y1, y2;
 		canvasinfo *can_info;
-		int plot, plots;
+		int plot_index, plots;
 		plotarray *data;
 		float xmax, xmin, ymax, ymin;
 		int start_x, start_y, end_x, end_y;
@@ -594,7 +594,6 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 		char rows_string[64];    
 
 		can_info = wininfo.canvases[win_index];
-		plot = can_info->active_plot;
 		plots = can_info->total_plots;
 
 		// clear it out...
@@ -612,94 +611,102 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 			set_left_footer_message(window, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position");
 			return FALSE;
 		}
-		display_active_plot(plot+1);
-
-		data = can_info->plots[plot];
-
-		/*display row numbers for active plot*/
-		sprintf(rows_string, "PLOT ROWS: %d to %d", data->begin, data->end);
-		set_plot_label_message(window, LABEL_PLOT_ROWS, rows_string);
-
-		xmin = data->xmin;
-		ymin = data->ymin;
-		xmax = data->xmax;
-		ymax = data->ymax;
-
-		start_x = can_info->start_x;
-		end_x = can_info->end_x;
-		start_y = can_info->start_y;
-		end_y = can_info->end_y;
-
-		scale_x = (float)(end_x - start_x)/(xmax - xmin);
-		scale_y = (float)(start_y - end_y)/(ymax - ymin);
-
-		data->scale_x = scale_x;
-		data->scale_y = scale_y;
-
-		/* print the labels */
-		if (data->label_type)
+		
+		// draw all the active plots.
+		for (plot_index=0; plot_index<MAX_PLOTS; plot_index++)
 		{
-			label_type1(widget, can_info);
-		}
-		else
-		{
-			label_type0(widget, can_info);
-		}
-
-		/* plot each point  */
-		if (can_info->point_plot == 1)
-		{
-			/* plot the individual points */
-			for (i=0; i < data->nrows_x -1; i++)
+			if(can_info->alive_plots[plot_index] == 1)
 			{
-				x1 = data->xarray[i] - xmin;
-				y1 = data->yarray[i] - ymin;
+				data = can_info->plots[plot_index];
 
-			 	gdk_draw_point(
-					widget->window, 
-					widget->style->fg_gc[gtk_widget_get_state (widget)],
-					start_x + (int)(x1*scale_x),
-					start_y - (int)(y1*scale_y));
+				if(plot_index==can_info->active_plot)
+				{
+					display_active_plot(plot_index+1);
+
+					/*display row numbers for active plot*/
+					sprintf(rows_string, "PLOT ROWS: %d to %d", data->begin, data->end);
+					set_plot_label_message(window, LABEL_PLOT_ROWS, rows_string);
+
+					/* print the labels */
+					if (data->label_type)
+					{
+						label_type1(widget, can_info);
+					}
+					else
+					{
+						label_type0(widget, can_info);
+					}
+
+					/*set footer info. This should be redundant since it only gets set or changed from the panel buttons  --do anyway just to be safe...*/
+					switch(can_info->plots[plot_index]->mouse)
+					{
+						case 0:
+							set_left_footer_message(window, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position");
+							break;
+						case 1:
+							set_left_footer_message(window, "Draw Line Mode: left button picks 1st point, middle picks 2nd, right button quits mode");
+							break;
+						case 2:
+							set_left_footer_message(window, "Vertical Line Mode: left & middle buttons draw vertical line, right button quits mode");
+							break;
+						case 3:
+							set_left_footer_message(window, "Distance Mode: left button picks 1st point, middle picks 2nd, right button quits mode");
+							break;
+						case 4:
+							set_left_footer_message(window, "Zoom Mode: left button picks 1st point, middle picks 2nd, right button commits zoom");
+							break;
+					}
+				}
+
+				xmin = data->xmin;
+				ymin = data->ymin;
+				xmax = data->xmax;
+				ymax = data->ymax;
+
+				start_x = can_info->start_x;
+				end_x = can_info->end_x;
+				start_y = can_info->start_y;
+				end_y = can_info->end_y;
+
+				scale_x = (float)(end_x - start_x)/(xmax - xmin);
+				scale_y = (float)(start_y - end_y)/(ymax - ymin);
+
+				/* plot each point  */
+				if (can_info->point_plot == 1)
+				{
+					/* plot the individual points */
+					for (i=0; i < data->nrows_x -1; i++)
+					{
+						x1 = data->xarray[i] - xmin;
+						y1 = data->yarray[i] - ymin;
+
+					 	gdk_draw_point(
+							widget->window, 
+							widget->style->fg_gc[gtk_widget_get_state (widget)],
+							start_x + (int)(x1*scale_x),
+							start_y - (int)(y1*scale_y));
+					}
+				}
+				else
+				{
+					// plot 0 is the measured values.
+					// plot 1 is the curve
+					/* connect the points */
+					for (i=0; i < data->nrows_x -1; i++)
+					{
+						x1 = data->xarray[i] - xmin;
+						x2 = data->xarray[i+1] - xmin;
+						y1 = data->yarray[i] - ymin;
+						y2 = data->yarray[i+1] - ymin;
+
+					 	draw_line(widget,
+							start_x + (int)(x1*scale_x),
+							start_y - (int)(y1*scale_y),
+							start_x + (int)(x2*scale_x),
+							start_y - (int)(y2*scale_y));
+					}
+				}
 			}
-		}
-		else
-		{
-			// plot 0 is the measured values.
-			// plot 1 is the curve
-			/* connect the points */
-			for (i=0; i < data->nrows_x -1; i++)
-			{
-				x1 = data->xarray[i] - xmin;
-				x2 = data->xarray[i+1] - xmin;
-				y1 = data->yarray[i] - ymin;
-				y2 = data->yarray[i+1] - ymin;
-
-			 	draw_line(widget,
-					start_x + (int)(x1*scale_x),
-					start_y - (int)(y1*scale_y),
-					start_x + (int)(x2*scale_x),
-					start_y - (int)(y2*scale_y));
-			}
-		}
-
-		/*set footer info. This should be redundant since it only gets set or changed from the panel buttons  --do anyway just to be safe...*/
-		switch(can_info->plots[plot]->mouse)
-		{
-			case 0:
-				set_left_footer_message(window, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position");
-				break;
-			case 1:
-				set_left_footer_message(window, "Draw Line Mode: left button picks 1st point, middle picks 2nd, right button quits mode");
-				break;
-			case 2:
-				set_left_footer_message(window, "Vertical Line Mode: left & middle buttons draw vertical line, right button quits mode");
-				break;
-			case 3:
-				set_left_footer_message(window, "Distance Mode: left button picks 1st point, middle picks 2nd, right button quits mode");
-				break;
-			case 4:
-				set_left_footer_message(window, "Zoom Mode: left button picks 1st point, middle picks 2nd, right button commits zoom");
-				break;
 		}
 	} else {
 		fprintf(stderr, "something has gone bellyup.\n");
