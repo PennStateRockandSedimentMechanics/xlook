@@ -2,13 +2,20 @@ TODO:
 
 MAIN WINDOW:
 View:
-	New Window
-	Activate Window... (should be done by View menu, right? (aw))
-	Kill Window... (This is shortcut for the command kw)
+	New Window (Moved to the Plot window)
+	Activate Window... (should be done by View menu, right? (aw)) (Use the plot View Menu item or close window)
+	Kill Window... (This is shortcut for the command kw) (Use the buttons or close window)
 	
 
 RS FRIC:
 Play with it; check compared to main window.
+
+
+
+
+
+
+
 
 Plot Window:
 Clear Plots:
@@ -24,6 +31,3 @@ Mouse:
 	Line Plot
 	Vertical Line
 	Distance
-	
-	
-	

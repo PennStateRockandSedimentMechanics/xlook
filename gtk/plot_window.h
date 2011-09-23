@@ -6,6 +6,8 @@ struct plot_window;
 struct plot_window *create_plot_window(void);
 void kill_plot_window(struct plot_window *pw);
 
+void bring_plot_window_to_front(struct plot_window *pw);
+
 /* Used by cmds1.c (and others) */
 void set_active_plot_in_window(struct plot_window *pw, int i);
 void remove_plot_in_window(struct plot_window *pw, int pn);

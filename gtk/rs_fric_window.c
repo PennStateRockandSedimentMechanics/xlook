@@ -219,6 +219,16 @@ void update_parameters(struct rs_fric_window *rs_fric_window) // was update_para
 	}
 }
 
+
+void bring_rs_fric_window_to_front(struct rs_fric_window *rs_fric)
+{
+	assert(rs_fric);
+	assert(rs_fric->window);
+	
+	// make sure it's foremost
+	gtk_window_present(GTK_WINDOW(rs_fric->window));
+}
+
 /* ----------------- signals */
 
 /* -------------- StateVariables */
@@ -640,7 +650,7 @@ void on_btn_CloseWindow_clicked(
 	gpointer user_data)
 {
 	fprintf(stderr, "Close Window\n");
-	gtk_widget_destroy(GTK_WIDGET(parent_gtk_window(button)));
+	gtk_widget_destroy(GTK_WIDGET(parent_gtk_window(GTK_WIDGET(button))));
 }
 
 

@@ -10,6 +10,7 @@
 #include "look_funcs.h"
 #include "event.h"
 #include "cmd_window.h"
+#include "rs_fric_window.h"
 
 short state0_image[] = {
 #include "xlook.ico"
@@ -41,6 +42,8 @@ static int set_initial_path(const char *path);
 static int load_command_line_file(const char *filename);
 static void print_usage(int argc, char *argv[]);
 static void handle_open_filepath(const char *filename);
+static gboolean startswith(const char *haystack, const char *needle);
+static void on_activate_plot_window(GtkObject *object, gpointer user_data);
 
 void quit_xlook()
 {
@@ -166,9 +169,14 @@ void on_menu_ShowRSFric_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
-	fprintf(stderr, "SHOW RSFric!\n");
-	strcpy(qiparams, "");
-	qi_win_proc();
+	if(ui_globals.rs_window)
+	{
+		// bring it to front.
+		bring_rs_fric_window_to_front(ui_globals.rs_window);
+	} else {
+		strcpy(qiparams, "");
+		qi_win_proc();
+	}
 }
 
 void on_menu_ShowCommandWindow_activate(
@@ -276,6 +284,95 @@ void on_save_menu_item_activate(
 		g_free (filename);
 	}
 	gtk_widget_destroy (dialog);
+}
+
+/* ------------ Window Menu handling */
+
+static gboolean startswith(const char *haystack, const char *needle)
+{
+	gboolean matches= FALSE;
+	
+	if(strlen(haystack)>=strlen(needle))
+	{
+		const char *src= needle;
+		const char *dst= haystack;
+		while(*src)
+		{
+			if(*src != *dst) break;
+			src++, dst++;
+		}
+		
+		if(!(*src)) matches= TRUE;
+	}
+	
+	return matches;
+}
+
+
+void on_viewMenu_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	GtkMenuItem *item= GTK_MENU_ITEM(object);
+	
+	if(gtk_menu_item_get_submenu(item) != NULL)
+	{
+		char buffer[100];
+		char *prefix= "Plot Window";
+		
+		GtkMenu *menu= GTK_MENU(gtk_menu_item_get_submenu(item));
+		GList *initial_list = gtk_container_get_children(GTK_CONTAINER(menu));
+
+		// iterate the linked list and remove all the Plot Window entries...
+		GList *entry= initial_list;
+		while(entry)
+		{
+			if(GTK_IS_MENU_ITEM(entry->data) && !GTK_IS_SEPARATOR_MENU_ITEM(entry->data))
+			{
+				const char *existing_label= gtk_menu_item_get_label(GTK_MENU_ITEM(entry->data));
+//				fprintf(stderr, "Label %s\n", existing_label);
+				if(startswith(existing_label, prefix))
+				{
+//					fprintf(stderr, "Removing %s\n", existing_label);
+					// do we have to remove it explicitly, or can we just nuke and pave?
+					gtk_widget_destroy(GTK_WIDGET(entry->data));
+				}
+			}
+			entry= entry->next;
+		}
+		g_list_free(initial_list);
+
+		int ii;
+		for(ii= 0; ii<MAXIMUM_NUMBER_OF_WINDOWS; ii++)
+		{
+			if (wininfo.windows[ii]==1)
+			{
+				sprintf(buffer, "%s %d", prefix, ii+1);
+				GtkWidget *child= gtk_menu_item_new_with_label(buffer);
+				gtk_signal_connect (GTK_OBJECT (child), "activate", GTK_SIGNAL_FUNC (on_activate_plot_window), GINT_TO_POINTER (ii));
+				gtk_menu_shell_append(GTK_MENU_SHELL(menu), child);
+				gtk_widget_show(child);
+			}
+		}
+	}	
+}
+
+// internally used only (in above function)
+static void on_activate_plot_window(
+	GtkObject *object,
+	gpointer user_data)
+{
+	gint window_index= GPOINTER_TO_INT(user_data);
+	
+	fprintf(stderr, "Activate plot window %d\n", window_index);
+	set_active_window(window_index);
+}
+
+void on_new_plot_window_item_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	new_win_proc();
 }
 
 /* ------------- Opening Files */

@@ -34,7 +34,8 @@ void setup_command_window(GtkWindow *window)
 
 void show_command_window()
 {
-	gtk_widget_show(GTK_WIDGET(ui_globals.command_history));
+//	gtk_widget_show(GTK_WIDGET(ui_globals.command_history));
+	gtk_window_present(GTK_WINDOW(ui_globals.command_history));
 }
 
 void record_command(char *cmd)

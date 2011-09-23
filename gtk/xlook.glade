@@ -4,6 +4,8 @@
   <!-- interface-naming-policy project-wide -->
   <object class="GtkWindow" id="mainWindow">
     <property name="title" translatable="yes">XLook 2</property>
+    <property name="default_width">700</property>
+    <property name="default_height">500</property>
     <signal name="destroy_event" handler="on_mainWindow_destroy_event"/>
     <child>
       <object class="GtkVBox" id="vbox8">
@@ -101,10 +103,11 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menuitem5">
+              <object class="GtkMenuItem" id="viewMenu">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">_View</property>
                 <property name="use_underline">True</property>
+                <signal name="activate" handler="on_viewMenu_activate"/>
                 <child type="submenu">
                   <object class="GtkMenu" id="menu3">
                     <property name="visible">True</property>
@@ -133,13 +136,26 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menuitem3">
+              <object class="GtkMenuItem" id="plotMenu">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">_Plot</property>
                 <property name="use_underline">True</property>
                 <child type="submenu">
                   <object class="GtkMenu" id="menu5">
                     <property name="visible">True</property>
+                    <child>
+                      <object class="GtkMenuItem" id="new_plot_window_item">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">New Plot Window</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_new_plot_window_item_activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="menuitem13">
+                        <property name="visible">True</property>
+                      </object>
+                    </child>
                     <child>
                       <object class="GtkMenuItem" id="imagemenuitem2">
                         <property name="visible">True</property>

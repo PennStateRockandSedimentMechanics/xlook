@@ -65,32 +65,34 @@ void qi_win_proc()
 void set_active_window(win_num)
      int win_num;
 {
-  if (wininfo.windows[win_num] != 1)
-    {
-      sprintf(msg, "Window #%d does not exist.\n", win_num+1);
-      print_msg(msg);
-      ui_globals.action = MAIN;
-      top();
-      return;
-    }
-  
-  if (ui_globals.active_window != win_num)
-    {
-      if (win_num == ui_globals.old_active_window)
+	if (wininfo.windows[win_num] != 1)
 	{
-	  ui_globals.old_active_window = ui_globals.active_window;
-	  ui_globals.active_window = win_num;
+		sprintf(msg, "Window #%d does not exist.\n", win_num+1);
+		print_msg(msg);
+		ui_globals.action = MAIN;
+		top();
+		return;
 	}
-      else
-	{
-	  ui_globals.old_active_window = ui_globals.active_window;
-	  ui_globals.active_window = win_num;
-	}
-    }
 
-  display_active_window(ui_globals.active_window+1);
-  display_active_plot(wininfo.canvases[ui_globals.active_window]->active_plot+1);  
-  display_active_file(1);
+	if (ui_globals.active_window != win_num)
+	{
+		if (win_num == ui_globals.old_active_window)
+		{
+			ui_globals.old_active_window = ui_globals.active_window;
+			ui_globals.active_window = win_num;
+		}
+		else
+		{
+			ui_globals.old_active_window = ui_globals.active_window;
+			ui_globals.active_window = win_num;
+		}
+	}
+
+	bring_plot_window_to_front(wininfo.canvases[ui_globals.active_window]->plot_window);
+	
+	display_active_window(ui_globals.active_window+1);
+	display_active_plot(wininfo.canvases[ui_globals.active_window]->active_plot+1);  
+	display_active_file(1);
 }
 
 

@@ -138,6 +138,15 @@ struct plot_window *create_plot_window()
 	return result;
 }
 
+void bring_plot_window_to_front(struct plot_window *pw)
+{
+	assert(pw);
+	assert(pw->window);
+	
+	// present it (bring to front)
+	gtk_window_present(GTK_WINDOW(pw->window));
+}
+
 void set_active_plot_in_window(struct plot_window *pw, int i)
 {
 fprintf(stderr, "set active plot in window to %d\n", i);
