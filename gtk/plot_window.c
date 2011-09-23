@@ -14,6 +14,11 @@ deal with wrapping problem caused by OS 10.5*/
 
 extern char plot_cmd[256]; // FIXME: move to globals.h
 
+#define MAKE_CLEAR_PROC_DATA(ci, pl) (((ci)<<4) | (pl))
+#define GET_CANVAS_INDEX(d) (d>>4)
+#define GET_PLOT_NUMBER(d) (d&0xf)
+#define CLEAR_ALL_PLOTS_CONSTANT (0xf) // NOTE: If we have more than 10 plots, this will need to change.
+
 typedef enum {
 	PLOT_LABEL_LEFT_FOOTER= 0,
 	LABEL_X,
@@ -46,6 +51,9 @@ static canvasinfo *canvas_info_for_widget(GtkWidget *widget);
 static void adjust_canvas_size(int index);
 static void rebuild_active_plot_combo_list(GtkComboBox *widget);
 static void invalidate_plot(GtkWindow *window);
+static gint clear_Plots_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data);
+static void adjust_clear_plots_menu(GtkWidget *widget, GtkMenu *menu);
+static void on_clear_plot_menu_item(GtkObject *object, gpointer user_data);
 
 
 //extern Frame main_frame;
@@ -125,6 +133,16 @@ struct plot_window *create_plot_window()
 		wininfo.windows[ui_globals.active_window] = 1;
 		wininfo.canvases[ui_globals.active_window] = can_info;
 
+		
+		/* connect our handler which will popup the menu */
+{
+	GtkWidget *menu = gtk_menu_new();
+
+	GtkButton *button= GTK_BUTTON(lookup_widget_by_name(GTK_WIDGET(window), "btn_ClearPlots"));
+    gtk_signal_connect (GTK_OBJECT (button), "event", GTK_SIGNAL_FUNC (clear_Plots_PopupHandler), GTK_OBJECT (menu));
+
+//	gtk_signal_connect_object (GTK_OBJECT (button), "event", GTK_SIGNAL_FUNC (clear_Plots_PopupHandler), GTK_OBJECT (menu));
+}
 
 		// okay; the "proper" way to do this would be to store wininfo off the GtkWindow, and iterate the window manager to figure out what we have up.
 		// sorta like this:
@@ -737,24 +755,199 @@ gboolean on_chartArea_configure_event (GtkWidget *widget, GdkEventConfigure *eve
 	return FALSE;
 }
 
-void on_btnPlotType_clicked(GtkButton *button, gpointer user_data)
+/* ------------- popup menu buttons */
+// because swapped, the menu is the gpointer.
+static gint clear_Plots_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
-	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(button));
-	// change from plot lines to plot points and vice versa
-	const gchar *current_label= gtk_button_get_label(button); // DO NOT FREE (owned by button)
-	
-	if(strcmp(current_label, "Plot Lines")==0)
+	GtkMenu *menu;
+	GdkEventButton *event_button;
+	g_return_val_if_fail (widget != NULL, FALSE);
+	g_return_val_if_fail (user_data != NULL, FALSE);
+	g_return_val_if_fail (GTK_IS_MENU (user_data), FALSE);
+	g_return_val_if_fail (event != NULL, FALSE);
+
+	/* The "widget" is the menu that was supplied when
+	* g_signal_connect_swapped() was called.
+	*/
+	menu = GTK_MENU (user_data);
+	if (event->type == GDK_BUTTON_PRESS)
 	{
-		gtk_button_set_label(button, "Plot Points");
-		info->point_plot= 1;
-	} else {
-		gtk_button_set_label(button, "Plot Lines");
-		info->point_plot= 0;
+		event_button = (GdkEventButton *) event;
+		if (event_button->button == 1)
+		{
+			adjust_clear_plots_menu(widget, menu);
+			
+			gtk_menu_popup (menu, NULL, NULL, NULL, NULL, event_button->button, event_button->time);
+			return TRUE;
+		}
 	}
 	
-	// now redraw the graphic..
-	invalidate_plot(parent_gtk_window(GTK_WIDGET(button)));
+	return FALSE;
 }
+
+static void adjust_clear_plots_menu(GtkWidget *widget, GtkMenu *menu)
+{
+	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(widget));
+	gint canvas_index= can_info->canvas_num;
+	int ii;
+
+	// remove all the items.
+	GList *initial_list = gtk_container_get_children(GTK_CONTAINER(menu));
+	GList *entry= initial_list;
+	while(entry)
+	{
+		gtk_widget_destroy(GTK_WIDGET(entry->data));
+		entry= entry->next;
+	}
+	g_list_free(initial_list);
+
+	// add all the items back...
+	GtkWidget *menu_item;
+	char buf[200];
+
+	/* Copy the names to the buf. */
+	sprintf (buf, "Clear All Plots");
+
+	/* Create a new menu-item with a name... */
+	menu_item = gtk_menu_item_new_with_label (buf);
+	gtk_menu_append (GTK_MENU (menu), menu_item);
+	gtk_signal_connect (GTK_OBJECT (menu_item), "activate", GTK_SIGNAL_FUNC (on_clear_plot_menu_item), GINT_TO_POINTER (MAKE_CLEAR_PROC_DATA(canvas_index, CLEAR_ALL_PLOTS_CONSTANT)));
+	gtk_widget_show (menu_item);
+
+	/* Append a separator */
+	menu_item =  gtk_separator_menu_item_new();
+	gtk_menu_append (GTK_MENU (menu), menu_item);
+	gtk_widget_show (menu_item);
+
+	// now all the other ones ...
+	for(ii=0; ii<MAX_PLOTS; ii++)
+	{
+		if (can_info->alive_plots[ii])
+		{
+			sprintf(buf, "Clear %s  vs  %s",
+				head.ch[can_info->plots[ii]->col_x].name, 
+				head.ch[can_info->plots[ii]->col_y].name);
+				
+			/* Create a new menu-item with a name... */
+			menu_item = gtk_menu_item_new_with_label (buf);
+			gtk_menu_append (GTK_MENU (menu), menu_item);
+			gtk_signal_connect (GTK_OBJECT (menu_item), "activate", GTK_SIGNAL_FUNC (on_clear_plot_menu_item), GINT_TO_POINTER (MAKE_CLEAR_PROC_DATA(canvas_index, ii)));
+			gtk_widget_show (menu_item);
+		}
+    }
+
+	// store it..
+}
+
+static void on_clear_plot_menu_item(
+	GtkObject *object,
+	gpointer user_data)
+{
+	gint clear_proc_data= GPOINTER_TO_INT(user_data);
+	
+	// load it in.
+	int win_index= GET_CANVAS_INDEX(clear_proc_data);
+	int plot_index= GET_PLOT_NUMBER(clear_proc_data);
+	
+//	fprintf(stderr, "Clear plot index %d Canvas Index: %d\n", plot_index, win_index);
+
+	assert(win_index>=0 && win_index<MAXIMUM_NUMBER_OF_WINDOWS);
+	canvasinfo *can_info= wininfo.canvases[win_index];
+
+	if(plot_index==CLEAR_ALL_PLOTS_CONSTANT)
+	{
+		int i;
+
+		for (i=0; i<MAX_PLOTS; i++)
+		{
+			if (can_info->alive_plots[i] == 1)
+			{
+				free (can_info->plots[i]);
+				can_info->alive_plots[i] = 0;
+			}
+		}
+		can_info->total_plots = 0;
+		can_info->active_plot = -1;
+
+		sprintf(msg, "Clear all plots.\n");
+		print_msg(msg);
+
+		display_active_window(ui_globals.active_window+1); // WHY?
+		display_active_plot(-1);    
+	} else {
+		int n_holes, i, j;
+		char tmp_buf[200];
+		int hole_index[MAX_PLOTS];
+		
+		// clear the one plot
+		/* kill selected plots */
+		sprintf(msg, "Clear plots: ");
+
+		n_holes=0; /*number of plots being axed*/
+		for (i=0; i<MAX_PLOTS; i++)
+		{
+			if(i==plot_index && can_info->alive_plots[i])
+			{					
+				/*reset active plot if axing currently active plot. If it's 0, just leave it as 0 */
+				if ((can_info->active_plot == i) && (can_info->active_plot != 0))
+					can_info->active_plot--;
+				can_info->alive_plots[i] = 0;
+				/*free(can_info->plots[i]);*/            /*free space */
+				sprintf(tmp_buf, " %d ", i+1);
+				strcat(msg, tmp_buf);
+				n_holes++;
+			}
+		}
+		strcat(msg, "\n");
+		print_msg(msg);
+
+		/*reshuffle the list, so that, say, removing plot #2 from a list of 4
+		results in #3 going to #2 and #4 going to #3. This will require repointing the
+		plot data pointers etc.*/
+		for(j=i=0;i<MAX_PLOTS;i++)    /*first set up an index for holes (actually non-holes)*/
+		{
+			hole_index[i]=0;                /*default*/
+			if (can_info->alive_plots[i])   /*if alive, numbers will be the same */
+				hole_index[j++] = i;
+		}
+
+		can_info->total_plots -= n_holes;
+
+		for(j=i=0;i<can_info->total_plots;i++)                /*shuffle list*/
+		{
+			can_info->alive_plots[i] = 1; /*set it live*/
+			can_info->plots[i] = can_info->plots[hole_index[i]];  /*repoint pointer to data*/
+		}
+
+		for(i=can_info->total_plots;i< MAX_PLOTS;i++) /* all the rest are dead*/
+			can_info->alive_plots[i] = 0;
+
+		if(can_info->total_plots ==0)
+		{
+			can_info->active_plot = -1;
+		}
+		else  
+		{  
+			j=can_info->active_plot;                /*save active plot*/
+			for (i=0; i<MAX_PLOTS; i++)             /*re-draw */
+			{
+				if (can_info->alive_plots[i] == 1)
+				{
+					can_info->active_plot = i;
+				}
+			}
+			if(can_info->alive_plots[j] == 0)     /*active plot got axed, use default*/
+				can_info->active_plot = can_info->total_plots-1;
+			else
+				can_info->active_plot = j;
+		}
+		set_active_plot(can_info->active_plot);
+	}
+
+	// either way, we need to invalidate.
+	invalidate_plot(can_info->plot_window->window);
+}
+
 
 static void invalidate_widget_drawing(GtkWidget *widget)
 {
@@ -1304,7 +1497,67 @@ static int get_row_number(canvasinfo *can_info, int nrow, float x1, float y1)
 	return rownum;
 }
 
+/* ------------------------ Plot Lines/Points Combobox */
+enum {
+	PLOT_TYPE_NAME= 0,
+	NUMBER_OF_PLOT_TYPE_COLUMNS
+};
 
+void on_comboboxPlotType_realize(GtkWidget *widget, gpointer user_data)
+{
+	// create the model for this combobox..
+	GtkListStore *store = gtk_list_store_new (NUMBER_OF_PLOT_TYPE_COLUMNS, G_TYPE_STRING);
+	
+	/* set the model */
+	gtk_combo_box_set_model(GTK_COMBO_BOX(widget), GTK_TREE_MODEL(store));
+
+	/* set the renderer */
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new ();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(widget), renderer, TRUE);
+	gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(widget), renderer, "text", PLOT_TYPE_NAME);
+
+	// setup the menu (initial conditions)
+	GtkTreeIter iter;
+
+	/* Add a new row to the model */
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter, PLOT_TYPE_NAME, "Lines", -1);
+
+	/* Add a new row to the model */
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter, PLOT_TYPE_NAME, "Points", -1);
+
+	// set the initial state...
+	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(widget));
+	gtk_combo_box_set_active(GTK_COMBO_BOX(widget), info->point_plot);
+}
+
+
+void on_comboboxPlotType_changed(GtkComboBox *widget, gpointer user_data)
+{
+	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(widget));
+	gchar *active_plot_text= gtk_combo_box_get_active_text(widget);
+	int new_value= info->point_plot;
+	
+	if(active_plot_text)
+	{
+		if(strcmp(active_plot_text, "Lines")==0)
+		{
+			new_value= 0;
+		} else {
+			new_value= 1;
+		}
+	}
+
+	if(new_value != info->point_plot)
+	{
+		// update it.
+		info->point_plot= new_value;
+
+		// now redraw the graphic..
+		invalidate_plot(parent_gtk_window(GTK_WIDGET(widget)));
+	}
+}
 
 /* ------------------------- Activating Plots & The Plot Combobox */
 enum {
@@ -1380,7 +1633,6 @@ static void rebuild_active_plot_combo_list(GtkComboBox *widget)
 	// clear everything in there currently...
 	gtk_list_store_clear(store);
    
-fprintf(stderr, "Building List\n");
 	for(i=0; i<MAX_PLOTS; i++)
 	{
 		if (can_info->alive_plots[i])
@@ -1389,7 +1641,6 @@ fprintf(stderr, "Building List\n");
 			sprintf(temporary, "%d. %s  vs  %s", i+1,
 				head.ch[can_info->plots[i]->col_x].name, 
 				head.ch[can_info->plots[i]->col_y].name);
-fprintf(stderr, "Found %s\n", temporary);
 				
 			if(can_info->active_plot==i)
 			{
