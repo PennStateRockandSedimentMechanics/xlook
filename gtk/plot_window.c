@@ -526,13 +526,14 @@ gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *eve
 		}
 
 		data = can_info->plots[can_info->active_plot];
-
 //		draw_crosshair(xloc, yloc);
 
 		xval = (xloc - can_info->start_x)/data->scale_x + data->xmin;
 		yval = (can_info->start_y - yloc)/data->scale_y + data->ymin;
 
 		nrows = data->nrows_x;
+//fprintf(stderr, "Mouse: %d,%d Strt: %d,%d Scale: %f,%f\n", xloc, yloc, can_info->start_x, can_info->start_y, data->scale_x, data->scale_y);
+//fprintf(stderr, "Active Plot: %d XVal: %f YVal: %f NRows: %d\n", can_info->active_plot, xval, yval, nrows);
 		row_num = get_row_number(can_info, nrows, xval, yval);
 		if (row_num <= nrows && row_num != -1)
 		{
@@ -599,7 +600,6 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 		plotarray *data;
 		float xmax, xmin, ymax, ymin;
 		int start_x, start_y, end_x, end_y;
-		float scale_x, scale_y;
 		char rows_string[64];    
 
 		can_info = wininfo.canvases[win_index];
@@ -627,6 +627,20 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 			if(can_info->alive_plots[plot_index] == 1)
 			{
 				data = can_info->plots[plot_index];
+
+				xmin = data->xmin;
+				ymin = data->ymin;
+				xmax = data->xmax;
+				ymax = data->ymax;
+
+				start_x = can_info->start_x;
+				end_x = can_info->end_x;
+				start_y = can_info->start_y;
+				end_y = can_info->end_y;
+
+				// these two need to be set before the labelling
+				data->scale_x = (float)(end_x - start_x)/(xmax - xmin);
+				data->scale_y = (float)(start_y - end_y)/(ymax - ymin);
 
 				if(plot_index==can_info->active_plot)
 				{
@@ -667,19 +681,6 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 					}
 				}
 
-				xmin = data->xmin;
-				ymin = data->ymin;
-				xmax = data->xmax;
-				ymax = data->ymax;
-
-				start_x = can_info->start_x;
-				end_x = can_info->end_x;
-				start_y = can_info->start_y;
-				end_y = can_info->end_y;
-
-				scale_x = (float)(end_x - start_x)/(xmax - xmin);
-				scale_y = (float)(start_y - end_y)/(ymax - ymin);
-
 				/* plot each point  */
 				if (can_info->point_plot == 1)
 				{
@@ -692,8 +693,8 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 					 	gdk_draw_point(
 							widget->window, 
 							widget->style->fg_gc[gtk_widget_get_state (widget)],
-							start_x + (int)(x1*scale_x),
-							start_y - (int)(y1*scale_y));
+							start_x + (int)(x1*data->scale_x),
+							start_y - (int)(y1*data->scale_y));
 					}
 				}
 				else
@@ -709,10 +710,10 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 						y2 = data->yarray[i+1] - ymin;
 
 					 	draw_line(widget,
-							start_x + (int)(x1*scale_x),
-							start_y - (int)(y1*scale_y),
-							start_x + (int)(x2*scale_x),
-							start_y - (int)(y2*scale_y));
+							start_x + (int)(x1*data->scale_x),
+							start_y - (int)(y1*data->scale_y),
+							start_x + (int)(x2*data->scale_x),
+							start_y - (int)(y2*data->scale_y));
 					}
 				}
 			}
