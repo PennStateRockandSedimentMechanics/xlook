@@ -52,9 +52,29 @@ static void adjust_canvas_size(int index);
 static void rebuild_active_plot_combo_list(GtkComboBox *widget);
 static void invalidate_plot(GtkWindow *window);
 static gint clear_Plots_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data);
+static gint mouse_and_zoom_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data);
 static void adjust_clear_plots_menu(GtkWidget *widget, GtkMenu *menu);
 static void on_clear_plot_menu_item(GtkObject *object, gpointer user_data);
+static void on_zoom_menu_item(GtkObject *object, gpointer user_data);
+static void on_mouse_menu_item(GtkObject *object, gpointer user_data);
 
+enum {
+	_zoom_item_zoom_and_clear= 0,
+	_zoom_item_zoom,
+	_zoom_item_zoom_new_window,
+	NUMBER_OF_ZOOM_ITEMS
+};
+
+static const char *zoom_menu_labels[]= { "Zoom and Clear", "Zoom", "Zoom New Window" };
+
+enum {
+	_mouse_item_line_plot = 0,
+	_mouse_item_vertical_line,
+	_mouse_item_distance,
+	NUMBER_OF_MOUSE_ITEMS
+};
+
+static const char *mouse_menu_labels[]= { "Line Plot", "Vertical Line", "Distance" };
 
 //extern Frame main_frame;
 //Xv_Cursor xhair_cursor;
@@ -89,7 +109,6 @@ struct plot_window *create_plot_window()
 
 		// load the rest of them...
 		GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (builder, "plotWindow"));
-
 		gtk_builder_connect_signals (builder, NULL);
 		g_object_unref (G_OBJECT (builder));
 
@@ -140,9 +159,51 @@ struct plot_window *create_plot_window()
 
 	GtkButton *button= GTK_BUTTON(lookup_widget_by_name(GTK_WIDGET(window), "btn_ClearPlots"));
     gtk_signal_connect (GTK_OBJECT (button), "event", GTK_SIGNAL_FUNC (clear_Plots_PopupHandler), GTK_OBJECT (menu));
-
-//	gtk_signal_connect_object (GTK_OBJECT (button), "event", GTK_SIGNAL_FUNC (clear_Plots_PopupHandler), GTK_OBJECT (menu));
 }
+{
+	GtkWidget *menu = gtk_menu_new();
+	int ii;
+	
+	// wanted to build this in glade, but no joy.
+	// add all the items back...
+	assert(ARRAY_SIZE(zoom_menu_labels)==NUMBER_OF_ZOOM_ITEMS);
+	for(ii=0; ii<NUMBER_OF_ZOOM_ITEMS; ii++)
+	{
+		GtkWidget *menu_item;
+
+		/* Create a new menu-item with a name... */
+		menu_item = gtk_menu_item_new_with_label (zoom_menu_labels[ii]);
+		gtk_menu_append (GTK_MENU (menu), menu_item);
+		gtk_signal_connect (GTK_OBJECT (menu_item), "activate", GTK_SIGNAL_FUNC (on_zoom_menu_item), GINT_TO_POINTER (MAKE_CLEAR_PROC_DATA(can_info->canvas_num, ii)));
+		gtk_widget_show (menu_item);
+	}
+
+	GtkButton *button= GTK_BUTTON(lookup_widget_by_name(GTK_WIDGET(window), "btn_Zoom"));
+    gtk_signal_connect (GTK_OBJECT (button), "event", GTK_SIGNAL_FUNC (mouse_and_zoom_PopupHandler), GTK_OBJECT (menu));
+}
+
+{
+	GtkWidget *menu = gtk_menu_new();
+	int ii;
+	
+	// wanted to build this in glade, but no joy.
+	// add all the items back...
+	assert(ARRAY_SIZE(mouse_menu_labels)==NUMBER_OF_MOUSE_ITEMS);
+	for(ii=0; ii<NUMBER_OF_MOUSE_ITEMS; ii++)
+	{
+		GtkWidget *menu_item;
+
+		/* Create a new menu-item with a name... */
+		menu_item = gtk_menu_item_new_with_label (mouse_menu_labels[ii]);
+		gtk_menu_append (GTK_MENU (menu), menu_item);
+		gtk_signal_connect (GTK_OBJECT (menu_item), "activate", GTK_SIGNAL_FUNC (on_mouse_menu_item), GINT_TO_POINTER (MAKE_CLEAR_PROC_DATA(can_info->canvas_num, ii)));
+		gtk_widget_show (menu_item);
+	}
+
+	GtkButton *button= GTK_BUTTON(lookup_widget_by_name(GTK_WIDGET(window), "btn_Mouse"));
+    gtk_signal_connect (GTK_OBJECT (button), "event", GTK_SIGNAL_FUNC (mouse_and_zoom_PopupHandler), GTK_OBJECT (menu));
+}
+
 
 		// okay; the "proper" way to do this would be to store wininfo off the GtkWindow, and iterate the window manager to figure out what we have up.
 		// sorta like this:
@@ -948,7 +1009,98 @@ static void on_clear_plot_menu_item(
 	invalidate_plot(can_info->plot_window->window);
 }
 
+/* ---------------------- Zoom Popup Menu */
+static gint mouse_and_zoom_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data)
+{
+	GtkMenu *menu;
+	GdkEventButton *event_button;
 
+	g_return_val_if_fail (widget != NULL, FALSE);
+	g_return_val_if_fail (user_data != NULL, FALSE);
+	g_return_val_if_fail (GTK_IS_MENU (user_data), FALSE);
+	g_return_val_if_fail (event != NULL, FALSE);
+
+	/* The "widget" is the menu that was supplied when
+	* g_signal_connect_swapped() was called.
+	*/
+	menu = GTK_MENU (user_data);
+	if (event->type == GDK_BUTTON_PRESS)
+	{
+		event_button = (GdkEventButton *) event;
+		if (event_button->button == 1)
+		{
+			gtk_menu_popup (menu, NULL, NULL, NULL, NULL, event_button->button, event_button->time);
+			return TRUE;
+		}
+	}
+	
+	return FALSE;
+}
+
+static void on_zoom_menu_item(GtkObject *object, gpointer user_data)
+{
+	gint clear_proc_data= GPOINTER_TO_INT(user_data);
+	
+	// load it in.
+	int win_index= GET_CANVAS_INDEX(clear_proc_data);
+	int cmd_index= GET_PLOT_NUMBER(clear_proc_data); // reuse.
+
+	assert(win_index>=0 && win_index<MAXIMUM_NUMBER_OF_WINDOWS);
+	canvasinfo *can_info= wininfo.canvases[win_index];
+	
+	switch(cmd_index)
+	{
+		case _zoom_item_zoom_and_clear:
+			fprintf(stderr, "Zoom and Clear\n");
+			break;
+		case _zoom_item_zoom:
+			fprintf(stderr, "Zoom\n");
+			break;
+		case _zoom_item_zoom_new_window:
+			fprintf(stderr, "Zoom and New\n");
+			break;
+		default:
+			fprintf(stderr, "Unknown command index for zoom menu: %d\n", cmd_index);
+			break;
+	}
+	
+	return;
+}
+
+/* ------------------- Mouse Menu Item hnalde */
+static void on_mouse_menu_item(GtkObject *object, gpointer user_data)
+{
+	gint clear_proc_data= GPOINTER_TO_INT(user_data);
+	
+	// load it in.
+	int win_index= GET_CANVAS_INDEX(clear_proc_data);
+	int cmd_index= GET_PLOT_NUMBER(clear_proc_data); // reuse.
+
+	assert(win_index>=0 && win_index<MAXIMUM_NUMBER_OF_WINDOWS);
+	canvasinfo *can_info= wininfo.canvases[win_index];
+	
+	switch(cmd_index)
+	{
+		case _mouse_item_line_plot:
+			fprintf(stderr, "Line Plot\n");
+			break;
+		case _mouse_item_vertical_line:
+			fprintf(stderr, "Vertical Line\n");
+			break;
+		case _mouse_item_distance:
+			fprintf(stderr, "Distance\n");
+			break;
+		default:
+			fprintf(stderr, "Unknown command index for mouse menu: %d\n", cmd_index);
+			break;
+	}
+	
+	return;
+}
+
+
+
+/* ----------------- other local code */
 static void invalidate_widget_drawing(GtkWidget *widget)
 {
 	gtk_widget_queue_draw_area(widget, 0, 0, widget->allocation.width, widget->allocation.height);
