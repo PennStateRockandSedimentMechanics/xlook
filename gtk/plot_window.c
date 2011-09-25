@@ -11,6 +11,7 @@ deal with wrapping problem caused by OS 10.5*/
 #include "plot_window.h"
 #include "ui.h"
 #include "cmds1.h" // for kill_win_proc
+#include "offscreen_buffer.h"
 
 extern char plot_cmd[256]; // FIXME: move to globals.h
 
@@ -35,28 +36,44 @@ enum
   NUMBER_OF_PLOT_TREE_COLUMNS
 } ;
 
+#define DATA_TO_SCREEN_X(x, ddd, ccc) ((ccc)->start_x + ((x) - (ddd)->xmin)*(ddd)->scale_x)
+#define DATA_TO_SCREEN_Y(y, ddd, ccc) ((ccc)->start_y + ((y) - (ddd)->ymin)*(ddd)->scale_y)
+
+#define SCREEN_TO_DATA_X(x, ddd, ccc) ((float)((x) - (ccc)->start_x)/(ddd)->scale_x + (ddd)->xmin)
+#define SCREEN_TO_DATA_Y(y, ddd, ccc) ((float)((y) - (ccc)->start_y)/(ddd)->scale_y + (ddd)->ymin)
+
+#define SCALE_X(ddd, ccc)	 (float)(((ccc)->end_x - (ccc)->start_x)/((ddd)->xmax - (ddd)->xmin))
+#define SCALE_Y(ddd, ccc)	 (float)(((ccc)->end_y - (ccc)->start_y)/((ddd)->ymax - (ddd)->ymin))
 
 static int get_new_window_num();
 static void adjust_canvas_size(int index);
 static int window_index_from_window(GtkWindow *window);
-static void set_left_footer_message(GtkWindow *parent, char *txt);
-static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, char *txt);
-static void erase_rectangle(GtkWidget *widget, int x, int y, int width, int height);
-static void draw_line(GtkWidget *widget, int x0, int y0, int x1, int y1);
-static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info);
-static void label_type0(GtkWidget *drawingArea, canvasinfo *can_info);
+static void set_left_footer_message(GtkWindow *parent, const char *txt);
+static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, const char *txt);
+
+
+static void label_type1(canvasinfo *can_info);
+static void label_type0(canvasinfo *can_info);
 static int get_row_number(canvasinfo *can_info, int nrow, float x1, float y1);
-static void invalidate_widget_drawing(GtkWidget *widget);
 static canvasinfo *canvas_info_for_widget(GtkWidget *widget);
 static void adjust_canvas_size(int index);
 static void rebuild_active_plot_combo_list(GtkComboBox *widget);
-static void invalidate_plot(GtkWindow *window);
+static void invalidate_plot(GtkWindow *window, gboolean clear_annotations);
 static gint clear_Plots_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data);
 static gint mouse_and_zoom_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data);
 static void adjust_clear_plots_menu(GtkWidget *widget, GtkMenu *menu);
 static void on_clear_plot_menu_item(GtkObject *object, gpointer user_data);
 static void on_zoom_menu_item(GtkObject *object, gpointer user_data);
 static void on_mouse_menu_item(GtkObject *object, gpointer user_data);
+static void set_mouse_message_for_mode(GtkWindow *window, int mode);
+static void set_mouse_mode(canvasinfo *can_info, int mouse_mode);
+static void draw_into_offscreen_buffer(GtkWidget *widget);
+static void draw_chart_immediately(GtkWidget *widget, canvasinfo *info);
+static void draw_crosshair_gdk(GdkDrawable *drawable, GdkGC *gc, int xloc, int yloc);
+static void draw_data_crosshair(struct offscreen_buffer *buffer, const char *string,int xloc, int yloc);
+static void clear_active_plot(canvasinfo *can_info);
+
+char *csprintf(char *buffer, char *format, ...);
 
 enum {
 	_zoom_item_zoom_and_clear= 0,
@@ -76,8 +93,37 @@ enum {
 
 static const char *mouse_menu_labels[]= { "Line Plot", "Vertical Line", "Distance" };
 
-//extern Frame main_frame;
-//Xv_Cursor xhair_cursor;
+enum {
+	_mouse_mode_normal= 0,
+	_mouse_mode_draw_line,
+	_mouse_mode_vertical_line,
+	_mouse_mode_distance,
+	_mouse_mode_zoom_and_clear,
+	_mouse_mode_zoom,
+	_mouse_mode_zoom_new_window,
+	NUMBER_OF_MOUSE_MODES
+};
+
+static const char *mouse_mode_names[]= {
+	"Normal",
+	"Line",
+	"Vertical Line",
+	"Distance",
+	"Zoom and Clear",
+	"Zoom",
+	"Zoom New Window"
+};
+
+static const char *mouse_mode_labels[]= {
+	"Normal Mode: Left & middle buttons pick row numbers. Right button gives x-y position",
+	"Draw Line Mode: Left button click and drag draws line.",
+	"Vertical Line Mode: Left button draws a vertical line.", // FIXME
+	"Distance Mode: Left button click and drag shows distance.",
+	"Zoom Mode: Left button click and drag selects zoom area, right button commits zoom",
+	"Zoom Mode: Left button click and drag selects zoom area, right button commits zoom",
+	"Zoom Mode: Left button click and drag selects zoom area, right button commits zoom"
+};
+
 
 short canvas0_image[] = {
 #include "canvas.ico"
@@ -90,7 +136,7 @@ struct plot_window
 	GtkWindow *window;
 };
 
-
+/* ------------------- primary code */
 struct plot_window *create_plot_window()
 { 
 	struct plot_window *result= NULL;
@@ -124,9 +170,12 @@ struct plot_window *create_plot_window()
 			return NULL;
 		}
 
+		// null it out.
+		memset(can_info, 0, sizeof(canvasinfo));
+		
 		ui_globals.old_active_window = ui_globals.active_window;
 		ui_globals.active_window = win_num;
-		fprintf(stderr, "Window pointer is %p\n", window);
+//		fprintf(stderr, "Window pointer is %p\n", window);
 		can_info->canvas_num = ui_globals.active_window;
 		can_info->total_plots = 0;
 		can_info->active_plot = -1;
@@ -205,6 +254,10 @@ struct plot_window *create_plot_window()
 }
 
 
+		/*set footer info. This should be redundant since it only gets set or changed from the panel buttons...*/
+		set_mouse_message_for_mode(GTK_WINDOW(window), can_info->mouse.mode);
+		set_plot_label_message(GTK_WINDOW(window), LABEL_PLOT_ROWS, "PLOT ROWS:  ");
+
 		// okay; the "proper" way to do this would be to store wininfo off the GtkWindow, and iterate the window manager to figure out what we have up.
 		// sorta like this:
 		//g_object_set_data_full (G_OBJECT (event_box), "wininfo", g_strdup(user_name), (GDestroyNotify) g_free); (replacing allocater and free'r)
@@ -228,7 +281,7 @@ void bring_plot_window_to_front(struct plot_window *pw)
 
 void set_active_plot_in_window(struct plot_window *pw, int i)
 {
-fprintf(stderr, "set active plot in window to %d\n", i);
+//fprintf(stderr, "set active plot in window to %d\n", i);
 	assert(pw);
 	assert(pw->window);
 	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(pw->window));
@@ -237,7 +290,7 @@ fprintf(stderr, "set active plot in window to %d\n", i);
 	can_info->active_plot = i;
 
 	/* invalidate the drawing area */
-	invalidate_plot(pw->window);
+	invalidate_plot(pw->window, TRUE);
 
 	if(i < 0)			/*no active plot, no plots*/
 	{
@@ -308,9 +361,6 @@ void remove_plot_in_window(struct plot_window *pw, int pn)
 	for(i=can_info->total_plots;i< MAX_PLOTS;i++) /* all the rest are dead*/
 		can_info->alive_plots[i] = 0;
 
-	// not sure why it's done more than once.
-	invalidate_plot(pw->window);
-
 	if(can_info->total_plots ==0)
 	{
 		can_info->active_plot = -1;
@@ -323,7 +373,6 @@ void remove_plot_in_window(struct plot_window *pw, int pn)
 			if (can_info->alive_plots[i] == 1)
 			{
 				can_info->active_plot = i;
-				invalidate_plot(pw->window);
 			}
 		}
 		
@@ -337,6 +386,7 @@ void remove_plot_in_window(struct plot_window *pw, int pn)
 		}
 	}
 
+	invalidate_plot(pw->window, TRUE);
 	set_active_plot_in_window(can_info->plot_window, can_info->active_plot);
 
 	ui_globals.action = MAIN;
@@ -357,7 +407,7 @@ void invalidate_plot_window(struct plot_window *pw)
 {
 	assert(pw);
 	assert(pw->window);
-	invalidate_plot(pw->window);
+	invalidate_plot(pw->window, TRUE);
 }
 
 
@@ -434,8 +484,6 @@ void clear_multiple_plots(struct plot_window *pw, int *intar2)
 			if (can_info->alive_plots[i] == 1)
 			{
 				new_active_plot= i;
-//				can_info->active_plot = i;
-//				redraw_proc(can_info->canvas, can_info->xvwin, xv_get(can_info->canvas, XV_DISPLAY), can_info->win, NULL);
 			}
 		}
 		if(can_info->alive_plots[j] == 0) /*active plot got axed, use default*/
@@ -491,11 +539,31 @@ gboolean on_plotWindow_delete_event(
 	return TRUE;
 }
 
-static void invalidate_plot(GtkWindow *window)
+static void invalidate_plot(GtkWindow *window, gboolean clear_annotations)
 {
 	// now redraw the graphic..
 	GtkWidget *drawingArea= lookup_widget_by_name(GTK_WIDGET(window), "chartArea");
-	invalidate_widget_drawing(drawingArea);
+
+	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(window));
+
+	// invalidate is a "real" dirty; so we need to nuke our backbuffer.
+	if(clear_annotations)
+	{
+		if(info->offscreen_buffer != NULL)
+		{
+			dispose_buffer(info->offscreen_buffer);
+			info->offscreen_buffer= NULL;
+		}
+	} else {
+		// they called this with false, which means they probably drew into the offscreen buffer (annotations)
+		if(info->offscreen_buffer)
+		{
+			regenerate_pixbuf(info->offscreen_buffer);
+		}
+	}
+	
+	// now setup the redraw flags...
+	gtk_widget_queue_draw_area(drawingArea, 0, 0, drawingArea->allocation.width, drawingArea->allocation.height);
 }
 
 static void adjust_canvas_size(int index)
@@ -576,6 +644,266 @@ void on_chartArea_realize(GtkWidget *widget, gpointer user_data)
 	gdk_window_set_cursor(gtk_widget_get_window(widget), cursor);
 }
 
+gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+	canvasinfo *info= canvas_info_for_widget(widget);
+	GtkWindow *window= GTK_WINDOW(info->plot_window->window);
+
+	info->mouse.tracking= FALSE;
+
+	// so we can use it below.
+	info->mouse.start.x= event->x;
+	info->mouse.start.y= event->y;
+
+	if (info->active_plot == -1)
+	{
+		sprintf(msg, "There is no plot in this window.\n");
+		print_msg(msg);
+	} 
+	else if(info->mouse.mode==_mouse_mode_vertical_line)
+	{
+		gdk_draw_line(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc,
+			info->mouse.start.x, info->start_y, 
+			info->mouse.start.x, info->end_y);
+		
+		invalidate_plot(window, FALSE);
+	} 
+	else if(info->mouse.mode==_mouse_mode_normal)
+	{
+		/* print row num on info panel only */
+		plotarray *data = info->plots[info->active_plot];
+
+		/* get the x and y (data) values */ 
+		float xval= SCREEN_TO_DATA_X(info->mouse.start.x, data, info);
+		float yval= SCREEN_TO_DATA_Y(info->mouse.start.y, data, info);
+
+		// show the information
+		if(event->button==1) // left
+		{
+			int row_num = get_row_number(info, data->nrows_x, xval, yval);
+			if (row_num <= data->nrows_x && row_num != -1)
+			{
+				/* get x and y values from data (not screen) */
+				xval = data->xarray[row_num]; 
+				yval = data->yarray[row_num]; 
+				row_num = row_num + data->begin; 
+
+				sprintf(msg, "Row Number: %d", row_num);
+				set_plot_label_message(window, LABEL_ROW_NUMBER, msg);
+				
+				/* draw crosshair on point */
+				point2d converted_pt;
+				converted_pt.x= DATA_TO_SCREEN_X(xval, data, info);
+				converted_pt.y= DATA_TO_SCREEN_Y(yval, data, info);
+
+				draw_crosshair_gdk(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc, converted_pt.x, converted_pt.y);
+			}
+			else 
+			{
+				set_plot_label_message(window, LABEL_ROW_NUMBER, "Row Number: None");
+				print_msg("The point picked was not on the curve.\n");
+			}
+			
+			sprintf(msg, "X: %.5g", xval); 
+			set_plot_label_message(window, LABEL_X, msg);
+			sprintf(msg, "Y: %.5g", yval); 
+			set_plot_label_message(window, LABEL_Y, msg);
+		} else { // right or middle
+//		  	print_xy(xloc, yloc);
+			set_plot_label_message(window, LABEL_ROW_NUMBER, "");
+
+			/*  print the x and y coord on the panels */
+			sprintf(msg, "X: %.5g", xval); 
+			set_plot_label_message(window, LABEL_X, msg);
+			sprintf(msg, "Y: %.5g", yval);
+			set_plot_label_message(window, LABEL_Y, msg);
+
+		  	/*  print the x and y coord on the msg window */
+			sprintf(msg, "X: %.5g Y: %.5g", xval, yval);
+			PangoLayout *pango_layout= info->offscreen_buffer->pango_layout;
+			pango_layout_set_text(pango_layout, msg, strlen(msg));
+			gdk_draw_layout(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc, 
+				info->mouse.start.x+10, info->mouse.start.y,
+				pango_layout);
+
+			strcat(msg, "\n");
+			print_msg(msg);
+		}
+		
+		// and update.
+		invalidate_plot(window, FALSE);
+	} else {
+		/* print row num on info panel only */
+		plotarray *data = info->plots[info->active_plot];
+
+		// we are tracking
+		info->mouse.tracking= TRUE;
+
+		/* get the x and y (data) values */ 
+		float xval= SCREEN_TO_DATA_X(info->mouse.start.x, data, info);
+		float yval= SCREEN_TO_DATA_Y(info->mouse.start.y, data, info);
+
+		int row_num = get_row_number(info, data->nrows_x, xval, yval);
+		if (row_num <= data->nrows_x && row_num != -1)
+		{
+			info->mouse.zp1 = row_num;
+		} else {
+			info->mouse.zp1 = NONE;
+		}
+	}
+		
+	return FALSE;
+}
+
+
+gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+//	fprintf(stderr, "Mouse button released\n");
+	canvasinfo *info= canvas_info_for_widget(widget);
+	GtkWindow *window= GTK_WINDOW(info->plot_window->window);
+	
+	if(info->mouse.tracking)
+	{
+		// assert(info->active_plot>=0 && info->active_plot<MAX_PLOTS);
+		plotarray *data = info->plots[info->active_plot];
+
+//		fprintf(stderr, "Was tracking; should commit.");
+
+		// store the final points
+		info->mouse.end.x= event->x;
+		info->mouse.end.y= event->y;
+
+		/* get the x and y (data) values */ 
+		float xval= SCREEN_TO_DATA_X(info->mouse.end.x, data, info);
+		float yval= SCREEN_TO_DATA_Y(info->mouse.end.y, data, info);
+
+		int row_num = get_row_number(info, data->nrows_x, xval, yval);
+		if (row_num <= data->nrows_x && row_num != -1)
+		{
+			info->mouse.zp2 = row_num;
+		} else {
+			info->mouse.zp2 = NONE;
+		}
+		
+		switch(info->mouse.mode)
+		{
+			case _mouse_mode_normal:
+			case _mouse_mode_vertical_line:
+			{
+				// handled on the press
+			}
+				break;
+				
+			case _mouse_mode_draw_line:
+			case _mouse_mode_distance:
+				{
+					float slope, intercept, x1, x2, y1, y2;
+
+					// Draw the line into the backbuffer (the main one), and update...
+					gdk_draw_line(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc,
+						info->mouse.start.x, info->mouse.start.y, info->mouse.end.x, info->mouse.end.y);
+						
+					// now update the pixmap
+					invalidate_plot(window, FALSE);
+
+//					fprintf(stderr, "Start: %d,%d End: %d, %d\n", info->mouse.start.x, info->mouse.start.y, info->mouse.end.x, info->mouse.end.y);
+
+					x1= SCREEN_TO_DATA_X(info->mouse.start.x, data, info);
+					y1= SCREEN_TO_DATA_Y(info->mouse.start.y, data, info);
+
+					x2= SCREEN_TO_DATA_X(info->mouse.end.x, data, info);
+					y2= SCREEN_TO_DATA_Y(info->mouse.end.y, data, info);
+
+//					fprintf(stderr, "Coords Start: %f,%f End: %f, %f\n", x1, y1, x2, y2);
+
+					set_plot_label_message(window, LABEL_ROW_NUMBER, "");
+					
+					if(info->mouse.mode==_mouse_mode_draw_line)
+					{
+						if((x2-x1)!=0)
+						{
+							slope = (y2 - y1)/(x2 - x1); // FIXME: DIVDIE BY ZERO
+							intercept = y1 - slope*x1;
+						
+							set_plot_label_message(window, LABEL_X, csprintf(msg, "Slope: %.5g", slope));
+							set_plot_label_message(window, LABEL_Y, csprintf(msg, "Y intercept: %.5g", intercept));
+
+							sprintf(msg, "line plot: x1,y1:(%f, %f), x2,y2:(%f, %f)\nslope: %g, int.: %g\n", x1, y1, x2, y2, slope, intercept);
+						} else {
+							sprintf(msg, "line plot: x1,y1:(%f, %f), x2,y2:(%f, %f)\nslope: Inf, int.: None\n", x1, y1, x2, y2);
+
+							set_plot_label_message(window, LABEL_X, "Slope: Infinite");
+							set_plot_label_message(window, LABEL_Y, "Y intercept: None");
+						}
+						print_msg(msg);
+					} else {
+						// measurement
+						float dx = fabs(x1 - x2);
+						float dy = fabs(y1 - y2);
+						float dv = sqrt((double)((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)));
+
+						set_plot_label_message(window, LABEL_X, csprintf(msg, "dX: %.5g", dx));
+						set_plot_label_message(window, LABEL_Y, csprintf(msg, "dY: %.5g", dy));
+						set_plot_label_message(window, LABEL_ROW_NUMBER, csprintf(msg, "dV: %.5g", dv));
+					}
+				}
+				break;
+			case _mouse_mode_zoom_and_clear:
+			case _mouse_mode_zoom:
+			case _mouse_mode_zoom_new_window:
+				// if we want a two stage, we'll have to rethink it.
+				if(event->button==1)
+				{
+					// commit it.
+					int begin, end;
+
+					/*set some default values, force row order*/
+					if(info->mouse.zp1 < 0)
+					{
+						info->mouse.zp1 = 0;
+					}
+					
+					if(info->mouse.zp2 <= 0)
+					{
+						info->mouse.zp2 = data->end - data->begin;
+					}
+						
+					if(info->mouse.zp2 < info->mouse.zp1)
+					{
+						begin = info->mouse.zp2 + data->begin;
+						end = info->mouse.zp1 + data->begin;
+					}
+					else
+					{
+						begin = info->mouse.zp1 + data->begin;
+						end = info->mouse.zp2 + data->begin;
+					}
+
+					print_msg(csprintf(msg, "data-begin is %d, data-end is %d, data-zp1 is %d, data-zp2 is %d\n", data->begin, data->end, info->mouse.zp1, info->mouse.zp2));
+
+					if (info->mouse.mode==_mouse_mode_zoom_and_clear)
+					{
+						clear_active_plot(info);
+					}
+					else if(info->mouse.mode==_mouse_mode_zoom_new_window)
+					{
+						/*this is where we have to make a new window, and plot to it*/
+						/*zoom to new window*/
+						new_win_proc();
+					}
+					strcpy(plot_cmd, "plotauto"); // stupid global
+					do_plot(csprintf(msg, "plotauto %d %d %d %d", data->col_x, data->col_y, begin, end));
+
+					// now update the pixmap (remove our meddling)
+					invalidate_plot(window, FALSE);
+				}
+				break;
+		}
+	}
+	
+	return FALSE;	
+}
+
 /* Handle the mouse motion in the box */
 gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data)
 {
@@ -590,7 +918,7 @@ gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *eve
 		float xval, yval;
 		float xmatch, ymatch;
 		int match_set= FALSE;
-		int nrows, row_num;
+		int row_num;
 
 		int xloc= (int) event->x;
 		int yloc= (int) event->y;
@@ -603,18 +931,59 @@ gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *eve
 //			print_msg(msg);
 			return FALSE;
 		}
-
+		
+		
 		data = can_info->plots[can_info->active_plot];
-//		draw_crosshair(xloc, yloc);
+//		draw_crosshair(widget, xloc, yloc);
 
 		xval = (xloc - can_info->start_x)/data->scale_x + data->xmin;
 		yval = (can_info->start_y - yloc)/data->scale_y + data->ymin;
 
-		nrows = data->nrows_x;
+		// we got a notify before the buffer was setup.
+		if(can_info->tracking_buffer==NULL) return FALSE;
+
+		// draw the base pixmap in...
+		gdk_draw_pixbuf(
+			can_info->tracking_buffer->pixmap, 
+			can_info->tracking_buffer->gc,
+			can_info->offscreen_buffer->pixbuf, 0, 0, 0, 0, 
+			can_info->offscreen_buffer->width,
+			can_info->offscreen_buffer->height,
+			GDK_RGB_DITHER_NONE,
+			0, 0);
+
+		if((event->state & GDK_BUTTON1_MASK) && can_info->mouse.tracking)
+		{
+			// update the points.
+			can_info->mouse.end.x= xloc;
+			can_info->mouse.end.y= yloc;
+
+			if(can_info->mouse.mode==_mouse_mode_zoom || can_info->mouse.mode==_mouse_mode_zoom_and_clear || can_info->mouse.mode==_mouse_mode_zoom_new_window)
+			{
+				// drawing a rectangle
+				gdk_draw_rectangle(can_info->tracking_buffer->pixmap, can_info->tracking_buffer->gc, 
+					FALSE,
+					MIN(can_info->mouse.start.x, can_info->mouse.end.x),
+					MIN(can_info->mouse.start.y, can_info->mouse.end.y),
+					abs(can_info->mouse.end.x - can_info->mouse.start.x), 
+					abs(can_info->mouse.end.y - can_info->mouse.start.y));
+
+			} else {
+				// draw_line or distance- drawing a line.
+				// erase the old one...
+
+				// draw the new one...
+				gdk_draw_line(can_info->tracking_buffer->pixmap, can_info->tracking_buffer->gc,
+					can_info->mouse.start.x, can_info->mouse.start.y, can_info->mouse.end.x, can_info->mouse.end.y);
+			}
+
+//			fprintf(stderr, "Moving mouse with the button down...\n");
+		} 
+
 //fprintf(stderr, "Mouse: %d,%d Strt: %d,%d Scale: %f,%f\n", xloc, yloc, can_info->start_x, can_info->start_y, data->scale_x, data->scale_y);
 //fprintf(stderr, "Active Plot: %d XVal: %f YVal: %f NRows: %d\n", can_info->active_plot, xval, yval, nrows);
-		row_num = get_row_number(can_info, nrows, xval, yval);
-		if (row_num <= nrows && row_num != -1)
+		row_num = get_row_number(can_info, data->nrows_x, xval, yval);
+		if (row_num <= data->nrows_x && row_num != -1)
 		{
 			/* get x and y values from data (not screen) */
 			xmatch = data->xarray[row_num]; 
@@ -623,42 +992,53 @@ gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *eve
 		
 			row_num = row_num + data->begin; 
 			sprintf(rowstring, "Row Number: %d", row_num);
-			/* draw crosshair on point */
-//			draw_xhair(xval, yval);
-		}
-		else 
-		{
-			sprintf(rowstring, "Row Number: None");
-			sprintf(msg, "The point picked was not on the curve.\n");
-			print_msg(msg);
-		}
+			set_plot_label_message(window, LABEL_ROW_NUMBER, rowstring);
 
-		set_plot_label_message(window, LABEL_ROW_NUMBER, rowstring);
-
-		/*  print the x and y coord on the panels */
-		if(match_set)
-		{
+			/*  print the x and y coord on the panels */
 			sprintf(xstring, "X: %.5g (Data: %.5g)", xval, xmatch); 
 			set_plot_label_message(window, LABEL_X, xstring);
 			sprintf(ystring, "Y: %.5g (Data: %.5g)", yval, ymatch);
 			set_plot_label_message(window, LABEL_Y, ystring);
-		} else {
+			
+			/* draw crosshair on point */
+			if(!can_info->mouse.tracking) // we don't show this if we are tracking a mouse down.
+			{
+				point2d pt;
+			
+				pt.x = DATA_TO_SCREEN_X(xmatch, data, can_info); // can_info->start_x + (xmatch - data->xmin)*data->scale_x;
+				pt.y = DATA_TO_SCREEN_Y(ymatch, data, can_info); // can_info->start_y - (ymatch - data->ymin)*data->scale_y;
+
+				sprintf(xstring, "X: %.5g  Y: %.5g\nRow: %d", xmatch, ymatch, row_num);
+				draw_data_crosshair(can_info->tracking_buffer, xstring, pt.x, pt.y);
+			}
+		}
+		else 
+		{
+			sprintf(rowstring, "Row Number: None");
+			set_plot_label_message(window, LABEL_ROW_NUMBER, rowstring);
+
+			/*  print the x and y coord on the panels */
 			sprintf(xstring, "X: %.5g (No Match)", xval); 
 			set_plot_label_message(window, LABEL_X, xstring);
 			sprintf(ystring, "Y: %.5g  (No Match)", yval);
 			set_plot_label_message(window, LABEL_Y, ystring);
 		}
 
-		/*  print the x and y coord on the msg window */
-		if(match_set)
+		// regenerate it..
+		regenerate_pixbuf(can_info->tracking_buffer);
+	
+		// now draw the entire thing into the window...
+		gdk_draw_pixbuf(widget->window, widget->style->fg_gc[gtk_widget_get_state (widget)],
+			can_info->tracking_buffer->pixbuf, 0, 0, 0, 0, 
+			can_info->offscreen_buffer->width,
+			can_info->offscreen_buffer->height,
+			GDK_RGB_DITHER_NONE,
+			0, 0);
+
+		if(event->is_hint)
 		{
-			sprintf(xstring, "X: %.5g  Y: %.5g", xmatch, ymatch);
-		} else {
-			sprintf(xstring, "X: %.5g  Y: %.5g", xval, yval);
+			gdk_event_request_motions(event);
 		}
-//		draw_string(widget, xloc+10, yloc, xstring);
-		strcat(xstring, "\n");
-		print_msg(xstring);
 	}
 
 	return FALSE;
@@ -669,139 +1049,157 @@ gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gp
 	// erase to white.
 	GtkWindow *window= parent_gtk_window(widget);
 
+//	fprintf(stderr, "Drawing\n");
 	int win_index= window_index_from_window(window);
 	if(win_index != NONE)
 	{
-		int i;
-		float x1, x2, y1, y2;
-		canvasinfo *can_info;
-		int plot_index, plots;
-		plotarray *data;
-		float xmax, xmin, ymax, ymin;
-		int start_x, start_y, end_x, end_y;
-		char rows_string[64];    
+		canvasinfo *can_info = wininfo.canvases[win_index];
 
-		can_info = wininfo.canvases[win_index];
-		plots = can_info->total_plots;
-
-		// clear it out...
-		GdkColor black;
-		
-		black.red= black.green= black.blue= 0;
-
-		erase_rectangle(widget, 0, 0, widget->allocation.width, widget->allocation.height);
-		gdk_gc_set_rgb_fg_color(widget->style->fg_gc[gtk_widget_get_state (widget)],	&black);
-
-		if(plots == 0) 			/*window's been cleared, no plots*/
-		{
-			sprintf(rows_string, "PLOT ROWS:  ");
-			set_plot_label_message(window, LABEL_PLOT_ROWS, rows_string);
-			set_left_footer_message(window, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position");
-			return FALSE;
-		}
-		
-		// draw all the active plots.
-		for (plot_index=0; plot_index<MAX_PLOTS; plot_index++)
-		{
-			if(can_info->alive_plots[plot_index] == 1)
-			{
-				data = can_info->plots[plot_index];
-
-				xmin = data->xmin;
-				ymin = data->ymin;
-				xmax = data->xmax;
-				ymax = data->ymax;
-
-				start_x = can_info->start_x;
-				end_x = can_info->end_x;
-				start_y = can_info->start_y;
-				end_y = can_info->end_y;
-
-				// these two need to be set before the labelling
-				data->scale_x = (float)(end_x - start_x)/(xmax - xmin);
-				data->scale_y = (float)(start_y - end_y)/(ymax - ymin);
-
-				if(plot_index==can_info->active_plot)
-				{
-					display_active_plot(plot_index+1);
-
-					/*display row numbers for active plot*/
-					sprintf(rows_string, "PLOT ROWS: %d to %d", data->begin, data->end);
-					set_plot_label_message(window, LABEL_PLOT_ROWS, rows_string);
-
-					/* print the labels */
-					if (data->label_type)
-					{
-						label_type1(widget, can_info);
-					}
-					else
-					{
-						label_type0(widget, can_info);
-					}
-
-					/*set footer info. This should be redundant since it only gets set or changed from the panel buttons  --do anyway just to be safe...*/
-					switch(can_info->plots[plot_index]->mouse)
-					{
-						case 0:
-							set_left_footer_message(window, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position");
-							break;
-						case 1:
-							set_left_footer_message(window, "Draw Line Mode: left button picks 1st point, middle picks 2nd, right button quits mode");
-							break;
-						case 2:
-							set_left_footer_message(window, "Vertical Line Mode: left & middle buttons draw vertical line, right button quits mode");
-							break;
-						case 3:
-							set_left_footer_message(window, "Distance Mode: left button picks 1st point, middle picks 2nd, right button quits mode");
-							break;
-						case 4:
-							set_left_footer_message(window, "Zoom Mode: left button picks 1st point, middle picks 2nd, right button commits zoom");
-							break;
-					}
-				}
-
-				/* plot each point  */
-				if (can_info->point_plot == 1)
-				{
-					/* plot the individual points */
-					for (i=0; i < data->nrows_x -1; i++)
-					{
-						x1 = data->xarray[i] - xmin;
-						y1 = data->yarray[i] - ymin;
-
-					 	gdk_draw_point(
-							widget->window, 
-							widget->style->fg_gc[gtk_widget_get_state (widget)],
-							start_x + (int)(x1*data->scale_x),
-							start_y - (int)(y1*data->scale_y));
-					}
-				}
-				else
-				{
-					// plot 0 is the measured values.
-					// plot 1 is the curve
-					/* connect the points */
-					for (i=0; i < data->nrows_x -1; i++)
-					{
-						x1 = data->xarray[i] - xmin;
-						x2 = data->xarray[i+1] - xmin;
-						y1 = data->yarray[i] - ymin;
-						y2 = data->yarray[i+1] - ymin;
-
-					 	draw_line(widget,
-							start_x + (int)(x1*data->scale_x),
-							start_y - (int)(y1*data->scale_y),
-							start_x + (int)(x2*data->scale_x),
-							start_y - (int)(y2*data->scale_y));
-					}
-				}
-			}
-		}
+		draw_chart_immediately(widget, can_info);
 	} else {
 		fprintf(stderr, "something has gone bellyup.\n");
 	}
 
 	return TRUE; // should be false?
+}
+
+static void draw_chart_immediately(GtkWidget *widget, canvasinfo *can_info) 
+{
+	assert(widget);
+	assert(can_info);
+
+	// draw it offscreen...
+	draw_into_offscreen_buffer(widget);
+
+	// now draw the offscreen buffer to the screen.
+	if(can_info->offscreen_buffer)
+	{
+		if(!can_info->offscreen_buffer->pixbuf)
+		{
+			fprintf(stderr, "odd.  pixbuf not allocated");
+			regenerate_pixbuf(can_info->offscreen_buffer);
+			assert(can_info->offscreen_buffer->pixbuf);
+		}
+
+		// draw it into
+		gdk_draw_pixbuf(widget->window, widget->style->fg_gc[gtk_widget_get_state (widget)],
+			can_info->offscreen_buffer->pixbuf, 0, 0, 0, 0, 
+			can_info->offscreen_buffer->width,
+			can_info->offscreen_buffer->height,
+			GDK_RGB_DITHER_NONE,
+			0, 0);
+	}
+}
+
+static void draw_into_offscreen_buffer(GtkWidget *widget)
+{
+	// erase to white.
+	GtkWindow *window= parent_gtk_window(widget);
+
+	int win_index= window_index_from_window(window);
+	if(win_index != NONE)
+	{
+		canvasinfo *can_info;
+		int plot_index, i;
+		plotarray *data;
+
+		can_info = wininfo.canvases[win_index];
+		
+		if(can_info->offscreen_buffer==NULL || can_info->offscreen_buffer->width != widget->allocation.width || can_info->offscreen_buffer->height != widget->allocation.height)
+		{
+			// dispose...
+			if(can_info->offscreen_buffer)
+			{
+				dispose_buffer(can_info->offscreen_buffer);
+				can_info->offscreen_buffer= NULL;
+			}
+			
+			// create...
+			can_info->offscreen_buffer= create_buffer_for_widget(widget);
+
+			assert(can_info->offscreen_buffer);
+//			fprintf(stderr, "Drawing offscreen\n");
+		
+			GdkGC *gc= can_info->offscreen_buffer->gc;
+			GdkDrawable *drawable= GDK_DRAWABLE(can_info->offscreen_buffer->pixmap);
+
+			// erase the rectangle.
+			gdk_gc_set_rgb_fg_color(gc, &widget->style->white);
+			gdk_draw_rectangle(drawable, gc, TRUE, 
+				0, 0, widget->allocation.width, widget->allocation.height);
+
+			gdk_gc_set_rgb_fg_color(gc, &widget->style->black);
+			
+			if(can_info->total_plots != 0)
+			{
+				// draw all the active plots.
+				for (plot_index=0; plot_index<MAX_PLOTS; plot_index++)
+				{
+					if(can_info->alive_plots[plot_index] == 1)
+					{
+						data = can_info->plots[plot_index];
+
+						// these two need to be set before the labelling
+						data->scale_x = SCALE_X(data, can_info); // (float)(can_info->end_x - can_info->start_x)/(data->xmax - data->xmin);
+						data->scale_y = SCALE_Y(data, can_info); // (float)(can_info->end_y - can_info->start_y)/(data->ymax - data->ymin);
+
+						if(plot_index==can_info->active_plot)
+						{
+							/* print the labels */
+							if (data->label_type)
+							{
+								label_type1(can_info);
+							}
+							else
+							{
+								label_type0(can_info);
+							}
+						}
+
+						/* plot each point  */
+						if (can_info->point_plot == 1)
+						{
+							/* plot the individual points */
+							for (i=0; i < data->nrows_x -1; i++)
+							{
+							 	gdk_draw_point(drawable, gc,
+									DATA_TO_SCREEN_X(data->xarray[i], data, can_info),
+									DATA_TO_SCREEN_Y(data->yarray[i], data, can_info));
+							}
+						}
+						else
+						{
+							// plot 0 is the measured values.
+							// plot 1 is the curve
+							/* connect the points */
+							for (i=0; i < data->nrows_x -1; i++)
+							{
+								gdk_draw_line(drawable, gc,
+									DATA_TO_SCREEN_X(data->xarray[i], data, can_info),
+									DATA_TO_SCREEN_Y(data->yarray[i], data, can_info),
+									DATA_TO_SCREEN_X(data->xarray[i+1], data, can_info),
+									DATA_TO_SCREEN_Y(data->yarray[i+1], data, can_info));
+							}
+						}
+					}
+				}
+
+				// recache.
+				regenerate_pixbuf(can_info->offscreen_buffer);
+				
+				// now regenerate the other one.
+				if(can_info->tracking_buffer)
+				{
+					dispose_buffer(can_info->tracking_buffer);
+					can_info->tracking_buffer= NULL;
+				}
+				can_info->tracking_buffer= create_buffer_for_widget(widget);
+				assert(can_info->tracking_buffer);
+			}
+		}
+	} else {
+		fprintf(stderr, "something has gone bellyup.\n");
+	}
 }
 
 gboolean on_chartArea_configure_event (GtkWidget *widget, GdkEventConfigure *event, gpointer user_data)
@@ -814,6 +1212,14 @@ gboolean on_chartArea_configure_event (GtkWidget *widget, GdkEventConfigure *eve
 	}
 		
 	return FALSE;
+}
+
+static void set_mouse_message_for_mode(GtkWindow *window, int mode)
+{
+	assert(mode>=0 && mode<NUMBER_OF_MOUSE_MODES);
+	assert(NUMBER_OF_MOUSE_MODES==ARRAY_SIZE(mouse_mode_labels));
+	
+	set_left_footer_message(window, mouse_mode_labels[mode]);
 }
 
 /* ------------- popup menu buttons */
@@ -1006,7 +1412,7 @@ static void on_clear_plot_menu_item(
 	}
 
 	// either way, we need to invalidate.
-	invalidate_plot(can_info->plot_window->window);
+	invalidate_plot(can_info->plot_window->window, TRUE);
 }
 
 /* ---------------------- Zoom Popup Menu */
@@ -1051,13 +1457,13 @@ static void on_zoom_menu_item(GtkObject *object, gpointer user_data)
 	switch(cmd_index)
 	{
 		case _zoom_item_zoom_and_clear:
-			fprintf(stderr, "Zoom and Clear\n");
+			set_mouse_mode(can_info, _mouse_mode_zoom_and_clear);
 			break;
 		case _zoom_item_zoom:
-			fprintf(stderr, "Zoom\n");
+			set_mouse_mode(can_info, _mouse_mode_zoom);
 			break;
 		case _zoom_item_zoom_new_window:
-			fprintf(stderr, "Zoom and New\n");
+			set_mouse_mode(can_info, _mouse_mode_zoom_new_window);
 			break;
 		default:
 			fprintf(stderr, "Unknown command index for zoom menu: %d\n", cmd_index);
@@ -1078,17 +1484,17 @@ static void on_mouse_menu_item(GtkObject *object, gpointer user_data)
 
 	assert(win_index>=0 && win_index<MAXIMUM_NUMBER_OF_WINDOWS);
 	canvasinfo *can_info= wininfo.canvases[win_index];
-	
+
 	switch(cmd_index)
 	{
 		case _mouse_item_line_plot:
-			fprintf(stderr, "Line Plot\n");
+			set_mouse_mode(can_info, _mouse_mode_draw_line);
 			break;
 		case _mouse_item_vertical_line:
-			fprintf(stderr, "Vertical Line\n");
+			set_mouse_mode(can_info, _mouse_mode_vertical_line);
 			break;
 		case _mouse_item_distance:
-			fprintf(stderr, "Distance\n");
+			set_mouse_mode(can_info, _mouse_mode_distance);
 			break;
 		default:
 			fprintf(stderr, "Unknown command index for mouse menu: %d\n", cmd_index);
@@ -1099,13 +1505,32 @@ static void on_mouse_menu_item(GtkObject *object, gpointer user_data)
 }
 
 
-
-/* ----------------- other local code */
-static void invalidate_widget_drawing(GtkWidget *widget)
+static void set_mouse_mode(canvasinfo *can_info, int mouse_mode)
 {
-	gtk_widget_queue_draw_area(widget, 0, 0, widget->allocation.width, widget->allocation.height);
+	assert(can_info);
+	assert(mouse_mode>=0 && mouse_mode<NUMBER_OF_MOUSE_MODES);
+	
+	// not sure if this line is required...
+	set_active_window(can_info->canvas_num);
+
+	if (can_info->active_plot == -1)
+	{
+		sprintf(msg, "There is no plot in this window.\n");
+		print_msg(msg);
+		return;
+	}
+
+	// set the mouse mode...
+	memset(&can_info->mouse, 0, sizeof(struct mouse_tracking_data));
+	can_info->mouse.mode= mouse_mode;
+
+	// update the prompt.
+	set_mouse_message_for_mode(GTK_WINDOW(can_info->plot_window->window), mouse_mode);
 }
 
+
+
+/* ----------------- other local code */
 static canvasinfo *canvas_info_for_widget(GtkWidget *widget)
 {
 	GtkWindow *window;
@@ -1127,12 +1552,12 @@ static canvasinfo *canvas_info_for_widget(GtkWidget *widget)
 	return result;
 }
 
-static void set_left_footer_message(GtkWindow *parent, char *txt)
+static void set_left_footer_message(GtkWindow *parent, const char *txt)
 {
 	set_plot_label_message(parent, PLOT_LABEL_LEFT_FOOTER, txt);
 }
 
-static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, char *txt)
+static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, const char *txt)
 {
 	char *names[]= { "label_LeftFooter", "label_X", "label_Y", "label_RowNumber", "label_PlotRows" };
 	
@@ -1160,67 +1585,113 @@ static int window_index_from_window(GtkWindow *window)
 	return NONE;
 }
 
-
-static void draw_string(GtkWidget *widget, int x, int y, char *string)
+static void draw_data_crosshair(
+	struct offscreen_buffer *buffer, 
+	const char *string,
+	int xloc, 
+	int yloc)
 {
-	gtk_draw_string(
-		gtk_widget_get_style(widget), 
-		widget->window, 
-		gtk_widget_get_state(widget), 
-		x, y, string);
-/*
+	GdkGC *gc= buffer->gc;
+	GdkDrawable *drawable= GDK_DRAWABLE(buffer->pixmap);
+	PangoLayout *pango_layout= buffer->pango_layout;
+	GdkGCValues original_values;
+	GdkColor red, white, black;
+	int text_width, text_height;
 
-	gdk_draw_string(widget->window,
-    	NULL, // GdkFont *font,
-		widget->style->fg_gc[gtk_widget_get_state (widget)],
-		x, y, string);
-*/
-}
-
-static void draw_line(GtkWidget *widget, int x0, int y0, int x1, int y1)
-{
-	gdk_draw_line(widget->window, 
-		widget->style->fg_gc[gtk_widget_get_state (widget)],
-		x0, y0, 
-		x1, y1);
-}
-
-
-static void erase_rectangle(GtkWidget *widget, int x, int y, int width, int height)
-{
-	GdkColor white;
+	red.red= 0xffff; red.blue= 0; red.green= 0; red.pixel= 0;
+	white.red= 0xffff; white.blue= 0xffff; white.green= 0xffff; white.pixel= 0;
+	memset(&black, 0, sizeof(GdkColor));
 	
-	white.red= white.green= white.blue= 0xffff;
-	gdk_gc_set_rgb_fg_color(widget->style->fg_gc[gtk_widget_get_state (widget)],&widget->style->white);
-	gdk_draw_rectangle(
-		widget->window, 
-		widget->style->fg_gc[gtk_widget_get_state (widget)],
-	    TRUE,
-		x, y, 
-		width, height);
-	gdk_gc_set_rgb_fg_color(widget->style->fg_gc[gtk_widget_get_state (widget)], &widget->style->black);
+	gdk_gc_get_values(gc, &original_values);
+	gdk_gc_set_rgb_fg_color(gc, &red);
+
+	gdk_draw_rectangle(drawable, gc, 
+		FALSE, // TRUE?
+		xloc-2, yloc-2, 
+		4, 4);
+
+	gdk_draw_line(drawable, gc,
+	    xloc-5, yloc, 
+	    xloc-2, yloc);
+
+	gdk_draw_line(drawable, gc,
+	    xloc+2, yloc, 
+	    xloc+5, yloc);
+
+	gdk_draw_line(drawable, gc,
+	    xloc, yloc-5,
+	    xloc, yloc-2);
+
+	gdk_draw_line(drawable, gc,
+	    xloc, yloc+2,
+	    xloc, yloc+5);
+
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+
+	int y_pos= yloc- (PANGO_PIXELS(text_height)+5);
+	int x_pos= xloc + 5;
+
+	gdk_gc_set_rgb_fg_color(gc, &white);
+	gdk_draw_rectangle(drawable, gc, 
+		TRUE, 
+		x_pos, 
+		y_pos, 
+		PANGO_PIXELS(text_width)+2, 
+		PANGO_PIXELS(text_height)+2);
+
+	gdk_gc_set_rgb_fg_color(gc, &black);
+	gdk_draw_rectangle(drawable, gc, 
+		FALSE, 
+		x_pos, 
+		y_pos, 
+		PANGO_PIXELS(text_width)+2, 
+		PANGO_PIXELS(text_height)+2);
+
+	gdk_draw_layout(drawable, gc, 
+		x_pos+1,
+		y_pos+2,
+		pango_layout);
+
+	// crosshair, with a box in t
+	gdk_gc_set_foreground(gc, &original_values.foreground);
+}
+
+static void draw_crosshair_gdk(GdkDrawable *drawable, GdkGC *gc, int xloc, int yloc)
+{
+//	fprintf(stderr, "Drawing xhair at %d %d", xloc, yloc);
+	gdk_draw_line(drawable, gc,
+	    xloc-5, yloc, 
+	    xloc+5, yloc);
+
+	gdk_draw_line(drawable, gc,
+	    xloc, yloc-5,
+	    xloc, yloc+5);
 }
 
 
 /* cjm, 3/19/96: I think "label_type" refers to the way ticks and tick spacing is done*/
-static void label_type0(GtkWidget *drawingArea, canvasinfo *can_info)
+static void label_type0(canvasinfo *can_info)
 {
 	int plot;
 	plotarray *data;
 	int tickx, ticky;
 	double ten = 10.000;
 	char string[256];
-	int stringlen;  
 	float xmax, xmin, ymax, ymin;
 	int start_xaxis, start_yaxis, end_xaxis, end_yaxis;
 	int start_x, start_y, end_x, end_y;
-	int width, height;
+	int width, height, text_width, text_height;
+
+	GdkGC *gc= can_info->offscreen_buffer->gc;
+	GdkDrawable *drawable= GDK_DRAWABLE(can_info->offscreen_buffer->pixmap);
+	PangoLayout *pango_layout= can_info->offscreen_buffer->pango_layout;
 
 	plot = can_info->active_plot;
 	data = can_info->plots[plot];
 
-	width = drawingArea->allocation.width;
-	height = drawingArea->allocation.height;
+	width = can_info->offscreen_buffer->width;
+	height = can_info->offscreen_buffer->height;
 
 	start_xaxis = can_info->start_xaxis;
 	start_yaxis = can_info->start_yaxis;
@@ -1237,6 +1708,7 @@ static void label_type0(GtkWidget *drawingArea, canvasinfo *can_info)
 	start_y = can_info->start_y;
 	end_y = can_info->end_y;
 
+#if false
 	if (can_info->total_plots != 0)
 	{
 		erase_rectangle(drawingArea, 0, 0, width, end_yaxis-1);
@@ -1252,19 +1724,20 @@ static void label_type0(GtkWidget *drawingArea, canvasinfo *can_info)
 		erase_rectangle(drawingArea,
 		 	0, start_y+1, width, height-start_y);
 	}
+#endif
   
    /* x-axis  (bottom) */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_xaxis, start_yaxis, 
 		end_xaxis, start_yaxis);
 
 	/* left y-axis  */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_xaxis, start_yaxis,
 		start_xaxis, end_yaxis); 
 
 	/* right y-axis  */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		end_xaxis, start_yaxis,
 		end_xaxis, end_yaxis);
 
@@ -1274,100 +1747,117 @@ static void label_type0(GtkWidget *drawingArea, canvasinfo *can_info)
 	tickx=(int)height*0.02/2;
 
 	/* tick and label for ymin */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_xaxis, start_y,
 		start_xaxis+ticky, start_y);
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		end_xaxis, start_y,
 		end_xaxis-ticky, start_y);
 
 	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 		pow(ten, (double)ymin) : ymin);
-	draw_string(drawingArea,
-	      start_xaxis - ui_globals.tickfontwidth*(strlen(string)+1),
-	      start_y + ui_globals.tickfontheight/2,
-	      string);
+
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		start_xaxis - (PANGO_PIXELS(text_width)+10),
+		start_y - PANGO_PIXELS(text_height)/2,
+		pango_layout);
 
 	/* tick and label for ymax */ 
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_xaxis, end_y,
 		start_xaxis+ticky, end_y);
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		end_xaxis, end_y,
 		end_xaxis-ticky, end_y);
 	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 		pow(ten, (double)ymax) : ymax);
 
-	draw_string(drawingArea,
-		start_xaxis - ui_globals.tickfontwidth*(strlen(string)+1),
-		end_y + ui_globals.tickfontheight/2,
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		start_xaxis - (PANGO_PIXELS(text_width)+10),
+		end_y - PANGO_PIXELS(text_height)/2,
+		pango_layout);
 
 	/* tick and label for y mid */ 
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_xaxis, end_y + (start_y - end_y)/2,
 		start_xaxis+ticky, end_y + (start_y - end_y)/2);
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		end_xaxis, end_y + (start_y - end_y)/2,
 		end_xaxis-ticky, end_y + (start_y - end_y)/2);
 	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 		pow(ten, (double)(ymax-ymin)/2) : (ymax+ymin)/2);
-	draw_string(drawingArea,
-		start_xaxis - ui_globals.tickfontwidth*(strlen(string)+1),
-		end_y + (start_y - end_y)/2 + ui_globals.tickfontheight/2,
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		start_xaxis - (PANGO_PIXELS(text_width)+10),
+		end_y + (start_y - end_y)/2 - PANGO_PIXELS(text_height)/2,
+		pango_layout);
 
 	/* min x axis */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_x, start_yaxis,
 		start_x, start_yaxis - ticky);
 	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 		pow(ten, (double)xmin) : xmin);
-	draw_string(drawingArea,
-		start_x - ui_globals.tickfontwidth*stringlen/2,
-		start_yaxis + ui_globals.tickfontheight + 2,
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		start_x - PANGO_PIXELS(text_width)/2,
+		start_yaxis + PANGO_PIXELS(text_height) + 2,
+		pango_layout);
 
 	/* max x axis */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		end_x, start_yaxis,
 		end_x, start_yaxis - ticky);
 	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 		pow(ten, (double)xmax) : xmax);
-	draw_string(drawingArea,
-		end_x - ui_globals.tickfontwidth*stringlen/2,
-		start_yaxis + ui_globals.tickfontheight + 2,
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		end_x - PANGO_PIXELS(text_width)/2,
+		start_yaxis + PANGO_PIXELS(text_height) + 2,
+		pango_layout);
 
 	/* mid x axis */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_x + (end_x-start_x)/2, start_yaxis,
 		start_x + (end_x-start_x)/2, start_yaxis - ticky);
 	sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 		pow(ten, (double)(xmax-xmin)/2) : (xmax+xmin)/2);
-	draw_string(drawingArea,
-		start_x + (end_x-start_x)/2 - ui_globals.tickfontwidth*stringlen/2,
-		start_yaxis + ui_globals.tickfontheight + 2,
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		start_x + (end_x-start_x)/2 - PANGO_PIXELS(text_width)/2,
+		start_yaxis + PANGO_PIXELS(text_height) + 2,
+		pango_layout);
 
 	sprintf(string, "%d.   %s  vs  %s", 
 		plot+1,
 		head.ch[data->col_x].name, 
 		head.ch[data->col_y].name);
 
-	draw_string(drawingArea,
-		start_xaxis, ui_globals.titlefontheight+2, 
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		start_xaxis, PANGO_PIXELS(text_height)+2, 
+		pango_layout);
 
 	sprintf(string,"%s",head.title);	/*add title, right justified*/
 
-	draw_string(drawingArea,
-		end_xaxis-ui_globals.titlefontwidth*strlen(string), ui_globals.titlefontheight+2,
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		end_xaxis- PANGO_PIXELS(text_width), PANGO_PIXELS(text_height)+2,
+		pango_layout);
 }
 
 
-static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
+static void label_type1(canvasinfo *can_info)
 {
 	int plot;
 	plotarray *data;
@@ -1385,14 +1875,17 @@ static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
 	double decx, decy;
 	float stop_xmin, stop_xmax, stop_ymin, stop_ymax;
 	int where_x, where_y;
-	int stringlen;
+	int text_width, text_height;
 
+	GdkGC *gc= can_info->offscreen_buffer->gc;
+	GdkDrawable *drawable= GDK_DRAWABLE(can_info->offscreen_buffer->pixmap);
+	PangoLayout *pango_layout= can_info->offscreen_buffer->pango_layout;
 
 	plot = can_info->active_plot;
 	data = can_info->plots[plot];
 
-	width = drawingArea->allocation.width;
-	height = drawingArea->allocation.height;
+	width = can_info->offscreen_buffer->width;
+	height = can_info->offscreen_buffer->height;
 
 	start_xaxis = can_info->start_xaxis;
 	start_yaxis = can_info->start_yaxis;
@@ -1412,6 +1905,8 @@ static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
 	scale_x = data->scale_x;
 	scale_y = data->scale_y;
 
+
+#if false
 	if (can_info->total_plots != 0)
 	{
 		/* clear title */
@@ -1431,19 +1926,20 @@ static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
 		erase_rectangle(drawingArea,
 			0, start_y+1, width, height-start_y);
 	}
+#endif
 
 	/* x-axis  (bottom) */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_xaxis, start_yaxis, 
 		end_xaxis, start_yaxis);
 		
 	/* left y-axis  */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		start_xaxis, start_yaxis,
 		start_xaxis, end_yaxis); 
 	
 	/* right y-axis  */
-	draw_line(drawingArea,
+	gdk_draw_line(drawable, gc,
 		end_xaxis, start_yaxis,
 		end_xaxis, end_yaxis);
 
@@ -1472,21 +1968,23 @@ static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
 	{
 		where_y = start_y-(int)((big_ticky-ymin)*scale_y);
 
-		draw_line(drawingArea,
+		gdk_draw_line(drawable, gc,
 			start_xaxis, where_y,
 			start_xaxis+ticky, where_y);
 
-		draw_line(drawingArea,
+		gdk_draw_line(drawable, gc,
 			end_xaxis, where_y,
 			end_xaxis-ticky, where_y);
 
 		sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 			pow(ten, (double)big_ticky) : big_ticky);
 
-		draw_string(drawingArea,
-			start_xaxis - ui_globals.tickfontwidth*(strlen(string)+1),
-			start_y-(int)((big_ticky-ymin)*scale_y)+ui_globals.tickfontheight/2,
-			string);
+		pango_layout_set_text(pango_layout, string, strlen(string));
+		pango_layout_get_size(pango_layout, &text_width, &text_height);
+		gdk_draw_layout(drawable, gc, 
+			start_xaxis - (PANGO_PIXELS(text_width)+10),
+			start_y-(int)((big_ticky-ymin)*scale_y)-PANGO_PIXELS(text_height)/2, 
+			pango_layout);
 
 		big_ticky += pow(ten, decy);
 	}
@@ -1501,21 +1999,23 @@ static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
 		{
 			where_y = start_y-(int)((big_ticky-ymin)*scale_y);
 
-			draw_line(drawingArea,
+			gdk_draw_line(drawable, gc,
 				start_xaxis, where_y,
 				start_xaxis+ticky, where_y);
 
-			draw_line(drawingArea,
+			gdk_draw_line(drawable, gc,
 				end_xaxis, where_y,
 				end_xaxis-ticky, where_y);
 
 			sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 				pow(ten, (double)big_ticky) : big_ticky);
 
-			draw_string(drawingArea,
-				start_xaxis - ui_globals.tickfontwidth*(stringlen+1),
-				start_y-(int)((big_ticky-ymin)*scale_y)+ui_globals.tickfontheight/2,
-				string);
+			pango_layout_set_text(pango_layout, string, strlen(string));
+			pango_layout_get_size(pango_layout, &text_width, &text_height);
+			gdk_draw_layout(drawable, gc, 
+				start_xaxis - (PANGO_PIXELS(text_width)+10),
+				start_y-(int)((big_ticky-ymin)*scale_y)-PANGO_PIXELS(text_height)/2,
+				pango_layout);
 
 			big_ticky += pow(ten, decy);
 		}
@@ -1526,18 +2026,20 @@ static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
 	{
 		where_x= start_x + (int)((big_tickx-xmin)*scale_x);
 
-		draw_line(drawingArea,
+		gdk_draw_line(drawable, gc,
 			where_x, start_yaxis,
 			where_x, start_yaxis - tickx);
 
 		sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 			pow(ten, (double)big_tickx) : big_tickx);
 
-		draw_string(drawingArea,
-			where_x - ui_globals.tickfontwidth*stringlen/2,
-			start_yaxis + ui_globals.tickfontheight + 2,
-			string);
-
+		pango_layout_set_text(pango_layout, string, strlen(string));
+		pango_layout_get_size(pango_layout, &text_width, &text_height);
+		gdk_draw_layout(drawable, gc, 
+			where_x - PANGO_PIXELS(text_width)/2,
+			start_yaxis + PANGO_PIXELS(text_height) + 2,
+			pango_layout);
+			
 		big_tickx += pow(ten, decx);
 	}
 
@@ -1551,17 +2053,19 @@ static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
 		{
 			where_x=start_x + (int)((big_tickx-xmin)*scale_x);
 
-			draw_line(drawingArea,
+			gdk_draw_line(drawable, gc,
 				where_x, start_yaxis,
 				where_x, start_yaxis - tickx);
 
 			sprintf(string, "%.5g", (strncmp(plot_cmd, "plotlog", 7)==0) ? 
 				pow(ten, (double)big_tickx) : big_tickx);
 			
-			draw_string(drawingArea,
-				where_x - ui_globals.tickfontwidth*stringlen/2,
-				start_yaxis + ui_globals.tickfontheight + 2,
-				string);
+			pango_layout_set_text(pango_layout, string, strlen(string));
+			pango_layout_get_size(pango_layout, &text_width, &text_height);
+			gdk_draw_layout(drawable, gc, 
+				where_x - PANGO_PIXELS(text_width)/2,
+				start_yaxis + PANGO_PIXELS(text_height) + 2,
+				pango_layout);
 
 			big_tickx += pow(ten, decx);
 		}
@@ -1572,15 +2076,19 @@ static void label_type1(GtkWidget *drawingArea, canvasinfo *can_info)
 		head.ch[data->col_x].name, 
 		head.ch[data->col_y].name);
 
-	draw_string(drawingArea,
-		start_xaxis, ui_globals.titlefontheight+2, 
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		start_xaxis, PANGO_PIXELS(text_height)+2, 
+		pango_layout);
 
 	sprintf(string,"%s",head.title);	/*add title, right justified*/
 
-	draw_string(drawingArea,
-		end_xaxis-ui_globals.titlefontwidth*strlen(string), ui_globals.titlefontheight+2,
-		string);
+	pango_layout_set_text(pango_layout, string, strlen(string));
+	pango_layout_get_size(pango_layout, &text_width, &text_height);
+	gdk_draw_layout(drawable, gc, 
+		end_xaxis- PANGO_PIXELS(text_width), PANGO_PIXELS(text_height)+2,
+		pango_layout);
 }
 
 
@@ -1649,6 +2157,94 @@ static int get_row_number(canvasinfo *can_info, int nrow, float x1, float y1)
 	return rownum;
 }
 
+static void clear_active_plot(canvasinfo *can_info)
+{
+	int i;
+
+	for (i=0; i<MAX_PLOTS; i++)
+	{
+		if (can_info->alive_plots[i] == 1)
+		{
+			can_info->alive_plots[i] = 0;
+		}
+	}
+	can_info->total_plots = 0;
+	can_info->active_plot = -1;
+  
+	sprintf(msg, "Clear all plots.\n");
+	print_msg(msg);
+  
+	display_active_window(ui_globals.active_window+1);
+	display_active_plot(-1);
+	
+	// redraw.
+	invalidate_plot(GTK_WINDOW(can_info->plot_window->window), TRUE);
+}
+
+/* ------------------------ Mouse Mode Combobox */
+enum {
+	MOUSE_MODE_NAME= 0,
+	MOUSE_MODE_VALUE,
+	NUMBER_OF_MOUSE_MODE_COLUMNS
+};
+
+void on_comboboxMouseMode_realize(GtkWidget *widget, gpointer user_data)
+{
+	// create the model for this combobox..
+	GtkListStore *store = gtk_list_store_new (NUMBER_OF_MOUSE_MODE_COLUMNS, G_TYPE_STRING, G_TYPE_INT);
+	int ii;
+	
+	assert(NUMBER_OF_MOUSE_MODES==ARRAY_SIZE(mouse_mode_names));
+
+	/* set the model */
+	gtk_combo_box_set_model(GTK_COMBO_BOX(widget), GTK_TREE_MODEL(store));
+
+	/* set the renderer */
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new ();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(widget), renderer, TRUE);
+	gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(widget), renderer, "text", MOUSE_MODE_NAME);
+
+	// setup the menu (initial conditions)
+	GtkTreeIter iter;
+
+	for(ii= 0; ii<NUMBER_OF_MOUSE_MODES; ii++)
+	{
+		/* Add a new row to the model */
+		gtk_list_store_append (store, &iter);
+		gtk_list_store_set (store, &iter, MOUSE_MODE_NAME, mouse_mode_names[ii], MOUSE_MODE_VALUE, ii, -1);
+	}
+	
+	// set the initial state...
+	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(widget));
+	gtk_combo_box_set_active(GTK_COMBO_BOX(widget), info->mouse.mode);
+}
+
+void on_comboboxMouseMode_changed(GtkComboBox *widget, gpointer user_data)
+{
+	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(widget));
+	gchar *active_plot_text= gtk_combo_box_get_active_text(widget);
+	int new_value= info->mouse.mode;
+	
+	if(active_plot_text)
+	{
+		int ii;
+		for(ii= 0; ii<NUMBER_OF_MOUSE_MODES; ii++)
+		{
+			if(strcmp(active_plot_text, mouse_mode_names[ii])==0)
+			{
+				new_value= ii;
+				break;
+			}
+		}
+	}
+
+	if(new_value != info->mouse.mode)
+	{
+		// update it.
+		set_mouse_mode(info, new_value);
+	}
+}
+
 /* ------------------------ Plot Lines/Points Combobox */
 enum {
 	PLOT_TYPE_NAME= 0,
@@ -1707,7 +2303,7 @@ void on_comboboxPlotType_changed(GtkComboBox *widget, gpointer user_data)
 		info->point_plot= new_value;
 
 		// now redraw the graphic..
-		invalidate_plot(parent_gtk_window(GTK_WIDGET(widget)));
+		invalidate_plot(parent_gtk_window(GTK_WIDGET(widget)), TRUE);
 	}
 }
 
@@ -1762,7 +2358,7 @@ fprintf(stderr, "Active changed!\n");
 					if(can_info->active_plot != i)
 					{
 						set_active_plot_in_window(can_info->plot_window, i);
-						invalidate_plot(parent_gtk_window(GTK_WIDGET(widget)));
+						invalidate_plot(parent_gtk_window(GTK_WIDGET(widget)), TRUE);
 					}
 					break;
 				}
@@ -1813,4 +2409,29 @@ static void rebuild_active_plot_combo_list(GtkComboBox *widget)
 	{
 		gtk_combo_box_set_active(GTK_COMBO_BOX(widget), activeIndex);
 	}
+}
+
+// this was the old refresh.
+void on_btn_ClearAnnotations_clicked(
+	GtkButton *button,
+	gpointer   user_data)
+{
+	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(button));
+	GtkWindow *window= GTK_WINDOW(info->plot_window->window);
+
+	invalidate_plot(window, TRUE);
+}
+
+char *csprintf(
+               char *buffer,
+               char *format,
+               ...)
+{
+	va_list arglist;
+	va_start(arglist, format);
+//        checked_vsprintf(buffer, CSPRINTF_BUFFER_SIZE, format, arglist);
+	vsprintf(buffer, format, arglist);
+	va_end(arglist);
+
+	return buffer;
 }

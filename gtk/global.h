@@ -159,35 +159,53 @@ FILE *command , *com_file[10] , *temp_com_file;
 
 typedef struct plot_array 
 {
-  double *xarray;
-  double *yarray;
-  int nrows_x; /* probably need just one nrows */
-  int nrows_y;
-  int col_x;
-  int col_y;
-  int begin;
-  int end;
-  float xmin;
-  float xmax;
-  float ymin;
-  float ymax;
-  float scale_x;
-  float scale_y;
-  int label_type;
-  int mouse;
-  int x1;
-  int y1;
-  int x2;
-  int y2;
-  int p1;
-  int p2;
-  int zp1;
-  int zp2;
-  
+	double *xarray;
+	double *yarray;
+	int nrows_x; /* probably need just one nrows */
+	int nrows_y;
+	int col_x;
+	int col_y;
+	int begin;
+	int end;
+	float xmin;
+	float xmax;
+	float ymin;
+	float ymax;
+	float scale_x;
+	float scale_y;
+	int label_type;
+
+
+	// this stuff should probably be on the canvas info; it doesn't really make sense to have a "per plot array"
+	// mouse tracking code; that's really per window.
+/*
+	int mouse;
+	int x1;
+	int y1;
+	int x2;
+	int y2;
+	int p1;
+	int p2;
+	int zp1;
+	int zp2;
+*/
 }plotarray; 
 
 // forward declaration, so the core code doesn't have to know about GTK.
 //extern struct GtkWidget;
+
+typedef struct point2d {
+	int x;
+	int y;
+} point2d;
+
+struct mouse_tracking_data {
+	int mode;
+	int tracking;
+	point2d start;
+	point2d end;
+	int zp1, zp2; // these are the zoom point (row numbers)
+};
 
 typedef struct canvas_info 
 {
@@ -206,6 +224,9 @@ typedef struct canvas_info
 	int end_xaxis;
 	int end_yaxis;
 	char point_plot;
+	struct mouse_tracking_data mouse;
+	struct offscreen_buffer *offscreen_buffer;
+	struct offscreen_buffer *tracking_buffer; // to avoid evil flicker.
 } canvasinfo;
 
 #define ARRAY_SIZE(x) ((sizeof(x)/sizeof(x[0])))

@@ -36,6 +36,8 @@ xlook_SOURCES = \
         nr.h \
         nrutil.c \
         nrutil.h \
+		offscreen_buffer.c \
+		offscreen_buffer.h \
         perrfl.c \
         perrfl.h \
         plot_window.c \

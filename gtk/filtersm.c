@@ -213,8 +213,7 @@ void rite_lookfile(FILE *dfile)
 void rite_lookfile(dfile)
 FILE *dfile;
 {
-  int i, j ;
-  double temp;
+  int i;
 
   fwrite(&(head.title[0]),1,20,dfile) ;
   write_32(&(head.nrec),1,dfile) ;

@@ -10,18 +10,14 @@ View:
 RS FRIC:
 Play with it; check compared to main window.
 
-
-
-
-
-
-
-
 Plot Window:
 Clear Plots:
 	Clear All Plots
 	Clear XXX
 	
+
+
+
 Zoom:
 	Zoom and Clear
 	Zoom
@@ -31,3 +27,7 @@ Mouse:
 	Line Plot
 	Vertical Line
 	Distance
+
+
+1) Resizing in points mode makes it go back to lines.
+2) Flicker- make it use a temporary backbuffer for the overlays.

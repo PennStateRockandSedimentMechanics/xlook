@@ -1,4 +1,8 @@
-// Mabye create a struct canvas * opaque type?
+/*
+	plot_window.h
+	
+	9.23.2011- rdm created (ryan@martellventures.com)
+*/
 
 struct plot_window;
 

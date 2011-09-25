@@ -49,7 +49,6 @@ int write_show_warning(void)
 void all_show_warning_proc(char *cmd)
 {
 	GtkWidget *dialog, *label, *content_area;
-	int result= 0;
 
 	dialog = gtk_dialog_new_with_buttons (NULL,
 		GTK_WINDOW(ui_globals.main_window),
@@ -82,7 +81,7 @@ void all_show_warning_proc(char *cmd)
 	}
 	gtk_widget_destroy (dialog);
 
-	return result;
+	return;
 }
 
 

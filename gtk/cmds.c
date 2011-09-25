@@ -4639,7 +4639,8 @@ void do_scm_2()
       dx = 0.0;
       for(i=0; i < 10; ++i);
       {
-	dx += fabs( *(disp_ptr+1) - *disp_ptr++)/50.00 ;
+	dx += fabs( *(disp_ptr+1) - *disp_ptr)/50.00 ;
+	disp_ptr++;
       }
       dx /= 10.00;
       if(dx  < 0.0200) dx = 0.0200;

@@ -136,7 +136,7 @@ int exec_qi(converg_tol, lambda, wc, rsp)
       else
  	sprintf(mess1,"no weighting\n");
       
-      fprintf(op_file,mess1);
+      fprintf(op_file, "%s", mess1);
       sprintf(msg, "%s\n", mess1);
       print_msg(msg);
       
@@ -172,7 +172,7 @@ int exec_qi(converg_tol, lambda, wc, rsp)
 
       strcat(mess1,buf);
       strcat(mess1,"\n");
-      fprintf(op_file,mess1);
+      fprintf(op_file,"%s", mess1);
       sprintf(msg, "%s\n", mess1);
       print_msg(msg);
       
@@ -480,7 +480,7 @@ int exec_qi(converg_tol, lambda, wc, rsp)
   	strcat(final_mess,buf);
   }
   fprintf(op_file,"%d state variable fit for %s; recs fit: %d to %d, vs_row=%d\n", (rsp->one_sv_flag) ? 1: 2, head.title,rsp->first_row, rsp->last_row, rsp->vs_row-1);
-  fprintf(op_file,final_mess);
+  fprintf(op_file,"%s",final_mess);
 
   if(rsp->op_file_flag & 0x08) /*write to data table*/
     { 

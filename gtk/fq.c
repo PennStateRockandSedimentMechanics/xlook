@@ -4,6 +4,7 @@
 #include    "config.h"
 #include	"global.h"
 #include    "fq.h"
+#include "messages.h"
 
 #define		SR_2   1.41421356
 #define		BIGNUM 1e20
@@ -195,7 +196,9 @@ double simp_rate_state_mod()
 
   for(i=0; i < 10; ++i)
     {
-      close += fabs( *(disp_ptr+1) - *disp_ptr++)/50.00 ;
+//      close += fabs( *(disp_ptr+1) - *disp_ptr++)/50.00 ;
+      close += fabs( *(disp_ptr+1) - *disp_ptr)/50.00 ;
+		disp_ptr++;
     }
   close /= 10.00;
   

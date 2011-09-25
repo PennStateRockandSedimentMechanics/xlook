@@ -112,7 +112,10 @@ fprintf(stderr,"in special.c\n");
 	data = (double *)malloc((window+1)*sizeof(double));
 	
 	for(j=start, i=0; i< half_window; ++i)
-		darray[new_col][j] = darray[col][j++];	
+	{
+		darray[new_col][j] = darray[col][j];	
+		j++;
+	}
 
 	for(j=start+half_window, i=start ; i<=end-window+1; ++i)
 	{

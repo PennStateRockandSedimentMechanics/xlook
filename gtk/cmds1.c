@@ -504,6 +504,7 @@ void do_plot(char *cmd)
 	data->ymin = ymin;  
 	data->nrows_x = end - begin +1;
 	data->nrows_y = end - begin +1;
+/*
 	data->mouse = 0;
 	data->x1 = 0;
 	data->x2 = 0;
@@ -513,7 +514,7 @@ void do_plot(char *cmd)
 	data->p2 = 0;
 	data->zp1 = 0;
 	data->zp2 = 0;
-
+*/
 	data->xarray = (double *)malloc(sizeof(double)*data->nrows_x);
 	data->yarray = (double *)malloc(sizeof(double)*data->nrows_x);
 
