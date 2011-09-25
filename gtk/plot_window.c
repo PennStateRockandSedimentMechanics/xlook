@@ -116,12 +116,12 @@ static const char *mouse_mode_names[]= {
 
 static const char *mouse_mode_labels[]= {
 	"Normal Mode: Left & middle buttons pick row numbers. Right button gives x-y position",
-	"Draw Line Mode: Left button click and drag draws line.",
+	"Draw Line Mode: Left button click and drag to draw a line.",
 	"Vertical Line Mode: Left button draws a vertical line.", // FIXME
-	"Distance Mode: Left button click and drag shows distance.",
-	"Zoom Mode: Left button click and drag selects zoom area, right button commits zoom",
-	"Zoom Mode: Left button click and drag selects zoom area, right button commits zoom",
-	"Zoom Mode: Left button click and drag selects zoom area, right button commits zoom"
+	"Distance Mode: Left button click and drag to draw a line and show distance.",
+	"Zoom Mode: Left button click and drag selects zoom area.",
+	"Zoom Mode: Left button click and drag selects zoom area.",
+	"Zoom Mode: Left button click and drag selects zoom area."
 };
 
 
@@ -607,7 +607,7 @@ static void adjust_canvas_size(int index)
 	can_info->end_xaxis = end_xaxis;
 	can_info->start_yaxis = start_yaxis;
 	can_info->end_yaxis = end_yaxis;
-	can_info->point_plot = 0;
+//	can_info->point_plot = 0;
 }
 
 static int get_new_window_num()
@@ -2338,7 +2338,7 @@ void on_comboboxActivePlot_changed(GtkComboBox *widget, gpointer user_data)
 {
 	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(widget));
 
-fprintf(stderr, "Active changed!\n");
+//fprintf(stderr, "Active changed!\n");
 	gchar *active_plot_text= gtk_combo_box_get_active_text(widget);
 	if(active_plot_text)
 	{
