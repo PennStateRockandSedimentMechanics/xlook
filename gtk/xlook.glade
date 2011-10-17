@@ -7,6 +7,7 @@
     <property name="default_width">700</property>
     <property name="default_height">500</property>
     <signal name="destroy_event" handler="on_mainWindow_destroy_event"/>
+    <signal name="delete_event" handler="on_mainWindow_delete_event"/>
     <child>
       <object class="GtkVBox" id="vbox8">
         <property name="visible">True</property>

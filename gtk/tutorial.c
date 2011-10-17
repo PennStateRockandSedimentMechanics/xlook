@@ -50,6 +50,17 @@ void quit_xlook()
 	gtk_main_quit();
 }
 
+
+gboolean on_mainWindow_delete_event(
+	GtkWidget *widget,
+	GdkEvent  *event,
+	gpointer   user_data)
+{
+	quit_xlook();
+	
+	return TRUE;
+}
+
 gboolean on_mainWindow_destroy_event(
 	GtkWidget *widget,
 	GdkEvent  *event,
