@@ -10,15 +10,15 @@
         <property name="visible">True</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkHBox" id="hbox1">
+          <object class="GtkHBox" id="hbox5">
             <property name="visible">True</property>
+            <property name="homogeneous">True</property>
             <child>
-              <object class="GtkVBox" id="vbox2">
+              <object class="GtkHBox" id="hbox6">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
-                <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkLabel" id="label1">
+                    <property name="width_request">75</property>
                     <property name="visible">True</property>
                     <property name="xalign">0.94999998807907104</property>
                     <property name="label" translatable="yes">law/options</property>
@@ -28,63 +28,18 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label2">
+                  <object class="GtkEntry" id="options">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
                     <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">mu_fit_col</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
                   </object>
                   <packing>
+                    <property name="fill">False</property>
                     <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label7">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">last_row</property>
-                  </object>
-                  <packing>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label8">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">c_tol</property>
-                  </object>
-                  <packing>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label9">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">stiff</property>
-                  </object>
-                  <packing>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label10">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">mu_initial</property>
-                  </object>
-                  <packing>
-                    <property name="position">5</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label11">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">dc1</property>
-                  </object>
-                  <packing>
-                    <property name="position">6</property>
                   </packing>
                 </child>
               </object>
@@ -93,120 +48,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox3">
+              <object class="GtkHBox" id="hbox7">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
-                <property name="homogeneous">True</property>
-                <child>
-                  <object class="GtkEntry" id="options">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="mu_fit_col">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="last_row">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="c_tol">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="stiff">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="mu_initial">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">5</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="dc1">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">6</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkVBox" id="vbox4">
-                <property name="visible">True</property>
-                <property name="orientation">vertical</property>
-                <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkLabel" id="label15">
+                    <property name="width_request">75</property>
                     <property name="visible">True</property>
                     <property name="xalign">0.94999998807907104</property>
                     <property name="label" translatable="yes">disp_col</property>
@@ -216,91 +62,8 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label14">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">first_row</property>
-                  </object>
-                  <packing>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label13">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">weight_row</property>
-                  </object>
-                  <packing>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label12">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">lambda</property>
-                  </object>
-                  <packing>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label6">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">v_initial</property>
-                  </object>
-                  <packing>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label4">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">a</property>
-                  </object>
-                  <packing>
-                    <property name="position">5</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="lbl_b2">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">b2</property>
-                  </object>
-                  <packing>
-                    <property name="position">6</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkVBox" id="vbox5">
-                <property name="visible">True</property>
-                <property name="orientation">vertical</property>
-                <property name="homogeneous">True</property>
-                <child>
                   <object class="GtkEntry" id="disp_col">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="first_row">
+                    <property name="width_request">100</property>
                     <property name="height_request">24</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -313,88 +76,17 @@
                     <property name="position">1</property>
                   </packing>
                 </child>
-                <child>
-                  <object class="GtkEntry" id="weight_row">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="lambda">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="v_initial">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="a">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">5</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="b2">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">6</property>
-                  </packing>
-                </child>
               </object>
               <packing>
-                <property name="position">3</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox6">
+              <object class="GtkHBox" id="hbox8">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
-                <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkLabel" id="label21">
+                    <property name="width_request">75</property>
                     <property name="visible">True</property>
                     <property name="xalign">0.94999998807907104</property>
                     <property name="label" translatable="yes">mu_col</property>
@@ -404,91 +96,8 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label20">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">vs_row</property>
-                  </object>
-                  <packing>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label19">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">lin_term</property>
-                  </object>
-                  <packing>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label18">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">wc</property>
-                  </object>
-                  <packing>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label17">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">v_final</property>
-                  </object>
-                  <packing>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label16">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">b1</property>
-                  </object>
-                  <packing>
-                    <property name="position">5</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="lbl_dc2">
-                    <property name="visible">True</property>
-                    <property name="xalign">0.94999998807907104</property>
-                    <property name="label" translatable="yes">dc2</property>
-                  </object>
-                  <packing>
-                    <property name="position">6</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkVBox" id="vbox7">
-                <property name="visible">True</property>
-                <property name="orientation">vertical</property>
-                <property name="homogeneous">True</property>
-                <child>
                   <object class="GtkEntry" id="mu_col">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="vs_row">
+                    <property name="width_request">100</property>
                     <property name="height_request">24</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -501,85 +110,684 @@
                     <property name="position">1</property>
                   </packing>
                 </child>
-                <child>
-                  <object class="GtkEntry" id="lin_term">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="wc">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="v_final">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="b1">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">5</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="dc2">
-                    <property name="height_request">24</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
-                    <property name="invisible_char">&#x25CF;</property>
-                    <signal name="focus_out_event" handler="on_focus_out_event"/>
-                  </object>
-                  <packing>
-                    <property name="fill">False</property>
-                    <property name="position">6</property>
-                  </packing>
-                </child>
               </object>
               <packing>
-                <property name="position">5</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="position">0</property>
           </packing>
+        </child>
+        <child>
+          <object class="GtkHBox" id="hbox9">
+            <property name="visible">True</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkHBox" id="hbox10">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label2">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">mu_fit_col</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="mu_fit_col">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox11">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label14">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">first_row</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="first_row">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox12">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label20">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">vs_row</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="vs_row">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHBox" id="hbox13">
+            <property name="visible">True</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkHBox" id="hbox14">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label7">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">last_row</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="last_row">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox15">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label13">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">weight_row</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="weight_row">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox16">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label19">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">lin_term</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="lin_term">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHBox" id="hbox17">
+            <property name="visible">True</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkHBox" id="hbox18">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label8">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">c_tol</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="c_tol">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox19">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label12">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">lambda</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="lambda">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox20">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label18">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">wc</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="wc">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHBox" id="hbox21">
+            <property name="visible">True</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkHBox" id="hbox22">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label9">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">stiff</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="stiff">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox23">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label6">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">v_initial</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="v_initial">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox24">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label17">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">v_final</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="v_final">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHBox" id="hbox25">
+            <property name="visible">True</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkHBox" id="hbox26">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label10">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">mu_initial</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="mu_initial">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox27">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label4">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">a</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="a">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox28">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label16">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">b1</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="b1">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHBox" id="hbox29">
+            <property name="visible">True</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkHBox" id="hbox30">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="label11">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">dc1</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="dc1">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox31">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="lbl_b2">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">b2</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="b2">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkHBox" id="hbox32">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkLabel" id="lbl_dc2">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0.94999998807907104</property>
+                    <property name="label" translatable="yes">dc2</property>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="dc2">
+                    <property name="width_request">100</property>
+                    <property name="height_request">24</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_FOCUS_CHANGE_MASK | GDK_STRUCTURE_MASK</property>
+                    <property name="invisible_char">&#x25CF;</property>
+                    <signal name="focus_out_event" handler="on_focus_out_event"/>
+                  </object>
+                  <packing>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="position">6</property>
+          </packing>
+        </child>
+        <child>
+          <placeholder/>
         </child>
         <child>
           <object class="GtkHBox" id="hbox2">
@@ -681,7 +889,7 @@
             </child>
           </object>
           <packing>
-            <property name="position">1</property>
+            <property name="position">8</property>
           </packing>
         </child>
         <child>
@@ -722,7 +930,7 @@
             </child>
           </object>
           <packing>
-            <property name="position">2</property>
+            <property name="position">9</property>
           </packing>
         </child>
         <child>
@@ -754,7 +962,7 @@
             </child>
           </object>
           <packing>
-            <property name="position">3</property>
+            <property name="position">10</property>
           </packing>
         </child>
         <child>
@@ -795,7 +1003,7 @@
             </child>
           </object>
           <packing>
-            <property name="position">4</property>
+            <property name="position">11</property>
           </packing>
         </child>
         <child>
@@ -827,7 +1035,7 @@
             </child>
           </object>
           <packing>
-            <property name="position">5</property>
+            <property name="position">12</property>
           </packing>
         </child>
         <child>
@@ -865,7 +1073,7 @@
           </object>
           <packing>
             <property name="padding">5</property>
-            <property name="position">6</property>
+            <property name="position">13</property>
           </packing>
         </child>
         <child>
@@ -885,7 +1093,7 @@
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="position">7</property>
+            <property name="position">14</property>
           </packing>
         </child>
       </object>

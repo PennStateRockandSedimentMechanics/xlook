@@ -239,7 +239,7 @@ void on_btn_TwoStateVariables_toggled(GtkToggleButton *togglebutton, gpointer us
 		GtkWindow *window= parent_gtk_window(GTK_WIDGET(togglebutton));
 		struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
 
-		fprintf(stderr, "Two State Variables Set!\n");
+//		fprintf(stderr, "Two State Variables Set!\n");
 	
 		// set the flag. (FIXME)
 		fric_window->dc2_flag= 1;
@@ -748,10 +748,11 @@ static void set_initial_toggle_button_state_by_index(GtkWindow* window, int inde
 	for(ii= 0; ii<2; ii++)
 	{
 		GtkToggleButton *button= GTK_TOGGLE_BUTTON(lookup_widget_by_name(GTK_WIDGET(window), names[ii]));
-		gtk_toggle_button_set_active(button, FALSE);
 		if(ii==index)
 		{
-			gtk_toggle_button_set_active(button, TRUE);
+			if(!gtk_toggle_button_get_active(button)) gtk_toggle_button_set_active(button, TRUE);
+		} else {
+			if(gtk_toggle_button_get_active(button)) gtk_toggle_button_set_active(button, FALSE);
 		}
 	}
 }
@@ -772,7 +773,7 @@ static void toggle_buttons(GtkWidget *widget, const char *names[])
 		}
 	}
 	
-//	fprintf(stderr, "OnButtonReleaseEvent: %s (%d)\n", name, index_hit);
+//	fprintf(stderr, "In toggle buttons!\n");
 	
 	// return false, everything happens as normal.  Return true, however, and nothing else happens unless we make it happen.
 	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
