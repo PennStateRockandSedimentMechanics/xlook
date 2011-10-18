@@ -26,8 +26,10 @@ typedef enum {
 	LABEL_Y,
 	LABEL_ROW_NUMBER,
 	LABEL_PLOT_ROWS,
+	LABEL_LAST_EVENT,
 	NUMBER_OF_LABELS
 } PlotLabelID;
+
 
 enum
 {
@@ -680,12 +682,16 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 {
 	canvasinfo *info= canvas_info_for_widget(widget);
 	GtkWindow *window= GTK_WINDOW(info->plot_window->window);
+	char last_clicked_buffer[200];
 
 	info->mouse.tracking= FALSE;
 
 	// so we can use it below.
 	info->mouse.start.x= event->x;
 	info->mouse.start.y= event->y;
+
+	// clear the last tracking event.
+	set_plot_label_message(window, LABEL_LAST_EVENT, "");
 
 	if (info->active_plot == -1)
 	{
@@ -694,6 +700,11 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 	} 
 	else if(info->mouse.mode==_mouse_mode_vertical_line)
 	{
+		GdkColor color;
+
+		get_color_for_type(PLOT_VERTICAL_LINE_COLOR, &color);
+		gdk_gc_set_rgb_fg_color(info->offscreen_buffer->gc, &color);
+		
 		gdk_draw_line(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc,
 			info->mouse.start.x, info->start_y, 
 			info->mouse.start.x, info->end_y);
@@ -712,6 +723,8 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 		// show the information
 		if(event->button==1) // left
 		{
+			char last_clicked_buffer[100];
+			
 			int row_num = get_row_number(info, data->nrows_x, xval, yval);
 			if (row_num <= data->nrows_x && row_num != -1)
 			{
@@ -730,17 +743,22 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 
 //				(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc, converted_pt.x, converted_pt.y);
 				draw_crosshair_with_coordinates(widget, converted_pt.x, converted_pt.y);
+
+				sprintf(last_clicked_buffer, "Last Click (Nearest Data): X: %.5g Y: %.5g Row Number: %d", xval, yval, row_num); 
 			}
 			else 
 			{
 				set_plot_label_message(window, LABEL_ROW_NUMBER, "Row Number: None");
 				print_msg("The point picked was not on the curve.\n");
+				sprintf(last_clicked_buffer, "Last Click (Not on Curve): X: %.5g Y: %.5g Row Number: NONE", xval, yval); 
 			}
 			
 			sprintf(msg, "X: %.5g", xval); 
 			set_plot_label_message(window, LABEL_X, msg);
 			sprintf(msg, "Y: %.5g", yval); 
 			set_plot_label_message(window, LABEL_Y, msg);
+			
+			set_plot_label_message(window, LABEL_LAST_EVENT, last_clicked_buffer);
 		} else { // right or middle
 //		  	print_xy(xloc, yloc);
 			set_plot_label_message(window, LABEL_ROW_NUMBER, "");
@@ -756,6 +774,9 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 			draw_crosshair_with_coordinates(widget, info->mouse.start.x, info->mouse.start.y);
 			strcat(msg, "\n");
 			print_msg(msg);
+
+			sprintf(last_clicked_buffer, "Last Click: X: %.5g Y: %.5g", xval, yval); 
+			set_plot_label_message(window, LABEL_LAST_EVENT, last_clicked_buffer);
 		}
 		
 		// and update.
@@ -794,6 +815,7 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 	{
 		// assert(info->active_plot>=0 && info->active_plot<MAX_PLOTS);
 		plotarray *data = info->plots[info->active_plot];
+		char last_clicked_buffer[200];
 
 		// released- no longer tracking...
 		info->mouse.tracking= FALSE;
@@ -863,13 +885,17 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 							set_plot_label_message(window, LABEL_Y, csprintf(msg, "Y intercept: %.5g", intercept));
 
 							sprintf(msg, "line plot: x1,y1:(%f, %f), x2,y2:(%f, %f)\nslope: %g, int.: %g\n", x1, y1, x2, y2, slope, intercept);
+							sprintf(last_clicked_buffer, "Last Line: x1,y1:(%f, %f), x2,y2:(%f, %f) slope: %g, int.: %g", x1, y1, x2, y2, slope, intercept);
 						} else {
 							sprintf(msg, "line plot: x1,y1:(%f, %f), x2,y2:(%f, %f)\nslope: Inf, int.: None\n", x1, y1, x2, y2);
+							sprintf(last_clicked_buffer, "Last Line: x1,y1:(%f, %f), x2,y2:(%f, %f) slope: Inf, int.: None", x1, y1, x2, y2); 
 
 							set_plot_label_message(window, LABEL_X, "Slope: Infinite");
 							set_plot_label_message(window, LABEL_Y, "Y intercept: None");
 						}
 						print_msg(msg);
+
+						set_plot_label_message(window, LABEL_LAST_EVENT, last_clicked_buffer);
 					} else {
 						// measurement
 						float dx = fabs(x1 - x2);
@@ -879,6 +905,9 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 						set_plot_label_message(window, LABEL_X, csprintf(msg, "dX: %.5g", dx));
 						set_plot_label_message(window, LABEL_Y, csprintf(msg, "dY: %.5g", dy));
 						set_plot_label_message(window, LABEL_ROW_NUMBER, csprintf(msg, "dV: %.5g", dv));
+
+						sprintf(last_clicked_buffer, "Last Distance: dX: %.5g dY: %.5g dV: %.5g", dx, dy, dv); 
+						set_plot_label_message(window, LABEL_LAST_EVENT, last_clicked_buffer);
 					}
 				}
 				break;
@@ -1598,9 +1627,10 @@ static void set_left_footer_message(GtkWindow *parent, const char *txt)
 
 static void set_plot_label_message(GtkWindow *parent, PlotLabelID id, const char *txt)
 {
-	char *names[]= { "label_LeftFooter", "label_X", "label_Y", "label_RowNumber", "label_PlotRows" };
+	char *names[]= { "label_LeftFooter", "label_X", "label_Y", "label_RowNumber", "label_PlotRows", "label_LastEvent" };
 	
 	assert(id>=0 && id<ARRAY_SIZE(names));
+	assert(ARRAY_SIZE(names)==NUMBER_OF_LABELS);
 	GtkLabel *label= GTK_LABEL(lookup_widget_by_name(GTK_WIDGET(parent), names[id]));
 	assert(label);
 	gtk_label_set_text(label, txt);

@@ -11,6 +11,7 @@
 #include "event.h"
 #include "cmd_window.h"
 #include "rs_fric_window.h"
+#include "ui.h"
 
 short state0_image[] = {
 #include "xlook.ico"
@@ -116,6 +117,17 @@ int main(
 		ui_globals.main_window = (struct GtkWidget *)(gtk_builder_get_object (builder, "mainWindow"));
 		ui_globals.command_history = (struct GtkWidget *)(gtk_builder_get_object (builder, "commandWindow"));
 
+
+		// set the font.
+		PangoFontDescription *desc= pango_font_description_from_string("Monospace 9");
+		char *names[]= { "textview_FileInfo", "textview_Message"};
+		int ii;
+		for(ii= 0; ii<ARRAY_SIZE(names); ii++)
+		{
+			GtkWidget *w = (struct GtkWidget *)(gtk_builder_get_object (builder, names[ii]));
+			gtk_widget_modify_font(w, desc);
+		}
+
 		setup_command_window(GTK_WINDOW(ui_globals.command_history));
 
 		gtk_builder_connect_signals (builder, NULL);          
@@ -127,6 +139,12 @@ int main(
 		display_active_file(0);
 
 		gtk_widget_show(GTK_WIDGET(ui_globals.main_window));       
+		
+		// set the font..
+//		GtkWidget *fileInfo= lookup_widget_by_name(ui_globals.main_window, "textview_FileInfo");
+//		gtk_widget_modify_font(fileinfo, PangoFontDescription *font_desc);
+		
+		
 		
 		// open if we should from command line.
 		if(strlen(delayed_file_to_open))
@@ -141,6 +159,24 @@ int main(
 	}
 	
 	return exit_code;
+}
+
+void on_fontbutton1_font_set(
+	GtkFontButton *widget, 
+	gpointer user_data)
+{
+	fprintf(stderr, "Font set was: %s", gtk_font_button_get_font_name(widget));
+	
+	GtkWidget *fileInfo= lookup_widget_by_name(ui_globals.main_window, "textview_FileInfo");
+	PangoFontDescription *desc= pango_font_description_from_string(gtk_font_button_get_font_name(widget));
+fprintf(stderr, "Desc: %p FileInfo: %p\n", desc, fileInfo);
+	gtk_widget_modify_font(fileInfo, desc);
+//	pango_font_description_free(desc);
+
+	/*
+	Retrieves the name of the currently selected font. This name includes style and size information as well. 
+	If you want to render something with the font, use this string with pango_font_description_from_string() . 
+	*/
 }
 
 /* ------------- entering return in command prompt */

@@ -199,6 +199,7 @@ void get_color_for_type(UIColorIdentifier c, GdkColor *color)
 			break;
 		case INACTIVE_PLOT_COLOR:
 		case PLOT_LABEL_COLOR:
+		case PLOT_VERTICAL_LINE_COLOR:
 			// already memset to black
 			break;
 		case CROSSHAIRS_COLOR:

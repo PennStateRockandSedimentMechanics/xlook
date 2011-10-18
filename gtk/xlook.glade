@@ -367,6 +367,16 @@
                 <property name="position">0</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkFontButton" id="fontbutton1">
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="font_set" handler="on_fontbutton1_font_set"/>
+              </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
