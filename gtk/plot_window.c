@@ -69,9 +69,9 @@ static void set_mouse_message_for_mode(GtkWindow *window, int mode);
 static void set_mouse_mode(canvasinfo *can_info, int mouse_mode);
 static void draw_into_offscreen_buffer(GtkWidget *widget);
 static void draw_chart_immediately(GtkWidget *widget, canvasinfo *info);
-static void draw_crosshair_gdk(GdkDrawable *drawable, GdkGC *gc, int xloc, int yloc);
 static void draw_data_crosshair(struct offscreen_buffer *buffer, const char *string,int xloc, int yloc);
 static void clear_active_plot(canvasinfo *can_info);
+static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y);
 
 char *csprintf(char *buffer, char *format, ...);
 
@@ -644,6 +644,38 @@ void on_chartArea_realize(GtkWidget *widget, gpointer user_data)
 	gdk_window_set_cursor(gtk_widget_get_window(widget), cursor);
 }
 
+static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y)
+{
+	canvasinfo *info= canvas_info_for_widget(widget);
+	if(info->active_plot>0)
+	{
+		GdkDrawable *drawable= info->offscreen_buffer->pixmap;
+		GdkGC *gc= info->offscreen_buffer->gc;
+		int text_width, text_height;
+
+		plotarray *data = info->plots[info->active_plot];
+		GdkColor color;
+
+		get_color_for_type(PLOT_LABEL_COLOR, &color);
+		gdk_gc_set_rgb_fg_color(gc, &color);
+
+		/* get the x and y (data) values */ 
+		float xval= SCREEN_TO_DATA_X(info->mouse.start.x, data, info);
+		float yval= SCREEN_TO_DATA_Y(info->mouse.start.y, data, info);
+
+		sprintf(msg, "X: %.5g Y: %.5g", xval, yval);
+		PangoLayout *pango_layout= info->offscreen_buffer->pango_layout;
+		pango_layout_set_text(pango_layout, msg, strlen(msg));
+		pango_layout_get_size(pango_layout, &text_width, &text_height);
+		gdk_draw_layout(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc, 
+			x+3, y-(PANGO_PIXELS(text_height)),
+			pango_layout);
+
+		gdk_draw_line(drawable, gc, x-5, y, x+5, y);
+		gdk_draw_line(drawable, gc, x, y-5, x, y+5);
+	}	
+}
+
 gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	canvasinfo *info= canvas_info_for_widget(widget);
@@ -696,7 +728,8 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 				converted_pt.x= DATA_TO_SCREEN_X(xval, data, info);
 				converted_pt.y= DATA_TO_SCREEN_Y(yval, data, info);
 
-				draw_crosshair_gdk(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc, converted_pt.x, converted_pt.y);
+//				(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc, converted_pt.x, converted_pt.y);
+				draw_crosshair_with_coordinates(widget, converted_pt.x, converted_pt.y);
 			}
 			else 
 			{
@@ -720,12 +753,7 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 
 		  	/*  print the x and y coord on the msg window */
 			sprintf(msg, "X: %.5g Y: %.5g", xval, yval);
-			PangoLayout *pango_layout= info->offscreen_buffer->pango_layout;
-			pango_layout_set_text(pango_layout, msg, strlen(msg));
-			gdk_draw_layout(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc, 
-				info->mouse.start.x+10, info->mouse.start.y,
-				pango_layout);
-
+			draw_crosshair_with_coordinates(widget, info->mouse.start.x, info->mouse.start.y);
 			strcat(msg, "\n");
 			print_msg(msg);
 		}
@@ -767,6 +795,8 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 		// assert(info->active_plot>=0 && info->active_plot<MAX_PLOTS);
 		plotarray *data = info->plots[info->active_plot];
 
+		// released- no longer tracking...
+		info->mouse.tracking= FALSE;
 //		fprintf(stderr, "Was tracking; should commit.");
 
 		// store the final points
@@ -802,6 +832,10 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 					// Draw the line into the backbuffer (the main one), and update...
 					gdk_draw_line(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc,
 						info->mouse.start.x, info->mouse.start.y, info->mouse.end.x, info->mouse.end.y);
+						
+					// draw the points on both ends..
+					draw_crosshair_with_coordinates(widget, info->mouse.start.x, info->mouse.start.y);
+					draw_crosshair_with_coordinates(widget, info->mouse.end.x, info->mouse.end.y);
 						
 					// now update the pixmap
 					invalidate_plot(window, FALSE);
@@ -1128,8 +1162,6 @@ static void draw_into_offscreen_buffer(GtkWidget *widget)
 			gdk_draw_rectangle(drawable, gc, TRUE, 
 				0, 0, widget->allocation.width, widget->allocation.height);
 
-			gdk_gc_set_rgb_fg_color(gc, &widget->style->black);
-			
 			if(can_info->total_plots != 0)
 			{
 				// draw all the active plots.
@@ -1137,6 +1169,8 @@ static void draw_into_offscreen_buffer(GtkWidget *widget)
 				{
 					if(can_info->alive_plots[plot_index] == 1)
 					{
+						GdkColor color;
+						
 						data = can_info->plots[plot_index];
 
 						// these two need to be set before the labelling
@@ -1154,7 +1188,12 @@ static void draw_into_offscreen_buffer(GtkWidget *widget)
 							{
 								label_type0(can_info);
 							}
+							get_color_for_type(ACTIVE_PLOT_COLOR, &color);
+						} else {
+							get_color_for_type(INACTIVE_PLOT_COLOR, &color);
 						}
+						
+						gdk_gc_set_rgb_fg_color(gc, &color);
 
 						/* plot each point  */
 						if (can_info->point_plot == 1)
@@ -1595,15 +1634,16 @@ static void draw_data_crosshair(
 	GdkDrawable *drawable= GDK_DRAWABLE(buffer->pixmap);
 	PangoLayout *pango_layout= buffer->pango_layout;
 	GdkGCValues original_values;
-	GdkColor red, white, black;
+	GdkColor crosshairs_color, white, black;
 	int text_width, text_height;
 
-	red.red= 0xffff; red.blue= 0; red.green= 0; red.pixel= 0;
-	white.red= 0xffff; white.blue= 0xffff; white.green= 0xffff; white.pixel= 0;
-	memset(&black, 0, sizeof(GdkColor));
+	get_color_for_type(CROSSHAIRS_COLOR, &crosshairs_color);
+	get_color_for_type(COLOR_WHITE, &white);
+	get_color_for_type(COLOR_BLACK, &black);
+
 	
 	gdk_gc_get_values(gc, &original_values);
-	gdk_gc_set_rgb_fg_color(gc, &red);
+	gdk_gc_set_rgb_fg_color(gc, &crosshairs_color);
 
 	gdk_draw_rectangle(drawable, gc, 
 		FALSE, // TRUE?
@@ -1657,19 +1697,6 @@ static void draw_data_crosshair(
 	gdk_gc_set_foreground(gc, &original_values.foreground);
 }
 
-static void draw_crosshair_gdk(GdkDrawable *drawable, GdkGC *gc, int xloc, int yloc)
-{
-//	fprintf(stderr, "Drawing xhair at %d %d", xloc, yloc);
-	gdk_draw_line(drawable, gc,
-	    xloc-5, yloc, 
-	    xloc+5, yloc);
-
-	gdk_draw_line(drawable, gc,
-	    xloc, yloc-5,
-	    xloc, yloc+5);
-}
-
-
 /* cjm, 3/19/96: I think "label_type" refers to the way ticks and tick spacing is done*/
 static void label_type0(canvasinfo *can_info)
 {
@@ -1682,10 +1709,14 @@ static void label_type0(canvasinfo *can_info)
 	int start_xaxis, start_yaxis, end_xaxis, end_yaxis;
 	int start_x, start_y, end_x, end_y;
 	int width, height, text_width, text_height;
+	GdkColor color;
 
 	GdkGC *gc= can_info->offscreen_buffer->gc;
 	GdkDrawable *drawable= GDK_DRAWABLE(can_info->offscreen_buffer->pixmap);
 	PangoLayout *pango_layout= can_info->offscreen_buffer->pango_layout;
+
+	get_color_for_type(PLOT_LABEL_COLOR, &color);
+	gdk_gc_set_rgb_fg_color(gc, &color);
 
 	plot = can_info->active_plot;
 	data = can_info->plots[plot];
@@ -1876,10 +1907,14 @@ static void label_type1(canvasinfo *can_info)
 	float stop_xmin, stop_xmax, stop_ymin, stop_ymax;
 	int where_x, where_y;
 	int text_width, text_height;
+	GdkColor color;
 
 	GdkGC *gc= can_info->offscreen_buffer->gc;
 	GdkDrawable *drawable= GDK_DRAWABLE(can_info->offscreen_buffer->pixmap);
 	PangoLayout *pango_layout= can_info->offscreen_buffer->pango_layout;
+
+	get_color_for_type(PLOT_LABEL_COLOR, &color);
+	gdk_gc_set_rgb_fg_color(gc, &color);
 
 	plot = can_info->active_plot;
 	data = can_info->plots[plot];

@@ -12,6 +12,18 @@ typedef enum {
 	LABEL_ACTIVE_FILENAME
 } UILabelFieldIdentifier;
 
+
+typedef enum {
+	COLOR_WHITE= 0,
+	COLOR_BLACK,
+	ACTIVE_PLOT_COLOR,
+	INACTIVE_PLOT_COLOR,
+	CROSSHAIRS_COLOR,
+	PLOT_LABEL_COLOR,
+	NUMBER_OF_COLORS,
+} UIColorIdentifier;
+
+
 void ui_textfield_clear(UITextFieldIdentifier id); // textsw_reset(fileinfo_window, 0, 0);
 void ui_textfield_normalize(UITextFieldIdentifier id); // textsw_normalize_view(fileinfo_window, 1);
 void ui_textfield_insert(UITextFieldIdentifier id, char *txt, int len); // check and handle 0 length
@@ -22,4 +34,5 @@ void set_command_text(char *txt);
 #ifdef __GTK_H__
 GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name);
 GtkWindow *parent_gtk_window(GtkWidget *widget);
+void get_color_for_type(UIColorIdentifier c, GdkColor *color);
 #endif

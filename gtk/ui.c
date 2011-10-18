@@ -181,3 +181,31 @@ GtkWindow *parent_gtk_window(GtkWidget *widget)
 	
 	return result;
 }
+
+
+void get_color_for_type(UIColorIdentifier c, GdkColor *color)
+{
+	memset(color, 0, sizeof(GdkColor));
+	switch(c)
+	{
+		case COLOR_WHITE:
+			color->red= color->green= color->blue= 0xffff;
+			break;
+		case COLOR_BLACK:
+			// already memset to 0
+			break;
+		case ACTIVE_PLOT_COLOR:
+			color->blue= 0xffff;
+			break;
+		case INACTIVE_PLOT_COLOR:
+		case PLOT_LABEL_COLOR:
+			// already memset to black
+			break;
+		case CROSSHAIRS_COLOR:
+			color->red= 0xffff;
+			break;
+		default:
+			fprintf(stderr, "Invlaid color identifier: %d\n", c);
+			break;
+	}
+}
