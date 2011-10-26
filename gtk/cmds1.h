@@ -1,7 +1,7 @@
 /* cmds1.c */
 void new_win_proc(void);
 void qi_win_proc(void);
-void set_active_window(int win_num);
+void set_active_window(int win_num, int bring_to_front);
 void set_active_plot(int i);
 void del_plot_proc(int pn);
 void kill_win_proc(int wn);

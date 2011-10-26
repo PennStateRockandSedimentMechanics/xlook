@@ -412,7 +412,7 @@ static void on_activate_plot_window(
 	gint window_index= GPOINTER_TO_INT(user_data);
 	
 	fprintf(stderr, "Activate plot window %d\n", window_index);
-	set_active_window(window_index);
+	set_active_window(window_index, TRUE);
 }
 
 void on_new_plot_window_item_activate(

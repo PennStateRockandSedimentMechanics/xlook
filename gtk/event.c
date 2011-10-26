@@ -8,7 +8,6 @@
 #include "global.h"
 #include "look_funcs.h"
 #include "main.h"
-#include "menus.h"
 #include "messages.h"
 #include "notices.h"
 #include "simplexl.h"
@@ -129,7 +128,7 @@ void command_handler(input)
     {
       if (sscanf(input, "%s %d", arg1, &int1) == 2)
 	{ 
-	  set_active_window(int1-1);
+	  set_active_window(int1-1, TRUE);
 	  ui_globals.action = MAIN;
 	}
       else
@@ -3206,7 +3205,7 @@ void process_action(arg)
       break;
             
     case SET_ACTIVE_WINDOW:
-      set_active_window(atoi(arg)-1);
+      set_active_window(atoi(arg)-1, TRUE);
       ui_globals.action = MAIN;
       top();
       break;

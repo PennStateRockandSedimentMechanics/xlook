@@ -62,8 +62,7 @@ void qi_win_proc()
 }
 
 
-void set_active_window(win_num)
-     int win_num;
+void set_active_window(int win_num, int bring_to_front)
 {
 	if (wininfo.windows[win_num] != 1)
 	{
@@ -88,7 +87,10 @@ void set_active_window(win_num)
 		}
 	}
 
-	bring_plot_window_to_front(wininfo.canvases[ui_globals.active_window]->plot_window);
+	if(bring_to_front)
+	{
+		bring_plot_window_to_front(wininfo.canvases[ui_globals.active_window]->plot_window);
+	}
 	
 	display_active_window(ui_globals.active_window+1);
 	display_active_plot(wininfo.canvases[ui_globals.active_window]->active_plot+1);  
