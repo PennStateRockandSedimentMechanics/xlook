@@ -1,80 +1,22 @@
-#include <math.h>
+#include <gtk/gtk.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <getopt.h>
 
-#include <X11/Xlib.h>
-#include <xview/xview.h>
-#include <xview/canvas.h>
-#include <xview/panel.h>
-#include <xview/sel_attrs.h>
-#include <xview/textsw.h>
-#include <xview/xv_xrect.h>
-#include <xview/notice.h>
-#include <xview/font.h>
-#include <xview/scrollbar.h>
-#include <xview/cursor.h>
-#include <xview/file_chsr.h>
-
-#include <cmds1.h>
-#include <config.h>
-#include <drawwin.h>
-#include <global.h>
-#include <look_funcs.h>
-#include <main.h>
-#include <messages.h>
-#include <mouse.h>
-
+#include "global.h"
+#include "cmds1.h"
+#include "messages.h"
 #include "filtersm.h"
-
-int active_window = -1;
-int old_active_window = -1;
-int total_windows = -1;
-int action = 0;
-int cmd_num = 0;
-
-char msg[MSG_LENGTH];
+#include "look_funcs.h"
+#include "event.h"
+#include "cmd_window.h"
+#include "rs_fric_window.h"
+#include "ui.h"
 
 short state0_image[] = {
 #include "xlook.ico"
 };
-Server_image s0image;
-Icon state;
 
-extern char plot_cmd[256];
-extern int plot_error;
-extern int xaxis, yaxis;
-extern char default_path[80];
-extern int read_flag;
-extern char qiparams[1024];
-extern void setup_canvas();
-
-/* main_frame objects */
-Frame main_frame;
-Panel main_frame_menu_panel;
-Panel main_frame_cmd_panel;
-Panel_item cmd_panel_item;
-Panel_item XLOOK_VERSION;
-Panel main_frame_info_panel;
-Panel_item active_win_info, active_plot_info, active_file_info;
-Textsw msgwindow;
-Textsw fileinfo_window;
-int textsw_total_used;
-int textsw_memory_limit;
-int textsw_saves=0;
-
-/*Frame duh_frame;*/
-
-/* cmd_hist_frame objects */
-Frame cmd_hist_frame;
-Panel cmd_hist_panel;
-Panel_item cmd_hist_panel_list;
-
-int tickfontheight, tickfontwidth;
-int titlefontheight, titlefontwidth;
-GC gctitle, gctick;
-GC gcbg;
-GC gcrubber;
-Xv_Cursor xhair_cursor;
-XColor fgc, bgc;
 
 typedef enum {
 	_file_type_script=0,
@@ -83,465 +25,457 @@ typedef enum {
 	NUMBER_OF_FILE_TYPES
 } FileType;
 
-struct ui_globals {
-	File_chooser open;
-	File_chooser save;
-};
 
-static struct ui_globals ui;
+extern int plot_error;
+extern char default_path[80];
+extern char qiparams[1024];
+extern char plot_cmd[256];
 
-static File_chooser_op open_filter_func(File_chooser fc, char * path, struct stat * stats, File_chooser_op matched, Server_image * glyph,
-	Xv_opaque * client_data, Server_image * mask_glyph);
-
-
-/* prototypes */
-static int my_save_callback(File_chooser fc, char *path, struct stat * stats);
-static int my_open_callback(File_chooser fc, char *path, char *file, Xv_opaque client_data);
-static FileType file_type_with_path(char *path);
+ui_globals_struct ui_globals;
+char msg[MSG_LENGTH];
+char delayed_file_to_open[1024];
 
 
-int main(argc, argv)
-     int argc;
-     char *argv[];    
+static gboolean open_filter_function(const GtkFileFilterInfo *filter_info, gpointer data);
+static FileType file_type_with_path(const char *path);
+static int initialize(int argc, char *argv[]);
+static int set_initial_path(const char *path);
+static int load_command_line_file(const char *filename);
+static void print_usage(int argc, char *argv[]);
+static void handle_open_filepath(const char *filename);
+static gboolean startswith(const char *haystack, const char *needle);
+static void on_activate_plot_window(GtkObject *object, gpointer user_data);
+
+void quit_xlook()
 {
-  void plot1_proc(), plot2_proc(), plot3_proc(), plot4_proc(), plot5_proc(), plot6_proc(), plot7_proc(), plot8_proc();
-  void new_window_proc(), act_window_proc(), kill_window_proc();
-  void close_graf_proc(), show_hist_proc();
-  /*void duh_proc();*/
-  void exit_proc(), get_cmd_proc(), cmd_hist_proc(), close_hist_proc();
-  void qi_window_proc();
-  void textsw_possibly_normalize();
-
-  Display *dpy;
-  XGCValues gcvalues;
-  Xv_Font titlefont, tickfont; 
-  Menu file_menu, window_menu, plot_cmd_menu;
-  Colormap cmap;
-  int i;
-  char *bgcolor="white", *fgcolor="black";
-  void extern write_file_proc(), read_file_proc(), exit_file_proc();
-  
-   for (i=1; i<argc; i++)
-    {
-      char *arg = argv[i];
-      if (arg[0] == '-')
-	{
-	  switch (arg[1])
-	    {
-	    case 'b':
-	      if (++i < argc)
-		bgcolor = argv[i];
-	      continue;
-	    case 'f':
-	      if (++i < argc)
-		fgcolor = argv[i];
-	      continue;
-	    default:
-	      break;
-	    }
-	}
-    }
-	     
-  xv_init(XV_INIT_ARGC_PTR_ARGV, &argc, argv, NULL);
-
-  initialize(argc, argv);
-
-/*----------------ICON SETUP---------------------------------*/
-s0image = (Server_image) xv_create (XV_NULL, SERVER_IMAGE,
-      XV_WIDTH,        64,
-      XV_HEIGHT,       64,
-      SERVER_IMAGE_BITS,  state0_image,
-      NULL );
-
-state = (Icon) xv_create (XV_NULL, ICON,
-                          ICON_IMAGE, s0image,
-                          ICON_LABEL, "Xlook",
-                          NULL );
-
-/* ------------------------  FRAMES INITIALIZATION ------------------------ */
-
-  main_frame = (Frame)xv_create(XV_NULL, FRAME,
-                                FRAME_ICON, state,
-				FRAME_SHOW_FOOTER, TRUE,
-				FRAME_LEFT_FOOTER, "Type your command in the command panel",
-				FRAME_LABEL, "XLook", 
-                                XV_HEIGHT, 500,
-                                XV_WIDTH, 800,
-				NULL);
+	gtk_main_quit();
+}
 
 
-  cmd_hist_frame = (Frame)xv_create(main_frame, FRAME, FRAME_LABEL, "Command History", NULL);
-  
-  
-/* ------------------------ MAIN FRAME SETUP ----------------------------- */
-
-
-/* --------------------------  MENUS CREATION ----------------------- */
-
-  main_frame_menu_panel = (Panel)xv_create(main_frame, PANEL, XV_HEIGHT, 55, NULL);
-
-  file_menu = (Menu) xv_create(XV_NULL, MENU,
-			       MENU_GEN_PIN_WINDOW, main_frame, "File",
-			       MENU_ACTION_ITEM, "Open...", read_file_proc,
-			       MENU_ACTION_ITEM, "Save...", write_file_proc,
-//			       MENU_ACTION_ITEM, "Change Directory...", change_directory_proc,
-			       NULL);
-  (void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
-		   PANEL_LABEL_STRING, "FILE",
-		   PANEL_ITEM_MENU, file_menu,
-		   NULL);
-  
-  window_menu = (Menu) xv_create(XV_NULL, MENU,
-				 MENU_GEN_PIN_WINDOW, main_frame, "Window",
-				 MENU_ACTION_ITEM, 
-				 "New Window", new_window_proc,
-				 MENU_ACTION_ITEM, 
-				 "Activate Window...", act_window_proc,
-				 MENU_ACTION_ITEM,
-				 "Kill Window...", kill_window_proc,
-				 NULL);
-  
-  (void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
-		   PANEL_LABEL_STRING, "WINDOW",
-		   PANEL_ITEM_MENU, window_menu,
-		   NULL);
-  
-  plot_cmd_menu = (Menu) xv_create(XV_NULL, MENU,
-				   MENU_GEN_PIN_WINDOW, 
-				   main_frame, "Plot Commands", 
-				   MENU_ACTION_ITEM, 
-				   "Plotall...", plot1_proc,
-				   MENU_ACTION_ITEM, 
-				   "Plotover...", plot2_proc,
-				   MENU_ACTION_ITEM, 
-				   "Plotsr...", plot3_proc,
-				   MENU_ACTION_ITEM, 
-				   "Plotauto...", plot4_proc,
-				   MENU_ACTION_ITEM, 
-				   "Plotlog...", plot5_proc,
-				   MENU_ACTION_ITEM, 
-				   "Plotsame...", plot6_proc,
-				   MENU_ACTION_ITEM, 
-				   "Plotscale...", plot7_proc,
-				   MENU_ACTION_ITEM, 
-				   "Pa...", plot8_proc,
-				   NULL);
-
-  (void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
-		   PANEL_LABEL_STRING, "PLOT",
-		   PANEL_ITEM_MENU, plot_cmd_menu,
-		   NULL);
-
-  (void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
-		   PANEL_LABEL_STRING, "SHOW HISTORY",
-		   PANEL_NOTIFY_PROC, show_hist_proc, 		 
-		   PANEL_CLIENT_DATA, cmd_hist_frame,
-		   NULL);
-
-  /*(void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
-		   PANEL_LABEL_STRING, "Duh",
-		   PANEL_NOTIFY_PROC, duh_proc, 		 
-		   NULL);*/
-
-  /* Thu Mar 13 16:25:44 EST 1997
-     by park
-     for adding qi button
-     nofify proc is borrowed from new_window
-
-     Mon Mar 17 17:55:08 EST 1997
-     by park
-     new_window_proc -> qi_window_proc
-     
-     */
-
-  (void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
-		   PANEL_LABEL_STRING, "R/S FRIC TOOL",
-		   PANEL_NOTIFY_PROC, qi_window_proc,
-		   NULL);
-
-  (void) xv_create(main_frame_menu_panel, PANEL_BUTTON,
-		   PANEL_LABEL_STRING, "QUIT",
-		   PANEL_NOTIFY_PROC, exit_proc,
-		   NULL);
-
-				/*	   XV_X, xv_col(main_frame_info_panel, 20),*/
-
-  XLOOK_VERSION = (Panel_item)xv_create(main_frame_menu_panel, PANEL_MESSAGE,
-                            PANEL_LABEL_STRING, "xlook version: working.2011 ",
-                            PANEL_VALUE_DISPLAY_LENGTH, 20,
-                            NULL);
-
-
-/* ----------------------------- COMMAND PANEL --------------------------*/
-
-  main_frame_cmd_panel = (Panel)xv_create(main_frame, PANEL, 
-			       PANEL_LAYOUT, PANEL_VERTICAL,
-			       XV_HEIGHT, 35,
-			       WIN_BELOW, main_frame_menu_panel,
-			       NULL);
-
-  cmd_panel_item = (Panel_item) xv_create(main_frame_cmd_panel, PANEL_TEXT,
-				 PANEL_NEXT_ROW, -1,
-				 PANEL_LABEL_STRING, "Command: ",
-				 PANEL_VALUE_STORED_LENGTH, 200,
-				 PANEL_VALUE_DISPLAY_LENGTH, 80,
-				 PANEL_NOTIFY_LEVEL, PANEL_SPECIFIED,
-				 PANEL_NOTIFY_STRING, "\r",
-				 PANEL_NOTIFY_PROC, get_cmd_proc,
-				 NULL);
-
-  
-/* -------------------------- FILE INFO WINDOW ---------------------------- */
-
-  fileinfo_window = (Textsw)xv_create(main_frame, TEXTSW,
-			        TEXTSW_IGNORE_LIMIT, TEXTSW_INFINITY,
-				WIN_ROWS, 7,
-				TEXTSW_BROWSING, TRUE,
-        			TEXTSW_CONFIRM_OVERWRITE, TRUE,
-				TEXTSW_LINE_BREAK_ACTION, TEXTSW_WRAP_AT_WORD,
-				NULL);
-
- /* (void) xv_create(fileinfo_window, SCROLLBAR,
-		   SCROLLBAR_DIRECTION, SCROLLBAR_HORIZONTAL,
-		   NULL); */
-  
-
-/* ------------------------------ INFO PANEL -------------------------- */
-
-  main_frame_info_panel = (Panel)xv_create(main_frame, PANEL, XV_HEIGHT, 35, NULL);
-
-  active_win_info = (Panel_item)xv_create(main_frame_info_panel, PANEL_MESSAGE,
-					  PANEL_NEXT_ROW, -1,
-					  PANEL_LABEL_STRING, "Active Window: ",
-					  NULL);
-  
-  active_plot_info = (Panel_item)xv_create(main_frame_info_panel, PANEL_MESSAGE,
-					   XV_X, xv_col(main_frame_info_panel, 20),
-					   PANEL_LABEL_STRING, "Active Plot: ",
-					   NULL);
-
-
-  active_file_info = (Panel_item)xv_create(main_frame_info_panel, PANEL_MESSAGE,
-					   XV_X, xv_col(main_frame_info_panel, 50),
-					   PANEL_LABEL_STRING, "File: ",
-					   NULL);
-
-
-/* ----------------------------- MESSAGE WINDOW --------------------------*/
-
-  msgwindow = (Textsw)xv_create(main_frame, TEXTSW,
-				TEXTSW_IGNORE_LIMIT, TEXTSW_INFINITY,
-				WIN_ROWS, 20,
-				TEXTSW_BROWSING, TRUE,
-				TEXTSW_LINE_BREAK_ACTION, TEXTSW_WRAP_AT_WORD,
-				TEXTSW_MEMORY_MAXIMUM, 200000,
-				NULL);
-  
- /* (void) xv_create(msgwindow, SCROLLBAR,
-		   SCROLLBAR_DIRECTION, SCROLLBAR_HORIZONTAL,
-		   NULL); */
-
-  (void)textsw_possibly_normalize(msgwindow, (Textsw_index)xv_get(msgwindow, TEXTSW_INSERTION_POINT));
-
-  window_fit(msgwindow);
-  
-
-  
-
-/* -----------------  CMD_HISTORY FRAME SETUP  ------------------- */
-
-
-/*fprintf(stderr,"now setting up cmd_hist_panel, PANEL, and CLOSE buton...\n");*/
-
-  cmd_hist_panel = (Panel)xv_create(cmd_hist_frame, PANEL, PANEL_LAYOUT, PANEL_VERTICAL, NULL);
-
-  (void) xv_create(cmd_hist_panel, PANEL_BUTTON,
-		   XV_X, 300,
-		   PANEL_LABEL_STRING, "CLOSE",
-		   PANEL_NOTIFY_PROC, close_hist_proc,
-		   PANEL_CLIENT_DATA, cmd_hist_frame,
-		   NULL);
- 
-/*cjm: 10.4.07 this is the fix for buttons that don't work. Must be something in PANEL_TEXT that activates*/
-  /*options = (Panel_text_item) xv_create(cmd_hist_panel, PANEL_TEXT,*/
-  (void) xv_create(cmd_hist_panel, PANEL_TEXT,
-                   XV_X, 20,
-                   XV_Y, 15,
-                   PANEL_LABEL_STRING, "",
-                   PANEL_VALUE_DISPLAY_LENGTH, 1,
-                   PANEL_MASK_CHAR, TRUE,
-/*                   PANEL_VALUE, parameter_strs[0],
-                   PANEL_NOTIFY_LEVEL, PANEL_SPECIFIED,
-                   PANEL_NOTIFY_PROC, get_options, */
-                   NULL);
- 
-
-  cmd_hist_panel_list = (Panel_item) xv_create(cmd_hist_panel, PANEL_LIST,
-					  PANEL_LIST_DISPLAY_ROWS, 10,
-					  PANEL_LIST_MODE, PANEL_LIST_READ, 
-					  PANEL_LIST_WIDTH, -1,
-					  PANEL_NOTIFY_PROC, cmd_hist_proc,
-					  NULL);
-
-  window_fit(cmd_hist_panel);
-  window_fit(cmd_hist_frame);
- 
-  xhair_cursor = (Xv_Cursor)xv_create(XV_NULL, CURSOR,
-				      CURSOR_SRC_CHAR, 22,
-				      NULL);
-
-
-/*----------------  PLOTTING WINDOW SETUP  ---------------------   */
- /* create_canvas(); */
-
- /* create font for title */
-  titlefont=(Xv_Font)xv_find(main_frame, FONT, 
-			     /* FONT_NAME, "-adobe-courier-medium-r-normal--14-140-75-75-m-90-iso8859-1", 	*/
-			     FONT_FAMILY, FONT_FAMILY_LUCIDA, 		 
-			     FONT_STYLE, FONT_STYLE_NORMAL, 	
-			     FONT_SIZE, 14,
-			     NULL);
-
-  /* create font for label */
-  tickfont=(Xv_Font)xv_find(main_frame, FONT,
-			    /*FONT_RESCALE_OF, titlefont, WIN_SCALE_SMALL,*/
-			    FONT_FAMILY, FONT_FAMILY_LUCIDA,
-			    FONT_STYLE, FONT_STYLE_NORMAL,
-			    FONT_SIZE, 12,
-			    NULL);
+gboolean on_mainWindow_delete_event(
+	GtkWidget *widget,
+	GdkEvent  *event,
+	gpointer   user_data)
+{
+	quit_xlook();
 	
-  dpy = (Display *)xv_get(main_frame, XV_DISPLAY);
- 
-  /* allocate color map for background and foreground colors */
-  cmap = DefaultColormap(dpy, DefaultScreen(dpy));
-  if (XAllocNamedColor (dpy, cmap, bgcolor, &bgc, &bgc) == 0);
-  if (XAllocNamedColor (dpy, cmap, fgcolor, &fgc, &fgc) == 0);
+	return TRUE;
+}
 
-  /* create gc for title font */
-  gcvalues.foreground = fgc.pixel;
-  gcvalues.background = bgc.pixel;
-  gcvalues.font = (Font)xv_get(titlefont, XV_XID);
-  gcvalues.graphics_exposures = False;
-  gctitle = XCreateGC(dpy, RootWindow(dpy, DefaultScreen(dpy)), GCFont | GCGraphicsExposures | GCForeground | GCBackground, &gcvalues);
+gboolean on_mainWindow_destroy_event(
+	GtkWidget *widget,
+	GdkEvent  *event,
+	gpointer   user_data)
+{
+	quit_xlook();
 
- /* create gc for tick font */
-  gcvalues.foreground = fgc.pixel;
-  gcvalues.background = bgc.pixel;
-  gcvalues.font = (Font)xv_get(tickfont, XV_XID);
-  gcvalues.graphics_exposures = False;
-  gctick = XCreateGC(dpy, RootWindow(dpy, DefaultScreen(dpy)), GCFont | GCGraphicsExposures | GCForeground | GCBackground, &gcvalues);
-  
-  /* create gc for rubber-band-like lines */
-  gcvalues.foreground = fgc.pixel;
-  gcvalues.background = bgc.pixel;
-  gcvalues.graphics_exposures = False;
-  gcrubber = XCreateGC(dpy, RootWindow(dpy, DefaultScreen(dpy)), GCGraphicsExposures | GCForeground | GCBackground, &gcvalues);
-//  XSetFunction(dpy, gcrubber, GXxor);
-  XSetFunction(dpy, gcrubber, GXinvert);
-  
-  gcvalues.foreground = bgc.pixel;
-  gcbg = XCreateGC(dpy, RootWindow(dpy, DefaultScreen(dpy)), GCForeground, &gcvalues);
- 
+	return FALSE;
+}
 
+static void initialize_globals()
+{
+	*delayed_file_to_open= '\0';
+	
+	memset(&ui_globals, 0, sizeof(ui_globals));
+	ui_globals.active_window = -1;
+	ui_globals.old_active_window = -1;
+	ui_globals.total_windows = -1;
+	ui_globals.action = 0;
+	ui_globals.cmd_num = 0;
+
+
+	ui_globals.tickfontheight= 10;
+	ui_globals.tickfontwidth= 10;
+	ui_globals.titlefontheight= 10;
+	ui_globals.titlefontwidth= 10;
+#if FIXME
   titlefontheight=(int)xv_get(titlefont, FONT_DEFAULT_CHAR_HEIGHT);
   titlefontwidth=(int)xv_get(titlefont, FONT_DEFAULT_CHAR_WIDTH);
 
   tickfontheight=(int)xv_get(tickfont, FONT_DEFAULT_CHAR_HEIGHT);
   tickfontwidth=(int)xv_get(tickfont, FONT_DEFAULT_CHAR_WIDTH);
-  
-/* ------------------------------------------------------------------------ */
-
-  window_fit(main_frame);
-
-  display_active_window(0);
-  display_active_plot(0);
-  display_active_file(0);
-
-  textsw_memory_limit = (int)xv_get(msgwindow, TEXTSW_MEMORY_MAXIMUM);
-  
-
-  xv_main_loop(main_frame);
-  return 0;  
-}  
-
-
-
-void quit_xlook()
-{
-  extern Frame clr_plots_frame;
-
-  if (clr_plots_frame) xv_destroy_safe(clr_plots_frame);
-  xv_destroy_safe(main_frame);
+#endif
 }
 
-
-
-
-
-/* ------------------------ FILE MENU PROCS ------------------------------ */
-/*
- not used anymore. use the quit button instead.
-
-void exit_file_proc(menu, item)
-     Menu menu;
-     Menu_item item;
+int main(
+	int argc, 
+	char *argv[])
 {
-  quit_xlook();
-}
-*/
-
-
-void read_file_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-/*
-  set_left_footer("Type the data file to read");	  
-  action = READ;
-  set_cmd_prompt("Filename: ");
-*/
-  if(!ui.open)
-  {
-	ui.open	= (File_chooser) xv_create(main_frame, FILE_CHOOSER_OPEN_DIALOG, 
-		XV_LABEL,	"XLook: Open", 
-		FILE_CHOOSER_NOTIFY_FUNC, my_open_callback,
-		FILE_CHOOSER_FILTER_FUNC, open_filter_func,
-		FILE_CHOOSER_ABBREV_VIEW, TRUE,
-//		XV_KEY_DATA, MY_KEY, ui
-		NULL);
-	}
-
-	xv_set(ui.open, XV_SHOW, TRUE, NULL);
-	xv_set(ui.open, FILE_CHOOSER_UPDATE, NULL); // required to get the recently saved to show up.
-}
-
-// either starts with "begin", because it's a script,
-// or it's a header_version.
-static File_chooser_op open_filter_func(
-	File_chooser fc,
-	char * path,
-	struct stat * stats,
-	File_chooser_op matched,
-	Server_image * glyph,
-	Xv_opaque * client_data,
-	Server_image * mask_glyph)
-{
-	File_chooser_op result= FILE_CHOOSER_IGNORE; 
+	int exit_code= 0;
 	
-	glyph= NULL;
-	mask_glyph= NULL;
-	client_data= NULL;
-	
-	// open it up...
-	if(file_type_with_path(path) != _file_type_unrecognized)
+	initialize_globals();
+	if(initialize(argc, argv))
 	{
-		result= FILE_CHOOSER_ACCEPT;
+		GtkBuilder *builder;
+		
+		gtk_init (&argc, &argv);
+
+		builder = gtk_builder_new ();
+		gtk_builder_add_from_file (builder, "xlook.glade", NULL);
+
+		// load the rest of them...
+		ui_globals.main_window = (struct GtkWidget *)(gtk_builder_get_object (builder, "mainWindow"));
+		ui_globals.command_history = (struct GtkWidget *)(gtk_builder_get_object (builder, "commandWindow"));
+
+
+		// set the font.
+		PangoFontDescription *desc= pango_font_description_from_string("Monospace 9");
+		char *names[]= { "textview_FileInfo", "textview_Message"};
+		int ii;
+		for(ii= 0; ii<ARRAY_SIZE(names); ii++)
+		{
+			GtkWidget *w = (struct GtkWidget *)(gtk_builder_get_object (builder, names[ii]));
+			gtk_widget_modify_font(w, desc);
+		}
+
+		setup_command_window(GTK_WINDOW(ui_globals.command_history));
+
+		gtk_builder_connect_signals (builder, NULL);          
+		g_object_unref (G_OBJECT (builder));
+
+		// set the messages appropriately
+		display_active_window(0);
+		display_active_plot(0);
+		display_active_file(0);
+
+		gtk_widget_show(GTK_WIDGET(ui_globals.main_window));       
+		
+		// set the font..
+//		GtkWidget *fileInfo= lookup_widget_by_name(ui_globals.main_window, "textview_FileInfo");
+//		gtk_widget_modify_font(fileinfo, PangoFontDescription *font_desc);
+		
+		
+		
+		// open if we should from command line.
+		if(strlen(delayed_file_to_open))
+		{
+			handle_open_filepath(delayed_file_to_open);
+		}
+
+		gtk_main ();
+		exit_code= 0;
+	} else {
+		exit_code= -1;
 	}
 	
-	return result;
+	return exit_code;
 }
 
-static FileType file_type_with_path(char *path)
+void on_fontbutton1_font_set(
+	GtkFontButton *widget, 
+	gpointer user_data)
+{
+	fprintf(stderr, "Font set was: %s", gtk_font_button_get_font_name(widget));
+	
+	GtkWidget *fileInfo= lookup_widget_by_name(ui_globals.main_window, "textview_FileInfo");
+	PangoFontDescription *desc= pango_font_description_from_string(gtk_font_button_get_font_name(widget));
+fprintf(stderr, "Desc: %p FileInfo: %p\n", desc, fileInfo);
+	gtk_widget_modify_font(fileInfo, desc);
+//	pango_font_description_free(desc);
+
+	/*
+	Retrieves the name of the currently selected font. This name includes style and size information as well. 
+	If you want to render something with the font, use this string with pango_font_description_from_string() . 
+	*/
+}
+
+/* ------------- entering return in command prompt */
+void on_textEntry_Command_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	char cmd_buffer[256];
+
+	// copy it in
+	strncpy(cmd_buffer, gtk_entry_get_text(GTK_ENTRY(object)), ARRAY_SIZE(cmd_buffer)-1);
+	cmd_buffer[ARRAY_SIZE(cmd_buffer)-1]= 0;
+
+	// clear it out..
+	gtk_entry_set_text(GTK_ENTRY(object), "");
+
+	/*only do something if a command was entered. Don't do anything if user just hit return*/
+	if(strcspn(cmd_buffer," ,\n\t"))
+	{
+		/* remember it */
+		record_command(cmd_buffer);
+
+		/* call cmd multiplexor  */
+		command_handler(cmd_buffer);
+	}
+}
+
+/* ------------- Menu Handlers */
+void on_quit_menu_item_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	quit_xlook();
+}
+
+void on_menu_ShowRSFric_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	if(ui_globals.rs_window)
+	{
+		// bring it to front.
+		bring_rs_fric_window_to_front(ui_globals.rs_window);
+	} else {
+		strcpy(qiparams, "");
+		qi_win_proc();
+	}
+}
+
+void on_menu_ShowCommandWindow_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	show_command_window();
+}
+
+// wow; can't believe i have to write this; i've had my libs so long I didn't realize this wasn't core.
+static char *strtolower(char *str)
+{
+	char *src= str;
+	while(*src) *src= tolower(*src), src++;
+
+	return str;
+}
+
+void on_plot_item_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	const gchar *label= gtk_menu_item_get_label(GTK_MENU_ITEM(object));
+	char *plot1_commands[]= { "plotall", "plotover", "plotsr" };
+	char *plot2_commands[]= { "plotauto", "plotlog", "plotsame", "plotscale", "pa" };
+	int found= FALSE;
+	char temporary[512];
+	int ii;
+
+	strcpy(temporary, label);
+	strtolower(temporary);
+
+	// expects to have ellipsis at the end..
+	if(strlen(temporary)>3)
+	{
+		temporary[strlen(temporary)-3]= '\0';
+	}
+
+	for(ii= 0; ii<ARRAY_SIZE(plot1_commands); ii++)
+	{
+		if(strcmp(plot1_commands[ii], temporary)==0)
+		{
+			strcpy(plot_cmd, temporary);
+			set_left_footer("Type the x-axis and y-axis");
+			set_cmd_prompt("X-AXIS Y-AXIS: ");
+			ui_globals.action = PLOT_GET_XY; 
+			found= TRUE;
+		}
+	}
+	
+	if(!found)
+	{
+		for(ii= 0; ii<ARRAY_SIZE(plot2_commands); ii++)
+		{
+			if(strcmp(plot2_commands[ii], temporary)==0)
+			{
+				strcpy(plot_cmd, temporary);
+				set_left_footer("Type the x-axis and y-axis");
+				set_cmd_prompt("X-AXIS Y-AXIS: ");
+				ui_globals.action = PLOT_GET_BE; 
+				found= TRUE;
+			}
+		}
+	}
+
+	if(!found)
+	{
+		fprintf(stderr, "Didn't find plot command: %s\n", temporary);
+	}
+}
+
+void on_save_menu_item_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	GtkWidget *dialog;
+	char previous_filename[100];
+	
+	*previous_filename= '\0';
+
+	dialog = gtk_file_chooser_dialog_new ("Save Xlook File",
+		GTK_WINDOW(ui_globals.main_window),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+		NULL);
+	gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
+
+	if (strlen(previous_filename)==0)
+	{
+//		gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), default_folder_for_saving);
+		gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (dialog), "Untitled document");
+	}
+	else
+		gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (dialog), previous_filename);
+
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+	{
+		char *filename;
+		filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+
+		// perform the save.
+		write_proc(filename);
+
+		g_free (filename);
+	}
+	gtk_widget_destroy (dialog);
+}
+
+/* ------------ Window Menu handling */
+
+static gboolean startswith(const char *haystack, const char *needle)
+{
+	gboolean matches= FALSE;
+	
+	if(strlen(haystack)>=strlen(needle))
+	{
+		const char *src= needle;
+		const char *dst= haystack;
+		while(*src)
+		{
+			if(*src != *dst) break;
+			src++, dst++;
+		}
+		
+		if(!(*src)) matches= TRUE;
+	}
+	
+	return matches;
+}
+
+
+void on_viewMenu_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	GtkMenuItem *item= GTK_MENU_ITEM(object);
+	
+	if(gtk_menu_item_get_submenu(item) != NULL)
+	{
+		char buffer[100];
+		char *prefix= "Plot Window";
+		
+		GtkMenu *menu= GTK_MENU(gtk_menu_item_get_submenu(item));
+		GList *initial_list = gtk_container_get_children(GTK_CONTAINER(menu));
+
+		// iterate the linked list and remove all the Plot Window entries...
+		GList *entry= initial_list;
+		while(entry)
+		{
+			if(GTK_IS_MENU_ITEM(entry->data) && !GTK_IS_SEPARATOR_MENU_ITEM(entry->data))
+			{
+				const char *existing_label= gtk_menu_item_get_label(GTK_MENU_ITEM(entry->data));
+//				fprintf(stderr, "Label %s\n", existing_label);
+				if(startswith(existing_label, prefix))
+				{
+//					fprintf(stderr, "Removing %s\n", existing_label);
+					// do we have to remove it explicitly, or can we just nuke and pave?
+					gtk_widget_destroy(GTK_WIDGET(entry->data));
+				}
+			}
+			entry= entry->next;
+		}
+		g_list_free(initial_list);
+
+		int ii;
+		for(ii= 0; ii<MAXIMUM_NUMBER_OF_WINDOWS; ii++)
+		{
+			if (wininfo.windows[ii]==1)
+			{
+				sprintf(buffer, "%s %d", prefix, ii+1);
+				GtkWidget *child= gtk_menu_item_new_with_label(buffer);
+				gtk_signal_connect (GTK_OBJECT (child), "activate", GTK_SIGNAL_FUNC (on_activate_plot_window), GINT_TO_POINTER (ii));
+				gtk_menu_shell_append(GTK_MENU_SHELL(menu), child);
+				gtk_widget_show(child);
+			}
+		}
+	}	
+}
+
+// internally used only (in above function)
+static void on_activate_plot_window(
+	GtkObject *object,
+	gpointer user_data)
+{
+	gint window_index= GPOINTER_TO_INT(user_data);
+	
+	fprintf(stderr, "Activate plot window %d\n", window_index);
+	set_active_window(window_index);
+}
+
+void on_new_plot_window_item_activate(
+	GtkObject *object,
+	gpointer user_data)
+{
+	new_win_proc();
+}
+
+/* ------------- Opening Files */
+void on_open_menu_item_activate( // as expected, the signals can't be static or they won't latebind.
+	GtkObject *object,
+	gpointer user_data)
+{
+	GtkWidget *dialog;
+	
+	dialog= gtk_file_chooser_dialog_new("Open Xlook File", 
+		GTK_WINDOW(ui_globals.main_window),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+		GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+		NULL);
+	
+	// create the filter.
+	GtkFileFilter *filter= gtk_file_filter_new(); // DIspose where?
+	gtk_file_filter_set_name(filter, "XLook Files");
+	gtk_file_filter_add_custom(filter, GTK_FILE_FILTER_FILENAME, open_filter_function, NULL, NULL);
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+	if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
+	{
+		char *filename= gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		handle_open_filepath(filename);
+	    g_free (filename);
+	}
+	// dialog takes ownership of the filter, so we don't have to do anything to free it.
+	gtk_widget_destroy(dialog);
+}
+
+static void handle_open_filepath(const char *filename)
+{
+	switch(file_type_with_path(filename))
+	{
+		case _file_type_script:
+		    doit_proc(filename);
+			break;
+		case _file_type_data:
+			read_proc(filename);
+			break;
+		default:
+			break;
+	}		
+}
+
+static gboolean open_filter_function(
+	const GtkFileFilterInfo *filter_info, 
+	gpointer data)
+{
+	return (file_type_with_path(filter_info->filename)!=_file_type_unrecognized);
+}
+
+
+static FileType file_type_with_path(const char *path)
 {
 	FileType type= _file_type_unrecognized;
 	FILE *fp= fopen(path, "r");
@@ -559,7 +493,7 @@ static FileType file_type_with_path(char *path)
 		} else {
 			/* in filtersm.h */
 			/*	return is 16, 32, 64 or 0 (0 indicates an error) */
-			int version= header_version(fp);
+			int version= header_version(fp, FALSE);
 			if(version != 0)
 			{
 				type= _file_type_data;
@@ -572,785 +506,144 @@ static FileType file_type_with_path(char *path)
 	return type;
 }
 
-static int my_open_callback(
-	File_chooser fc, 
-	char *path, 
-	char *file, 
-	Xv_opaque client_data)
-{
-//	My_ui *ui = (My_ui *)xv_get(fc, XV_KEY_DATA, MY_KEY); 
-//	char buf[512];
-	
-	xv_set(fc, FRAME_BUSY, TRUE, NULL);
-/*
-	Textsw_status status; 
 
-	xv_set(ui->textsw, TEXTSW_STATUS, &status, TEXTSW_FILE, path, TEXTSW_FIRST, 0, NULL);
-	if ( status != TEXTSW_STATUS_OKAY ) { 
-		window_bell( ui->frame ); 
-		xv_set( ui->frame, FRAME_LEFT_FOOTER, "Unable to load file!", NULL); 
-		xv_set(fc, FRAME_BUSY, FALSE, NULL); 
-		return XV_ERROR;
-	}
-*/	
-	/* Set current doc name on the Save popup. */ 
-/*
-	(void) sprintf(buf, "%s.1", file); 
-	if ( ui->saveas )
-		xv_set(ui->saveas, FILE_CHOOSER_DOC_NAME, buf, NULL); 
-	else {
-		if ( ui->doc_name ) free( ui->doc_name );
-		ui->doc_name = strdup( buf ); 
-	}
-	(void) sprintf(buf, "Demo Text Editor – %s", file); 
-	xv_set(ui->frame, XV_LABEL, buf, NULL);
-*/
-	switch(file_type_with_path(path))
+// FIXME: Move these into globals- if at all possible
+// max_col, max_row, plot_error, arrayx, arrayy, darray
+static int initialize(int argc, char *argv[])
+{
+	int i;
+	int abort_launch= FALSE;
+
+	plot_error = -1;
+
+	max_col = 33;			/*start with 33, which is MAX limit*/
+	max_row = 10000;
+	for (i = 0; i < max_col; ++i)
+		darray[i] = (double *)malloc((unsigned)(max_row*sizeof(double)));
+	/*darray[i] = (float *)malloc((unsigned)(max_row*sizeof(float)));*/
+	/*darray[i] = (float *)calloc((unsigned)max_row, (unsigned)4);*/
+
+	arrayx = (double *)malloc((unsigned)(max_row*sizeof(double)));
+	arrayy = (double *)malloc((unsigned)(max_row*sizeof(double)));
+	/*arrayx = (float *)calloc((unsigned)max_row, (unsigned)4);
+	arrayy = (float *)calloc((unsigned)max_row, (unsigned)4);*/
+
+	for (i=0; i<MAX_COL; ++i) null_col(i);
+
+
+//	if (argc > 1)
 	{
-		case _file_type_script:
-		    doit_proc(path);
-			break;
-		case _file_type_data:
-			read_proc(path);
-			break;
-		default:
-			break;
-	}
-	xv_set(fc, FRAME_BUSY, FALSE, NULL); 
-
-	return XV_OK;
-}
-
-void write_file_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{ 
-/*
-  set_left_footer("Type the file to write");
-  action = WRITE; 
-  set_cmd_prompt("Filename: ");
-*/
-  if(!ui.save)
-  {
-	ui.save	= (File_chooser) xv_create(main_frame, FILE_CHOOSER_SAVE_DIALOG, 
-		XV_LABEL,	"XLook: Save", 
-		FILE_CHOOSER_NOTIFY_FUNC, my_save_callback,
-		NULL);
-	}
-	xv_set(ui.save, XV_SHOW, TRUE, NULL);
-}
-
-static int my_save_callback(
-	File_chooser fc, 
-	char *path, 
-	struct stat * stats)
-{
-	write_proc(path);
-    
-	return XV_OK;
-}
-
-
-void append_file_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{  
-  set_left_footer("Type the file to append");
-  action = APPEND; 
-  set_cmd_prompt("Filename: ");
-}
-
-
-/* ------------------------ WINDOW MENU PROCS ---------------------------- */
-void act_window_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  set_left_footer("Which window to be set active?");
-  set_cmd_prompt("Window Number: ");
-  action = SET_ACTIVE_WINDOW;
-}
-
-void kill_window_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  set_left_footer("Type the window number to destroy");
-  set_cmd_prompt("Window Number: ");
-  action = KILL_WIN;
-}
-
-void new_window_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  new_win_proc();  
-}
-
-void qi_window_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  strcpy(qiparams, "");
-  qi_win_proc();
-}
-
-  
-
-/* ----------------------- PLOT COMMANDS MENU --------------------------- */
-void plot1_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  strcpy(plot_cmd, "plotall");
-  goto_plot1_proc();
-}
-
-void plot2_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
- strcpy(plot_cmd, "plotover");
- goto_plot1_proc();
-}
-
-void plot3_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  strcpy(plot_cmd, "plotsr");
-  goto_plot1_proc();
-}
-
-void plot4_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  strcpy(plot_cmd, "plotauto");
-  goto_plot2_proc();
-}
-
-void plot5_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  strcpy(plot_cmd, "plotlog");
-  goto_plot2_proc();
-}
-
-void plot6_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  strcpy(plot_cmd, "plotsame");
-  goto_plot2_proc();
-}
-
-void plot7_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  strcpy(plot_cmd, "plotscale");
-  goto_plot2_proc();
-}
-
-void plot8_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-  strcpy(plot_cmd, "pa");
-  goto_plot2_proc();
-}
-
-
-void goto_plot1_proc()
-{
-   set_left_footer("Type the x-axis and y-axis");
-   set_cmd_prompt("X-AXIS Y-AXIS: ");
-   action = PLOT_GET_XY; 
- }
-
-void goto_plot2_proc()
-{
-   set_left_footer("Type the x-axis and y-axis");
-   set_cmd_prompt("X-AXIS Y-AXIS: ");
-   action = PLOT_GET_BE; 
- }
-
-
-/*  ----------------------- BUTTONS PROCEDURES ---------------------------  */ 
-
-void exit_proc(item, event)
-     Panel_item item;
-     Event *event;
-{
-  quit_xlook();
-}
-
-
-void get_cmd_proc(item, event)
-     Panel_item item;
-     Event *event;
-{
-  /* command panel callback function; 
-     passes a copy of the string to command_handler() */
-
-  extern void command_handler();
-  char cmd_text[256];
-  char buf[8];
-  
-  strcpy(buf," ,\n\t");	/*set of null chars for cmd*/
-
-  strcpy(cmd_text, (char *)xv_get(item, PANEL_VALUE));
-
-/*only do something if a command was entered. Don't do anything if user just hit return*/
-
-  if(strcspn(cmd_text,buf))
-  {
-  	xv_set(cmd_hist_panel_list, PANEL_LIST_INSERT, cmd_num, PANEL_LIST_STRING, cmd_num, cmd_text, NULL);
-  	cmd_num++;
-
-  	xv_set(item, PANEL_VALUE, "", NULL); 
-
-  	/* call cmd multiplexor  */
-  	command_handler(cmd_text);
-  }
-  else	/*just clear line*/
-  	xv_set(item, PANEL_VALUE, "", NULL); 
-
-}
-
-
-void cmd_hist_proc(item, cmd_text, client_data, op, event, row)
-     Panel_item item;
-     char *cmd_text;
-     Xv_opaque client_data;
-     Panel_list_op op;
-     Event *event;
-     int row;
-{
-  /* copies every input to the history command window;
-   don't exactly know how big this buffer can be */
-
-  xv_set(cmd_panel_item, PANEL_VALUE, cmd_text, NULL);
-  
-}
-
-
-/*cjm: added to debug buttons problem. Commented out on: 10.4.07*/
-
-#if 0
-
-void duh_proc(menu, item)
-     Menu menu;
-     Menu_item item;
-{
-Panel button_panel;
-void kill_duh_proc();
-Panel_text_item options;
-
-/*sprintf(msg, "cjm1. in duh_proc \n"); print_msg(msg);
-fprintf(stderr, "%s\n", msg);*/
-
-duh_frame = (Frame)xv_create(main_frame, FRAME,
-                              FRAME_LABEL, "duh",
-                              XV_HEIGHT, 400,
-                              XV_WIDTH, 700,
-                              NULL);
-
-button_panel =  (Panel)xv_create(duh_frame, PANEL, XV_HEIGHT, 52, NULL);
-
-/* kill window button */
-(void) xv_create(button_panel, PANEL_BUTTON,
-                   XV_X, 260,
-                   PANEL_LABEL_STRING, "Kill Window",
-                   PANEL_NOTIFY_PROC, kill_duh_proc,
-                   PANEL_CLIENT_DATA, duh_frame,
-                   NULL);
-
-  options = (Panel_text_item) xv_create(button_panel, PANEL_TEXT,
-                   XV_X, 20,
-                   XV_Y, 15,
-                   PANEL_LABEL_STRING, "",
-                   PANEL_VALUE_DISPLAY_LENGTH, 1,
-		   PANEL_MASK_CHAR, TRUE,
-/*                   PANEL_VALUE, parameter_strs[0],
-                   PANEL_NOTIFY_LEVEL, PANEL_SPECIFIED,
-                   PANEL_NOTIFY_PROC, get_options, */
-                   NULL);
-
-
-xv_set(duh_frame, XV_SHOW, TRUE, NULL);
-
-}
-
-void kill_duh_proc(item, event)
-     Panel_item item;
-     Event *event;
-{
-Frame fr; 
-
-/*sprintf(msg, "cjm1. in kill_duh_proc \n"); print_msg(msg);
-fprintf(stderr, "%s\n", msg);*/
-
-  fr = (Frame) xv_get(item, PANEL_CLIENT_DATA);
-  xv_destroy_safe(fr);
-
-}
-
-#endif
-
-void show_hist_proc(item, event)
-     Frame item;
-     Event *event;
-{
-  /* maps the history window to screen */
-print_msg(msg);
-
-  Frame cmd_hist_frame = (Frame)xv_get(item, PANEL_CLIENT_DATA);
-  if ((int)xv_get(cmd_hist_frame, XV_SHOW)== FALSE)  
-    xv_set(cmd_hist_frame, XV_SHOW, TRUE, NULL);
-
-}
-
-
-void close_hist_proc(item, event)
-     Frame item;
-     Event *event;
-{
-  /* unmaps the history window from screen */
-
-/*sprintf(msg, "cjm. in close_hist_proc!\n");
-print_msg(msg);*/
-
-  if ((int)xv_get(cmd_hist_frame, XV_SHOW) == TRUE)
-    xv_set(cmd_hist_frame, XV_SHOW, FALSE, NULL);
-}
-
-
-
-
-/* --------------------------- CANVAS HANDLER --------------------------- */
-
-/*
-void close_graf_proc(item, event)
-     Frame item;
-     Event *event;
-{
-  Frame graf_frame;
-
-  graf_frame = xv_get(wininfo.canvases[active_window]->canvas, XV_KEY_DATA, GRAF_FRAME);
-  active_window = old_active_window;
-  if (old_active_window != 0)
-    old_active_window--;
-  
-  if ((int)xv_get(graf_frame, XV_SHOW) == TRUE)
-    xv_set(graf_frame, XV_SHOW, FALSE, NULL);
-}
-*/
-
-void clear_win_proc(item, event)
-     Panel_item item;
-     Event *event;
-{
-  canvasinfo *can_info;
-  int can_num;
-   
-  can_num = xv_get(item, PANEL_CLIENT_DATA);
-  set_active_window(can_num);
-  can_info = wininfo.canvases[active_window];
-  display_active_plot(-1);
-
-  clr_all();
-}
-
-void clr_all()
-{
-  canvasinfo *can_info;
-  int i;
-  
-  can_info = wininfo.canvases[active_window];
-
-  for (i=0; i<10; i++)
-    {
-      if (can_info->alive_plots[i] == 1)
-	{
-	  free(can_info->plots[i]);
-	  can_info->alive_plots[i] = 0;
-	}
-    }
-  can_info->active_plot = -1;
-  can_info->total_plots = 0;
-
-  clear_canvas_proc(can_info->canvas);
-}
-
-
-void refresh_win_proc(item, event)
-     Panel_item item;
-     Event *event;
-{
-  canvasinfo *can_info;
-  int can_num, active_plot;
-  Canvas canvas;
-  
-  can_num = xv_get(item, PANEL_CLIENT_DATA);
-  set_active_window(can_num);
-  can_info = wininfo.canvases[active_window];
-
-  if(can_info->total_plots ==0)		/*nothing to refresh if no plots*/
-	return;
-		/*save active plot*/
-/*fprintf(stderr, "just before ref to can_info->active_plot.\n");*/
-  active_plot = can_info->active_plot;  
-  display_active_plot(active_plot+1);
-  canvas = can_info->canvas;
-/*fprintf(stderr, "just before redraw proc.\n");*/
-  
-  redraw_all_proc(canvas, can_info->xvwin, (Display *)xv_get(canvas, XV_DISPLAY), can_info->win, NULL); 
-		/*re-set active plot*/
-
-/*fprintf(stderr, "after redraw.\n");*/
-/* 26/3/96: obs: crash when refresh a window with nothing in it. OK to here, crashes in set_active plot*/
-  set_active_plot(active_plot);
-}
-
-
-void kill_graf_proc(item, event)
-     Panel_item item;
-     Event *event;
-{
-  int win;
-  
-  win = xv_get(item, PANEL_CLIENT_DATA);
-  
-  kill_win_proc(win+1); 
-}
-
-
-
-void canvas_event_proc(xvwindow, event)
-     Xv_Window xvwindow;
-     Event *event;
-{
-  /* canvas event handler:
-     always get the window number first and set active window to this num.
-     if mouse event, check the current mode, then execute the proc.
-     */
-  int xloc, yloc;
-  Canvas canvas;
-  int can_num;
-  canvasinfo *can_info;
-  plotarray *data;
-  int active_plot;
-  extern void do_line_plot(), do_mouse_mu(), do_dist();
-   
-  
-  if(active_window == -1)		/*null event, don't go through here*/
-  {
-	return;
-  }
-  canvas = (Canvas)xv_get(xvwindow, CANVAS_PAINT_CANVAS_WINDOW);
-  can_num = xv_get(canvas, XV_KEY_DATA, CAN_NUM);
-  set_active_window(can_num);
-
-  can_info = wininfo.canvases[active_window];    
-  active_plot = can_info->active_plot;
-  display_active_plot(active_plot+1);
-  
-  switch(event_action(event))
-    {
-      
-    case LOC_MOVE:      
-	{
-		Display *display= (Display *)xv_get(canvas, XV_DISPLAY);
-		if (can_info->total_plots == 0) break;
-		data = can_info->plots[active_plot];
-
-		xloc = event_x(event);
-		yloc = event_y(event);
-
-		/* draw rubber band line for line plot */
-		if (data->mouse == 1 && data->p1 == 1)
+		if (argc == 2 && strcmp(argv[1], "-?")!=0 && strcmp(argv[1], "-h")!=0 && strcmp(argv[1], "--help")!=0)
 		{
-			if (data->p2 == 1)
+			set_initial_path(argv[1]);
+		}
+		else
+		{
+			int c;
+			static struct option long_options[] = {
+				{"path", 1, 0, 0}, // name, has_arg, flag, val
+				{"file", 1, 0, 0},
+				{"help", 0, 0, 0},
+				{NULL, 0, NULL, 0}
+			};
+			int option_index = 0;
+			while ((c = getopt_long_only(argc, argv, "p:f:?h", long_options, &option_index)) != -1) 
 			{
-				/* remove previous line */
-				XDrawLine(display, can_info->win, gcrubber, data->x1, data->y1, data->x2, data->y2);
+				switch (c) 
+				{
+					case 0:
+						switch(option_index)
+						{
+							case 0: // path
+								abort_launch= set_initial_path(optarg);
+								break;
+							case 1: // file
+								abort_launch= load_command_line_file(optarg);
+								break;
+							case 2: // file
+								abort_launch= TRUE;
+								break;
+						}
+						break;
+					case 'p':
+						abort_launch= set_initial_path(optarg);
+						break;
+					case 'f':
+						abort_launch= load_command_line_file(optarg);
+						break;
+					case '?':
+					case 'h':
+					default:
+						abort_launch= TRUE;
+						break;
+				}
 			}
 
-			/* draw new line */
-			XDrawLine(display, can_info->win, gcrubber, data->x1, data->y1, xloc, yloc);
-			XFlush(display);
-
-			data->x2 = xloc;
-			data->y2 = yloc;
-			data->p2 = 1;
+			if (optind < argc) 
+			{
+//				printf ("non-option ARGV-elements: ");
+				while (optind < argc)
+				{
+//					printf ("%s ", argv[optind++]);
+				}
+//				printf ("\n");
+			}
+			
+			if(abort_launch)
+			{
+				print_usage(argc, argv);
+			}
 		}
 	}
-      break;
-	 
-
-    case LOC_DRAG:      
-      break;
-
-
-    case ACTION_MENU:  /* ACTION_MENU is the right button*/
-		/* we use to pick points or to indicate done selecting parameters*/ 
-      if (!event_is_up(event)) break;
-      if (can_info->total_plots == 0) break;
-
-      data = can_info->plots[active_plot];
-      xloc = event_x(event);
-      yloc = event_y(event);
-
-      /* default case (mouse == 0) */
-      if (data->mouse == 0 )
-	  print_xy(xloc, yloc);
 	
-      if (data->mouse == 4 )
-       {
-	 /* commit zoom */
-	 zoom();
-	 data->zp1 = data->zp2 = 0;
-       }
-      
-      if (data->mouse != 0)
-	{
-	  sprintf(msg, "Done.\n");
-	  print_msg(msg);
-	  xv_set(xv_get(can_info->canvas, XV_KEY_DATA, GRAF_FRAME),
-	  FRAME_LEFT_FOOTER, "Normal Mode: left & middle buttons pick row numbers, right button gives x-y position", NULL);
-	  data->x1 = 0;
-	  data->y1 = 0;	  
-	  data->x2 = 0;
-	  data->y2 = 0;	
-	  data->p1 = 0;
-	  data->p2 = 0;  
-	  data->zp1 = 0;
-	  data->zp2 = 0;
-	  data->mouse = 0;
-	}
-      break;
-      
-      
-    case ACTION_ADJUST:   /* middle button */
-      if (!event_is_up(event)) break;
-      if (can_info->total_plots == 0) break;
-      
-      data = can_info->plots[active_plot];
-
-      xloc = event_x(event);
-      yloc = event_y(event);
-	 
-      if (data->mouse == 0 )
-	{
-	  print_xyrow(xloc, yloc, 1);
-	  break;
-	}
-            
-      if ((data->mouse == 1 || data->mouse == 3 || data->mouse == 4) && data->p1==0)
-	{
-	  /* not enough points picked */
-	  sprintf(msg, "Pick 1st point with left button first.\n");
-	  print_msg(msg);
-	  break;
-	}
-	
-      if (data->mouse == 1 && data->p1 == 1)
-	{
-		Display *display= (Display *)xv_get(canvas, XV_DISPLAY);
-
-	  /* get the 2nd point */
-	  sprintf(msg, "2nd point picked\n");
-	  print_msg(msg);
-	  data->x2 = xloc;
-	  data->y2 = yloc;
-	  data->p2 = 1;
-
-	  /* commit line plot */
-	  draw_crosshair(xloc, yloc);
-	  XDrawLine(display, can_info->win, gcrubber, data->x1, data->y1, data->x2, data->y2);
-	  do_line_plot();
-	
-	  /* reset for next line plot */
-	  data->p1 = 0;
-	  data->p2 = 0;
-	  data->x1 = data->x2 = data->y1 = data->y2 = 0;
-	  break;
-	}
-
-      if (data->mouse == 2)
-	{
-	  data->x1 = xloc;
-	  data->y1 = yloc;
-	  data->p1 = 1;
-	  do_mouse_mu();
-	  break;
-	}
-
-      if (data->mouse == 3 )
-	{
-	  /* get the 2nd point */
-	  sprintf(msg, "2nd point picked\n");
-	  print_msg(msg);
-	  data->x2 = xloc;
-	  data->y2 = yloc;
-	  data->p2 = 1;
-	  
-	  /* commit distance */
-	  draw_crosshair(xloc, yloc);
-	  do_dist();
-	  data->p1 = 0;
-	  data->p2 = 0;
-	  data->x1 = data->x2 = data->y1 = data->y2 = 0;
-	  break;
-	}
-
-      if (data->mouse == 4 )
-	{
-	  /* get the 2nd point */
-	  sprintf(msg, "2nd point picked\n");
-	  print_msg(msg);
-	  data->x2 = xloc;
-	  data->y2 = yloc;
-	  data->p2 = 1;
-	  
-	  /* 2nd corner for zoom */
-	  zoom_get_pt(xloc, yloc, 2);
-	  break;
-	}
-      break;
-  
-  
-
-    case ACTION_SELECT:   /* left button */
-      if (!event_is_up(event)) break;
-      if (can_info->total_plots == 0) break;
-	
-      data = can_info->plots[active_plot];
-      
-      xloc = event_x(event);
-      yloc = event_y(event);
-
-      if (data->mouse == 0 )
-      {
-	  /* print row num on info panel only */
-	  print_xyrow(xloc, yloc, 0);
-	  break;
-      }
-      else
-      {
-
-	  if (data->mouse == 1 && data->p2 == 1 && data->p1 == 1)
-	    {
-	      /* do nothing */
-	      break;
-	    }
-	  
-	  data->x1 = xloc;
-	  data->y1 = yloc;
-	  data->p1 = 1;
-	  
-	  if (data->mouse == 2 )
-	    {
-	      do_mouse_mu();
-	      break;
-	    }
-	  
-	  if (data->mouse == 4 )
-	    {
-	      zoom_get_pt(xloc, yloc, 1);
-	      sprintf(msg, "1st point picked\n");
-	      print_msg(msg);
-	      break;
-	    }
-	  
-	  draw_crosshair(xloc, yloc);
-	  /* get the start point */
-	  sprintf(msg, "1st point picked\n");
-	  print_msg(msg);
-      }
-      break;
-      
-  
-    /*case WIN_RESIZE:
-	setup_canvas();
-fprintf(stderr,"past setup canvas, before redraw in canvas_event_proc\n");
-  	redraw_all_proc(canvas, can_info->xvwin, xv_get(canvas, XV_DISPLAY), can_info->win, NULL); 
-fprintf(stderr,"after redraw in WIN_RESIZE\n");
-      break;*/  /* if set to return, need to click on the canvas to display */ 
-      
-    default:
-      sprintf(msg, "NULL event\n");
-      break;
-     /* return;*/
-    }
-}     
-
-void resize_proc(canvas, width, height)
- Canvas canvas;
- int width;
- int height;
-{
-  Display *dpy;
-  Window win;
-  canvasinfo *can_info;
-/*fprintf(stderr,"in resize proc\n");*/
-  setup_canvas();
-    
-  dpy = (Display *)xv_get(canvas, XV_DISPLAY);
-  win = (Window)xv_get(canvas_paint_window(canvas), XV_XID);
-
-  XClearWindow(dpy, win);
-
-  can_info = wininfo.canvases[active_window];
-  redraw_all_proc(canvas, can_info->xvwin, (Display *)xv_get(canvas, XV_DISPLAY), win, NULL); 
-
+	return !abort_launch;
 }
 
-
-void initialize(argc, argv)
-     int argc;
-     char *argv[];
+static int set_initial_path(const char *path)
 {
-  int i;
-  
-  plot_error = -1;
-  
-  max_col = 33;			/*start with 33, which is MAX limit*/
-  max_row = 10000;
-  for (i = 0; i < max_col; ++i)
-    darray[i] = (double *)malloc((unsigned)(max_row*sizeof(double)));
-    /*darray[i] = (float *)malloc((unsigned)(max_row*sizeof(float)));*/
-    /*darray[i] = (float *)calloc((unsigned)max_row, (unsigned)4);*/
-  
-  arrayx = (double *)malloc((unsigned)(max_row*sizeof(double)));
-  arrayy = (double *)malloc((unsigned)(max_row*sizeof(double)));
-  /*arrayx = (float *)calloc((unsigned)max_row, (unsigned)4);
-  arrayy = (float *)calloc((unsigned)max_row, (unsigned)4);*/
-  
-  for (i=0; i<MAX_COL; ++i) null_col(i);
+	int abort_launch= FALSE;
+	
+	if(path != NULL)
+	{
+		if (access(path, 4) == 0)
+		{
+			strcpy(default_path, path);
+			fprintf(stderr, "Pathname for DOIT files is %s\n", default_path);
+			if (default_path[strlen(default_path)-1] != '/')
+				strcat(default_path, "/");
+		}
+		else
+		{
+			fprintf(stderr, "Inaccessible pathname \n%s IGNORED\n", path);
+		}
+	} else {
+		fprintf(stderr, "Pathname missing from parameter!\n");
+		abort_launch= TRUE;
+	}
+	
+	return abort_launch;
+}
 
-   if (argc > 1)
-    {
-      if (argc == 2)
+static int load_command_line_file(const char *filename)
+{
+	int abort_launch= FALSE;
+	
+	// should set the path if the filename is longer than just a name.
+	if(filename != NULL)
 	{
-	  if (access(argv[1], 4) == 0)
-	    {
-	      strcpy(default_path, argv[1]);
-	      fprintf(stderr, "Pathname for DOIT files is %s\n", default_path);
-	      if (default_path[strlen(default_path)-1] != '/')
-		strcat(default_path, "/");
-	    }
-	  else
-	    fprintf(stderr, "Inaccessible pathname \n%s IGNORED\n", argv[1]);
+		strcpy(delayed_file_to_open, filename);
+	} else {
+		fprintf(stderr, "Filename missing from parameter!\n");
+		abort_launch= TRUE;
 	}
-      else
-	{
-	  fprintf(stderr, "Don't understand argument list\n");
-	  fprintf(stderr, "EXPECTED: look default_path\n");
-	  exit(-1);
-	}
-    }
+	
+	return abort_launch;
+}
+
+static void print_usage(int argc, char *argv[])
+{
+	fprintf(stdout, "Usage: %s [args] where args are:\n", argv[0]);
+	fprintf(stdout, "  --path PATHNAME - Sets the default path to PATHNAME\n");
+	fprintf(stdout, "  --file FILENAME - Launches the application then runs doit(FILENAME)\n");
+	fprintf(stdout, "  --help - Prints this usage information.\n");
 }
