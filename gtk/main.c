@@ -12,6 +12,7 @@
 #include "cmd_window.h"
 #include "rs_fric_window.h"
 #include "ui.h"
+#include "ui_static.h"
 
 short state0_image[] = {
 #include "xlook.ico"
@@ -107,12 +108,24 @@ int main(
 	if(initialize(argc, argv))
 	{
 		GtkBuilder *builder;
+		GError *error= NULL;
 		
 		gtk_init (&argc, &argv);
 
 		builder = gtk_builder_new ();
+#ifdef STATIC_UI
+		if(!gtk_builder_add_from_string(builder,  xlook_glade_data, -1, &error))
+		{
+			if (error != NULL)
+			{
+				/* Report error to user, and free error */
+				fprintf (stderr, "Unable to add from string: %s\n", error->message);
+				g_error_free (error);
+			}
+		}
+#else
 		gtk_builder_add_from_file (builder, "xlook.glade", NULL);
-
+#endif
 		// load the rest of them...
 		ui_globals.main_window = (struct GtkWidget *)(gtk_builder_get_object (builder, "mainWindow"));
 		ui_globals.command_history = (struct GtkWidget *)(gtk_builder_get_object (builder, "commandWindow"));

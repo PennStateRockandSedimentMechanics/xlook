@@ -11,6 +11,7 @@
 #include "look_funcs.h" // for check_row
 #include "event.h" // for command_handler
 #include "cmd_window.h"
+#include "ui_static.h"
 
 extern char qiparams[1024]; /* string of input parameters */ 
 
@@ -98,9 +99,22 @@ struct rs_fric_window *create_rs_fric_window(void)
 {
 	struct rs_fric_window *result= NULL;
 	GtkBuilder *builder = gtk_builder_new ();
+	GError *error= NULL;
 	
 	// load the builder
+#ifdef STATIC_UI
+	if(!gtk_builder_add_from_string(builder, rs_fric_window_glade_data, -1, &error))
+	{
+		if (error != NULL)
+		{
+			/* Report error to user, and free error */
+			fprintf(stderr, "Error on rs fric window: domain: %s Code: %d Msg: %s", g_quark_to_string(error->domain), error->code, error->message);
+			g_error_free (error);
+		}
+	}
+#else
 	gtk_builder_add_from_file (builder, "rs_fric_window.glade", NULL);
+#endif
 
 	// load the rest of them...
 	GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (builder, "rsfricWindow"));

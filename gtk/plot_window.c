@@ -12,6 +12,7 @@ deal with wrapping problem caused by OS 10.5*/
 #include "ui.h"
 #include "cmds1.h" // for kill_win_proc
 #include "offscreen_buffer.h"
+#include "ui_static.h"
 
 extern char plot_cmd[256]; // FIXME: move to globals.h
 
@@ -19,6 +20,7 @@ extern char plot_cmd[256]; // FIXME: move to globals.h
 #define GET_CANVAS_INDEX(d) (d>>4)
 #define GET_PLOT_NUMBER(d) (d&0xf)
 #define CLEAR_ALL_PLOTS_CONSTANT (0xf) // NOTE: If we have more than 10 plots, this will need to change.
+#define MINIMUM_MOUSE_DELTA_TO_DRAW_LINE 3 // This is the minimum amount to convert from a point mode to a line mode.
 
 typedef enum {
 	PLOT_LABEL_LEFT_FOOTER= 0,
@@ -77,6 +79,7 @@ static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y)
 
 char *csprintf(char *buffer, char *format, ...);
 
+/*
 enum {
 	_zoom_item_zoom_and_clear= 0,
 	_zoom_item_zoom,
@@ -94,10 +97,10 @@ enum {
 };
 
 static const char *mouse_menu_labels[]= { "Line Plot", "Vertical Line", "Distance" };
-
+*/
 enum {
-	_mouse_mode_normal= 0,
-	_mouse_mode_draw_line,
+//	_mouse_mode_normal= 0,
+	_mouse_mode_draw_line= 0,
 	_mouse_mode_vertical_line,
 	_mouse_mode_distance,
 	_mouse_mode_zoom_and_clear,
@@ -107,7 +110,7 @@ enum {
 };
 
 static const char *mouse_mode_names[]= {
-	"Normal",
+//	"Normal",
 	"Line",
 	"Vertical Line",
 	"Distance",
@@ -117,8 +120,8 @@ static const char *mouse_mode_names[]= {
 };
 
 static const char *mouse_mode_labels[]= {
-	"Normal Mode: Left & middle buttons pick row numbers. Right button gives x-y position",
-	"Draw Line Mode: Left button click and drag to draw a line.",
+//	"Normal Mode: Left & middle buttons pick row numbers. Right button gives x-y position",
+	"Draw Line Mode: Left button click and drag to draw a line.  Single click to place a point, right click pick row numbers.",
 	"Vertical Line Mode: Left button draws a vertical line.", // FIXME
 	"Distance Mode: Left button click and drag to draw a line and show distance.",
 	"Zoom Mode: Left button click and drag selects zoom area.",
@@ -153,7 +156,21 @@ struct plot_window *create_plot_window()
 	} else {
 		int ii;
 		GtkBuilder *builder = gtk_builder_new ();
+		GError *error= NULL;
+		
+#ifdef STATIC_UI
+		if(!gtk_builder_add_from_string(builder, plot_window_glade_data, -1, &error))
+		{
+			if (error != NULL)
+			{
+				/* Report error to user, and free error */
+				fprintf(stderr, "Error on plot window: domain: %s Code: %d Msg: %s", g_quark_to_string(error->domain), error->code, error->message);
+				g_error_free (error);
+			}
+		}
+#else
 		gtk_builder_add_from_file (builder, "plot_window.glade", NULL);
+#endif
 
 		// load the rest of them...
 		GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (builder, "plotWindow"));
@@ -174,6 +191,9 @@ struct plot_window *create_plot_window()
 
 		// null it out.
 		memset(can_info, 0, sizeof(canvasinfo));
+		
+		// initially on draw_line
+		can_info->mouse.mode= _mouse_mode_draw_line;
 		
 		ui_globals.old_active_window = ui_globals.active_window;
 		ui_globals.active_window = win_num;
@@ -211,6 +231,7 @@ struct plot_window *create_plot_window()
 	GtkButton *button= GTK_BUTTON(lookup_widget_by_name(GTK_WIDGET(window), "btn_ClearPlots"));
     gtk_signal_connect (GTK_OBJECT (button), "event", GTK_SIGNAL_FUNC (clear_Plots_PopupHandler), GTK_OBJECT (menu));
 }
+/*
 {
 	GtkWidget *menu = gtk_menu_new();
 	int ii;
@@ -222,7 +243,7 @@ struct plot_window *create_plot_window()
 	{
 		GtkWidget *menu_item;
 
-		/* Create a new menu-item with a name... */
+		// Create a new menu-item with a name...
 		menu_item = gtk_menu_item_new_with_label (zoom_menu_labels[ii]);
 		gtk_menu_append (GTK_MENU (menu), menu_item);
 		gtk_signal_connect (GTK_OBJECT (menu_item), "activate", GTK_SIGNAL_FUNC (on_zoom_menu_item), GINT_TO_POINTER (MAKE_CLEAR_PROC_DATA(can_info->canvas_num, ii)));
@@ -244,7 +265,7 @@ struct plot_window *create_plot_window()
 	{
 		GtkWidget *menu_item;
 
-		/* Create a new menu-item with a name... */
+		// Create a new menu-item with a name...
 		menu_item = gtk_menu_item_new_with_label (mouse_menu_labels[ii]);
 		gtk_menu_append (GTK_MENU (menu), menu_item);
 		gtk_signal_connect (GTK_OBJECT (menu_item), "activate", GTK_SIGNAL_FUNC (on_mouse_menu_item), GINT_TO_POINTER (MAKE_CLEAR_PROC_DATA(can_info->canvas_num, ii)));
@@ -254,7 +275,7 @@ struct plot_window *create_plot_window()
 	GtkButton *button= GTK_BUTTON(lookup_widget_by_name(GTK_WIDGET(window), "btn_Mouse"));
     gtk_signal_connect (GTK_OBJECT (button), "event", GTK_SIGNAL_FUNC (mouse_and_zoom_PopupHandler), GTK_OBJECT (menu));
 }
-
+*/
 
 		/*set footer info. This should be redundant since it only gets set or changed from the panel buttons...*/
 		set_mouse_message_for_mode(GTK_WINDOW(window), can_info->mouse.mode);
@@ -287,12 +308,16 @@ void set_active_plot_in_window(struct plot_window *pw, int i)
 	assert(pw);
 	assert(pw->window);
 	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(pw->window));
+	char plot_string[200];
 
 	/* set the active plot */
 	can_info->active_plot = i;
 
 	/* invalidate the drawing area */
 	invalidate_plot(pw->window, TRUE);
+
+	/* default */
+	strcpy(plot_string, "PLOT ROWS: ");
 
 	if(i < 0)			/*no active plot, no plots*/
 	{
@@ -308,11 +333,17 @@ void set_active_plot_in_window(struct plot_window *pw, int i)
 	else
 	{
 		display_active_plot(can_info->active_plot+1);
+
+		// update the rows plotted
+		plotarray *data = can_info->plots[can_info->active_plot];
+		sprintf(plot_string, "PLOT ROWS: %d to %d", data->begin, data->end);
 	}
 	
 	// rebuild the combo list...
 	GtkComboBox *activeCombo= GTK_COMBO_BOX(lookup_widget_by_name(GTK_WIDGET(pw->window), "comboboxActivePlot"));
 	rebuild_active_plot_combo_list(activeCombo);
+
+	set_plot_label_message(GTK_WINDOW(pw->window), LABEL_PLOT_ROWS, plot_string);
 }
 
 void remove_plot_in_window(struct plot_window *pw, int pn)
@@ -649,7 +680,7 @@ void on_chartArea_realize(GtkWidget *widget, gpointer user_data)
 static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y)
 {
 	canvasinfo *info= canvas_info_for_widget(widget);
-	if(info->active_plot>0)
+	if(info->active_plot>=0)
 	{
 		GdkDrawable *drawable= info->offscreen_buffer->pixmap;
 		GdkGC *gc= info->offscreen_buffer->gc;
@@ -675,14 +706,13 @@ static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y)
 
 		gdk_draw_line(drawable, gc, x-5, y, x+5, y);
 		gdk_draw_line(drawable, gc, x, y-5, x, y+5);
-	}	
+	}
 }
 
 gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	canvasinfo *info= canvas_info_for_widget(widget);
 	GtkWindow *window= GTK_WINDOW(info->plot_window->window);
-	char last_clicked_buffer[200];
 
 	info->mouse.tracking= FALSE;
 
@@ -711,12 +741,15 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 		
 		invalidate_plot(window, FALSE);
 	} 
+/*
 	else if(info->mouse.mode==_mouse_mode_normal)
 	{
-		/* print row num on info panel only */
+		char last_clicked_buffer[200];
+
+		// print row num on info panel only 
 		plotarray *data = info->plots[info->active_plot];
 
-		/* get the x and y (data) values */ 
+		// get the x and y (data) values 
 		float xval= SCREEN_TO_DATA_X(info->mouse.start.x, data, info);
 		float yval= SCREEN_TO_DATA_Y(info->mouse.start.y, data, info);
 
@@ -728,7 +761,7 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 			int row_num = get_row_number(info, data->nrows_x, xval, yval);
 			if (row_num <= data->nrows_x && row_num != -1)
 			{
-				/* get x and y values from data (not screen) */
+				// get x and y values from data (not screen) 
 				xval = data->xarray[row_num]; 
 				yval = data->yarray[row_num]; 
 				row_num = row_num + data->begin; 
@@ -736,7 +769,7 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 				sprintf(msg, "Row Number: %d", row_num);
 				set_plot_label_message(window, LABEL_ROW_NUMBER, msg);
 				
-				/* draw crosshair on point */
+				// draw crosshair on point 
 				point2d converted_pt;
 				converted_pt.x= DATA_TO_SCREEN_X(xval, data, info);
 				converted_pt.y= DATA_TO_SCREEN_Y(yval, data, info);
@@ -763,13 +796,13 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 //		  	print_xy(xloc, yloc);
 			set_plot_label_message(window, LABEL_ROW_NUMBER, "");
 
-			/*  print the x and y coord on the panels */
+			//  print the x and y coord on the panels
 			sprintf(msg, "X: %.5g", xval); 
 			set_plot_label_message(window, LABEL_X, msg);
 			sprintf(msg, "Y: %.5g", yval);
 			set_plot_label_message(window, LABEL_Y, msg);
 
-		  	/*  print the x and y coord on the msg window */
+		  	//  print the x and y coord on the msg window
 			sprintf(msg, "X: %.5g Y: %.5g", xval, yval);
 			draw_crosshair_with_coordinates(widget, info->mouse.start.x, info->mouse.start.y);
 			strcat(msg, "\n");
@@ -781,7 +814,9 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 		
 		// and update.
 		invalidate_plot(window, FALSE);
-	} else {
+*/
+	else 
+	{
 		/* print row num on info panel only */
 		plotarray *data = info->plots[info->active_plot];
 
@@ -804,6 +839,20 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 	return FALSE;
 }
 
+gboolean on_plotWindow_enter_notify_event(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
+{
+	// set the active plot and the active window notification
+	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(widget));
+
+	// show the active plot..
+//	display_active_plot(can_info->active_plot);
+	
+	// show the active window (this one)
+	// not sure if this line is required...
+	set_active_window(can_info->canvas_num, FALSE);
+
+	return FALSE;
+}
 
 gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
@@ -839,7 +888,7 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 		
 		switch(info->mouse.mode)
 		{
-			case _mouse_mode_normal:
+//			case _mouse_mode_normal:
 			case _mouse_mode_vertical_line:
 			{
 				// handled on the press
@@ -848,6 +897,9 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 				
 			case _mouse_mode_draw_line:
 			case _mouse_mode_distance:
+				// treat this as "normal" mode if you don't move the mouse more than 3 pixels
+				if(abs(info->mouse.start.x - info->mouse.end.x)>=MINIMUM_MOUSE_DELTA_TO_DRAW_LINE && 
+					abs(info->mouse.start.y - info->mouse.end.y)>=MINIMUM_MOUSE_DELTA_TO_DRAW_LINE)
 				{
 					float slope, intercept, x1, x2, y1, y2;
 
@@ -909,6 +961,66 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 						sprintf(last_clicked_buffer, "Last Distance: dX: %.5g dY: %.5g dV: %.5g", dx, dy, dv); 
 						set_plot_label_message(window, LABEL_LAST_EVENT, last_clicked_buffer);
 					}
+				} else {
+					// show the information
+					if(event->button==1) // left (reversed from before.)
+					{
+						/*  print the x and y coord on the panels */
+						sprintf(msg, "X: %.5g", xval); 
+						set_plot_label_message(window, LABEL_X, msg);
+						sprintf(msg, "Y: %.5g", yval);
+						set_plot_label_message(window, LABEL_Y, msg);
+
+					  	/*  print the x and y coord on the msg window */
+						sprintf(msg, "X: %.5g Y: %.5g", xval, yval);
+						draw_crosshair_with_coordinates(widget, info->mouse.start.x, info->mouse.start.y);
+						strcat(msg, "\n");
+						print_msg(msg);
+
+						sprintf(last_clicked_buffer, "Last Click: X: %.5g Y: %.5g", xval, yval); 
+						set_plot_label_message(window, LABEL_LAST_EVENT, last_clicked_buffer);
+					} else { // right or middle
+						char last_clicked_buffer[100];
+
+						int row_num = get_row_number(info, data->nrows_x, xval, yval);
+						if (row_num <= data->nrows_x && row_num != -1)
+						{
+							/* get x and y values from data (not screen) */
+							xval = data->xarray[row_num]; 
+							yval = data->yarray[row_num]; 
+							row_num = row_num + data->begin; 
+
+							sprintf(msg, "Row Number: %d", row_num);
+							set_plot_label_message(window, LABEL_ROW_NUMBER, msg);
+
+							/* draw crosshair on point */
+							point2d converted_pt;
+							converted_pt.x= DATA_TO_SCREEN_X(xval, data, info);
+							converted_pt.y= DATA_TO_SCREEN_Y(yval, data, info);
+
+							draw_crosshair_with_coordinates(widget, converted_pt.x, converted_pt.y);
+
+							sprintf(last_clicked_buffer, "Last Click (Nearest Data): X: %.5g Y: %.5g Row Number: %d", xval, yval, row_num); 
+						}
+						else 
+						{
+							set_plot_label_message(window, LABEL_ROW_NUMBER, "Row Number: None");
+							print_msg("The point picked was not on the curve.\n");
+							sprintf(last_clicked_buffer, "Last Click (Not on Curve): X: %.5g Y: %.5g Row Number: NONE", xval, yval); 
+						}
+
+						sprintf(msg, "X: %.5g", xval); 
+						set_plot_label_message(window, LABEL_X, msg);
+						sprintf(msg, "Y: %.5g", yval); 
+						set_plot_label_message(window, LABEL_Y, msg);
+
+						set_plot_label_message(window, LABEL_LAST_EVENT, last_clicked_buffer);
+
+						set_plot_label_message(window, LABEL_ROW_NUMBER, "");
+					}
+
+					// and update.
+					invalidate_plot(window, FALSE);
 				}
 				break;
 			case _mouse_mode_zoom_and_clear:
@@ -1484,6 +1596,7 @@ static void on_clear_plot_menu_item(
 }
 
 /* ---------------------- Zoom Popup Menu */
+/*
 static gint mouse_and_zoom_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
 	GtkMenu *menu;
@@ -1494,9 +1607,7 @@ static gint mouse_and_zoom_PopupHandler (GtkWidget *widget, GdkEvent *event, gpo
 	g_return_val_if_fail (GTK_IS_MENU (user_data), FALSE);
 	g_return_val_if_fail (event != NULL, FALSE);
 
-	/* The "widget" is the menu that was supplied when
-	* g_signal_connect_swapped() was called.
-	*/
+	// The "widget" is the menu that was supplied when g_signal_connect_swapped() was called.
 	menu = GTK_MENU (user_data);
 	if (event->type == GDK_BUTTON_PRESS)
 	{
@@ -1540,8 +1651,10 @@ static void on_zoom_menu_item(GtkObject *object, gpointer user_data)
 	
 	return;
 }
+*/
 
 /* ------------------- Mouse Menu Item hnalde */
+/*
 static void on_mouse_menu_item(GtkObject *object, gpointer user_data)
 {
 	gint clear_proc_data= GPOINTER_TO_INT(user_data);
@@ -1571,7 +1684,7 @@ static void on_mouse_menu_item(GtkObject *object, gpointer user_data)
 	
 	return;
 }
-
+*/
 
 static void set_mouse_mode(canvasinfo *can_info, int mouse_mode)
 {
@@ -1579,7 +1692,7 @@ static void set_mouse_mode(canvasinfo *can_info, int mouse_mode)
 	assert(mouse_mode>=0 && mouse_mode<NUMBER_OF_MOUSE_MODES);
 	
 	// not sure if this line is required...
-	set_active_window(can_info->canvas_num);
+	set_active_window(can_info->canvas_num, TRUE);
 
 	if (can_info->active_plot == -1)
 	{
@@ -2031,7 +2144,7 @@ static void label_type1(canvasinfo *can_info)
 	/* y axis big tick marks */
 	for (a=0;big_ticky<=stop_ymax;a++)
 	{
-		where_y = start_y-(int)((big_ticky-ymin)*scale_y);
+		where_y = start_y+(int)((big_ticky-ymin)*scale_y);
 
 		gdk_draw_line(drawable, gc,
 			start_xaxis, where_y,
@@ -2048,7 +2161,7 @@ static void label_type1(canvasinfo *can_info)
 		pango_layout_get_size(pango_layout, &text_width, &text_height);
 		gdk_draw_layout(drawable, gc, 
 			start_xaxis - (PANGO_PIXELS(text_width)+10),
-			start_y-(int)((big_ticky-ymin)*scale_y)-PANGO_PIXELS(text_height)/2, 
+			where_y-PANGO_PIXELS(text_height)/2, 
 			pango_layout);
 
 		big_ticky += pow(ten, decy);
@@ -2062,7 +2175,7 @@ static void label_type1(canvasinfo *can_info)
 
 		while (big_ticky < stop_ymax)
 		{
-			where_y = start_y-(int)((big_ticky-ymin)*scale_y);
+			where_y = start_y+(int)((big_ticky-ymin)*scale_y);
 
 			gdk_draw_line(drawable, gc,
 				start_xaxis, where_y,
@@ -2079,7 +2192,7 @@ static void label_type1(canvasinfo *can_info)
 			pango_layout_get_size(pango_layout, &text_width, &text_height);
 			gdk_draw_layout(drawable, gc, 
 				start_xaxis - (PANGO_PIXELS(text_width)+10),
-				start_y-(int)((big_ticky-ymin)*scale_y)-PANGO_PIXELS(text_height)/2,
+				where_y-PANGO_PIXELS(text_height)/2,
 				pango_layout);
 
 			big_ticky += pow(ten, decy);
@@ -2272,7 +2385,7 @@ void on_comboboxMouseMode_realize(GtkWidget *widget, gpointer user_data)
 	// setup the menu (initial conditions)
 	GtkTreeIter iter;
 
-	for(ii= 0; ii<NUMBER_OF_MOUSE_MODES; ii++)
+	for(ii= 0; ii<NUMBER_OF_MOUSE_MODES; ii++) // skip Normal
 	{
 		/* Add a new row to the model */
 		gtk_list_store_append (store, &iter);
