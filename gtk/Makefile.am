@@ -3,7 +3,6 @@ AUTOMAKE_OPTIONS = foreign
 bin_PROGRAMS = xlook
 
 xlook_SOURCES = \
-		tutorial.c \
         array.c \
         array.h \
 		cmd_window.c \
@@ -25,6 +24,7 @@ xlook_SOURCES = \
         look_funcs.h \
         lookio.c \
         lookio.h \
+		main.c \
         median.c \
         median.h \
         mem.c \
@@ -59,19 +59,9 @@ xlook_SOURCES = \
         tpulsel.c \
         tpulsel.h \
 		ui.c \
-		ui.h
-		
-xlook_REALSOURCES= \
-        drawwin.c \
-        drawwin.h \
-        main.c \
-        main.h \
-        menus.c \
-        menus.h \
-        mouse.c \
-        mouse.h \
-        rs_fric_tool.c \
-        rs_fric_tool.h 
+		ui.h \
+		ui_static.c \
+		ui_static.h 
 
 EXTRA_DIST = \
         Doxyfile \
