@@ -9,8 +9,17 @@ AM_CONFIG_HEADER(config.h)
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_CHECK_PROG(DOXYGEN,doxygen,doxygen,[@echo 'You must have doxygen installed to generate the developer documentation.'])
-AC_CHECK_PROG(PKGCONFIG,pkg-config,pkg-config,[@echo 'You must have pkg-config installed to generate the code.'])
+AC_CHECK_PROG(DOXYGEN,doxygen,doxygen)
+
+if test "x${DOXYGEN}" = "x" ; then
+	AC_MSG_WARN([** No Doxygen found.])
+	AC_MSG_WARN([** Developer documentation will not be generated.])
+fi
+
+AC_CHECK_PROG(PKGCONFIG,pkg-config,pkg-config)
+if test "x${PKGCONFIG}" = "x" ; then
+	AC_MSG_ERROR([** No pkg-config found.  See README.txt for troubleshooting tips.])
+fi
 
 # Put builds in their subdirs.
 
