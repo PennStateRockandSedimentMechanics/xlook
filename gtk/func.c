@@ -1,6 +1,7 @@
 #include "config.h"
 #include "global.h"
 #include "func.h"
+#include <math.h>
 
 #define SRTWO 1.414213562
 
@@ -33,9 +34,8 @@ double chisqr(x,ndf)
 double x, ndf;
 {
 	double value, temp, gam;
-	double gamma();
-	extern int signgam;
-	gam = gamma(ndf/2.0);
+        extern int signgam;
+        gam = tgamma(ndf/2.0);
 	gam = exp(gam);
 	temp = pow(2.0,ndf/2.0) * gam ;
 	value = pow(x,(ndf-2.0)/2.0) * exp(-x/2.0) / temp ;
@@ -46,9 +46,9 @@ double scchisqr(x,sigma,ndf,offset)
 double x, sigma, ndf, offset;
 {
 	double value, temp, gam, sigx;
-	double gamma();
-	sigx = sigma/(sqrt(ndf)*SRTWO); sigx = sqrt(sigx);
-	gam = gamma(ndf/2.0); gam = exp(gam);
+
+        sigx = sigma/(sqrt(ndf)*SRTWO); sigx = sqrt(sigx);
+        gam = tgamma(ndf/2.0); gam = exp(gam);
 	temp = pow(sigx,ndf) * pow(2.0,ndf/2.0) * gam ;
 	if(offset>=x) value = 0.0;
 	else value = pow((x-offset),(ndf-2.0)/2.0) * exp((offset-x)/(2.0*sigx*sigx)) / temp ;
