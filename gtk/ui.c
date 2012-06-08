@@ -132,7 +132,7 @@ GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name)
 fprintf(stderr, "Lookup widget by name parent: %p Name: %s\n", parent, name);
 if(gtk_widget_get_name(parent)!=NULL) fprintf(stderr, "Current name: %s\n", gtk_widget_get_name(parent));
 
-	if(gtk_widget_get_name(parent)!=NULL && strcmp(gtk_widget_get_name(parent), name)==0)
+	if(strcmp(safe_get_widget_name(parent), name)==0)
 	{
 		result= parent;
 	} else {
@@ -158,6 +158,30 @@ fprintf(stderr, "Iterating list...\n");
        
 fprintf(stderr, "Returning: %p\n", result);
 	return result;
+}
+
+char *safe_get_widget_name(GtkWidget *widget)
+{
+	char *name= "";
+
+/*
+	Prior to 2.20, GtkBuilder was setting the "name" property of constructed widgets to the "id" attribute. 
+	In GTK+ 2.20 or newer, you have to use gtk_buildable_get_name() instead of gtk_widget_get_name() 
+	to obtain the "id", or set the "name" property in your UI definition.
+*/
+#if GTK_CHECK_VERSION(2,20,0)
+	if(gtk_buildable_get_name(parent)!=NULL) 
+	{
+		name= gtk_widget_get_name(parent);
+	} 
+#else
+	if(gtk_widget_get_name(parent)!=NULL) 
+	{
+		name= gtk_widget_get_name(parent);
+	} 
+#endif
+	
+	return name;
 }
 
 GtkWindow *parent_gtk_window(GtkWidget *widget)
