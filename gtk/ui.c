@@ -128,7 +128,8 @@ static GtkTextView *textViewFromID(UITextFieldIdentifier id)
 GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name)
 {
 	GtkWidget *result= NULL;
-	
+
+fprintf(stderr, "Lookup widget by name parent: %p Name: %s\n", parent,name);
 	if(gtk_widget_get_name(parent)!=NULL && strcmp(gtk_widget_get_name(parent), name)==0)
 	{
 		result= parent;
@@ -150,7 +151,8 @@ GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name)
 			g_list_free(initial_list);
 		}
 	}
-	
+       
+fprintf(stderr, "Returning: %p\n", result);
 	return result;
 }
 
