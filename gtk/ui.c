@@ -129,7 +129,9 @@ GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name)
 {
 	GtkWidget *result= NULL;
 
-fprintf(stderr, "Lookup widget by name parent: %p Name: %s\n", parent,name);
+fprintf(stderr, "Lookup widget by name parent: %p Name: %s\n", parent, name);
+if(gtk_widget_get_name(parent)!=NULL) fprintf(stderr, "Current name: %s", gtk_widget_get_name(parent));
+
 	if(gtk_widget_get_name(parent)!=NULL && strcmp(gtk_widget_get_name(parent), name)==0)
 	{
 		result= parent;
