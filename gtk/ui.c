@@ -130,7 +130,7 @@ GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name)
 	GtkWidget *result= NULL;
 
 fprintf(stderr, "Lookup widget by name parent: %p Name: %s\n", parent, name);
-if(gtk_widget_get_name(parent)!=NULL) fprintf(stderr, "Current name: %s", gtk_widget_get_name(parent));
+if(gtk_widget_get_name(parent)!=NULL) fprintf(stderr, "Current name: %s\n", gtk_widget_get_name(parent));
 
 	if(gtk_widget_get_name(parent)!=NULL && strcmp(gtk_widget_get_name(parent), name)==0)
 	{
@@ -138,11 +138,13 @@ if(gtk_widget_get_name(parent)!=NULL) fprintf(stderr, "Current name: %s", gtk_wi
 	} else {
 		if(GTK_IS_BIN(parent)) {
 		    GtkWidget *child = gtk_bin_get_child(GTK_BIN(parent));
+fprintf(stderr, "Recursing into bin..\n");
 			result= lookup_widget_by_name(child, name);
 		} else if(GTK_IS_CONTAINER(parent)) {
 			GList *initial_list = gtk_container_get_children(GTK_CONTAINER(parent));
 
 			// iterate the linked list
+fprintf(stderr, "Iterating list...\n");
 			GList *entry= initial_list;
 			while(entry)
 			{
