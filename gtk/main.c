@@ -53,7 +53,7 @@ void quit_xlook()
 }
 
 
-gboolean on_mainWindow_delete_event(
+G_MODULE_EXPORT gboolean on_mainWindow_delete_event(
 	GtkWidget *widget,
 	GdkEvent  *event,
 	gpointer   user_data)
@@ -63,7 +63,7 @@ gboolean on_mainWindow_delete_event(
 	return TRUE;
 }
 
-gboolean on_mainWindow_destroy_event(
+G_MODULE_EXPORT gboolean on_mainWindow_destroy_event(
 	GtkWidget *widget,
 	GdkEvent  *event,
 	gpointer   user_data)
@@ -174,7 +174,7 @@ int main(
 	return exit_code;
 }
 
-void on_fontbutton1_font_set(
+G_MODULE_EXPORT void on_fontbutton1_font_set(
 	GtkFontButton *widget, 
 	gpointer user_data)
 {
@@ -193,7 +193,7 @@ fprintf(stderr, "Desc: %p FileInfo: %p\n", desc, fileInfo);
 }
 
 /* ------------- entering return in command prompt */
-void on_textEntry_Command_activate(
+G_MODULE_EXPORT void on_textEntry_Command_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
@@ -218,14 +218,14 @@ void on_textEntry_Command_activate(
 }
 
 /* ------------- Menu Handlers */
-void on_quit_menu_item_activate(
+G_MODULE_EXPORT void on_quit_menu_item_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
 	quit_xlook();
 }
 
-void on_menu_ShowRSFric_activate(
+G_MODULE_EXPORT void on_menu_ShowRSFric_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
@@ -239,7 +239,7 @@ void on_menu_ShowRSFric_activate(
 	}
 }
 
-void on_menu_ShowCommandWindow_activate(
+G_MODULE_EXPORT void on_menu_ShowCommandWindow_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
@@ -255,7 +255,7 @@ static char *strtolower(char *str)
 	return str;
 }
 
-void on_plot_item_activate(
+G_MODULE_EXPORT void on_plot_item_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
@@ -308,7 +308,7 @@ void on_plot_item_activate(
 	}
 }
 
-void on_save_menu_item_activate(
+G_MODULE_EXPORT void on_save_menu_item_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
@@ -369,7 +369,7 @@ static gboolean startswith(const char *haystack, const char *needle)
 }
 
 
-void on_viewMenu_activate(
+G_MODULE_EXPORT void on_viewMenu_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
@@ -428,7 +428,7 @@ static void on_activate_plot_window(
 	set_active_window(window_index, TRUE);
 }
 
-void on_new_plot_window_item_activate(
+G_MODULE_EXPORT void on_new_plot_window_item_activate(
 	GtkObject *object,
 	gpointer user_data)
 {
@@ -436,7 +436,7 @@ void on_new_plot_window_item_activate(
 }
 
 /* ------------- Opening Files */
-void on_open_menu_item_activate( // as expected, the signals can't be static or they won't latebind.
+G_MODULE_EXPORT void on_open_menu_item_activate( // as expected, the signals can't be static or they won't latebind.
 	GtkObject *object,
 	gpointer user_data)
 {
