@@ -56,7 +56,7 @@ void record_command(char *cmd)
 }
 
 /* ----------- private code */
-void on_btn_CloseCommandWindow_clicked(GtkButton *button, gpointer user_data)
+G_MODULE_EXPORT void on_btn_CloseCommandWindow_clicked(GtkButton *button, gpointer user_data)
 {
 	// close the window
 	gtk_widget_hide(GTK_WIDGET(parent_gtk_window(GTK_WIDGET(button))));
