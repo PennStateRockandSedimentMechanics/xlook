@@ -36,4 +36,5 @@ void set_command_text(char *txt);
 GtkWidget *lookup_widget_by_name(GtkWidget *parent, const char *name);
 GtkWindow *parent_gtk_window(GtkWidget *widget);
 void get_color_for_type(UIColorIdentifier c, GdkColor *color);
+char *safe_get_widget_name(GtkWidget *widget);
 #endif

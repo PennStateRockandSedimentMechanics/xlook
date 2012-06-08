@@ -170,14 +170,14 @@ char *safe_get_widget_name(GtkWidget *widget)
 	to obtain the "id", or set the "name" property in your UI definition.
 */
 #if GTK_CHECK_VERSION(2,20,0)
-	if(gtk_buildable_get_name(parent)!=NULL) 
+	if(gtk_buildable_get_name(widget)!=NULL) 
 	{
-		name= gtk_widget_get_name(parent);
+		name= gtk_buildable_get_name(widget);
 	} 
 #else
-	if(gtk_widget_get_name(parent)!=NULL) 
+	if(gtk_widget_get_name(widget)!=NULL) 
 	{
-		name= gtk_widget_get_name(parent);
+		name= gtk_widget_get_name(widget);
 	} 
 #endif
 	

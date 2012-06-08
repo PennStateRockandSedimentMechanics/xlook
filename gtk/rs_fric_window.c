@@ -475,11 +475,11 @@ gboolean on_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer us
 	int ii;
 	int parameter_index= NONE;
 	
-//	fprintf(stderr, "Focus out of %s\n", gtk_widget_get_name(widget));
+//	fprintf(stderr, "Focus out of %s\n", safe_get_widget_name(widget));
 	
 	for(ii= 0; ii<ARRAY_SIZE(parameter_names); ii++)
 	{
-		if(strcmp(parameter_names[ii], gtk_widget_get_name(widget))==0)
+		if(strcmp(parameter_names[ii], safe_get_widget_name(widget))==0)
 		{
 			parameter_index= ii;
 			break;
@@ -773,7 +773,7 @@ static void set_initial_toggle_button_state_by_index(GtkWindow* window, int inde
 
 static void toggle_buttons(GtkWidget *widget, const char *names[])
 {
-	const char *name= gtk_widget_get_name(GTK_WIDGET(widget));
+	const char *name= safe_get_widget_name(GTK_WIDGET(widget));
 	int index_hit= NONE;
 	int ii;
 
