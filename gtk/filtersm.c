@@ -1,16 +1,21 @@
 /*    functions RECALL, EXAMIN, RITE, REED, TASC, and OLDREAD for program LOOK     */
 #include <config.h>
 
+#if 0
 #if HAVE_ARPA_INET_H
 # include <arpa/inet.h>
 #endif 
 #if HAVE_NETINET_IN_H
 # include <netinet/in.h>
 #endif
+#endif
 
 #include "global.h"
 #include "filtersm.h"
 #include "look_funcs.h"
+#include "order32.h"
+
+#define SWAP4(q) (((((unsigned long) (q)))>>24) | ((((unsigned long) (q))>>8)&0xff00) | ((((unsigned long) (q))<<8)&0xff0000) | ((((unsigned long) (q))<<24)&0xff000000))
 
 extern void print_msg();
 extern char msg[MSG_LENGTH];
@@ -33,13 +38,30 @@ extern char msg[MSG_LENGTH];
  */
 int read_32(int *target, int count, FILE *file) 
 {
-    int num_read, i;
-    
+	int num_read, i, swap= 0;
+
+	switch(O32_HOST_ORDER)
+	{
+		case O32_LITTLE_ENDIAN:
+			swap= 1;
+			break;
+		case O32_BIG_ENDIAN:
+			break;
+		case O32_PDP_ENDIAN:
+                        exit(-1); /* assert would be preferable */
+			break;
+	}
+
     num_read = fread(target, 4, count, file);
     for (i=0; i<num_read; i++)
     {
         /* integers are always written to file in big-endian byte order */
-        target[i] = ntohl(target[i]);
+		if(swap)
+		{
+        	target[i] = SWAP4(target[i]);
+		} else {
+        	target[i] = target[i];
+		}
     }
     return num_read;
 }
@@ -61,15 +83,32 @@ int read_32(int *target, int count, FILE *file)
 */
 int write_32(int *target, int count, FILE *file)
 {
-   int num_written, written, i;
+	int num_written, written, i, swap= 0;
    int swabbed_int;
+
+	switch(O32_HOST_ORDER)
+	{
+		case O32_LITTLE_ENDIAN:
+			swap= 1;
+			break;
+		case O32_BIG_ENDIAN:
+			break;
+		case O32_PDP_ENDIAN:
+                        exit(-1);
+			break;
+	}
 
    num_written = 0;
    for (i=0; i<count; i++)
    {
      /* convert each value to network byte order to ensure consistency across architectures. */
         /* integers are always written to file in big-endian byte order */
-       swabbed_int = htonl(target[i]);
+		if(swap)
+		{
+       		swabbed_int = SWAP4(target[i]);
+		} else {
+       		swabbed_int = target[i];
+		}
        written = fwrite(&swabbed_int, 4, 1, file);
 
         if (written == 1)
@@ -359,4 +398,4 @@ int reed(dfile,append)
 		null_col(i);
   return 1 ;
 }
-
+	
