@@ -48,22 +48,17 @@ int read_32(int *target, int count, FILE *file)
 		case O32_BIG_ENDIAN:
 			break;
 		case O32_PDP_ENDIAN:
-                        exit(-1); /* assert would be preferable */
+            exit(-1); /* assert would be preferable */
 			break;
 	}
 
     num_read = fread(target, 4, count, file);
-    for (i=0; i<num_read; i++)
-    {
-        /* integers are always written to file in big-endian byte order */
-fprintf(stderr, "Swap: %d Value: 0x%x (%d) => ", swap, target[i], target[i]);
-		if(swap)
-		{
+	if(swap)
+	{
+	    for (i=0; i<num_read; i++)
+	    {
         	target[i] = SWAP4(target[i]);
-		} else {
-        	target[i] = target[i];
 		}
-		fprintf(stderr, " 0x%x (%d)\n", target[i], target[i]);
     }
     return num_read;
 }
