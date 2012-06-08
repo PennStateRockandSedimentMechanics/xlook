@@ -531,7 +531,7 @@ void clear_multiple_plots(struct plot_window *pw, int *intar2)
 
 /* --------------------- Everything below here is local (static) code.  If it doesn't have static on the func def, it's because it's a late binding signal from Glade */
 // this gets called by gtk_widget_destroy()
-void on_plotWindow_destroy(
+G_MODULE_EXPORT void on_plotWindow_destroy(
 	GtkObject *object,
 	gpointer   user_data)
 {
@@ -554,7 +554,7 @@ void on_plotWindow_destroy(
 }
 
 // for this, we use the kill window to make sure global data structures are up to date.
-gboolean on_plotWindow_delete_event(
+G_MODULE_EXPORT gboolean on_plotWindow_delete_event(
 	GtkWidget *widget,
 	GdkEvent  *event,
 	gpointer   user_data)
@@ -671,7 +671,7 @@ You can also force an expose event by adding to the "damage region" of the drawi
 are equally good ways to do this. You'll then get an expose event for the invalid region.
 */
 
-void on_chartArea_realize(GtkWidget *widget, gpointer user_data)
+G_MODULE_EXPORT void on_chartArea_realize(GtkWidget *widget, gpointer user_data)
 {
 	GdkCursor *cursor= gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_CROSSHAIR);
 	gdk_window_set_cursor(gtk_widget_get_window(widget), cursor);
@@ -709,7 +709,7 @@ static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y)
 	}
 }
 
-gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+G_MODULE_EXPORT gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	canvasinfo *info= canvas_info_for_widget(widget);
 	GtkWindow *window= GTK_WINDOW(info->plot_window->window);
@@ -839,7 +839,7 @@ gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *even
 	return FALSE;
 }
 
-gboolean on_plotWindow_enter_notify_event(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
+G_MODULE_EXPORT gboolean on_plotWindow_enter_notify_event(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
 	// set the active plot and the active window notification
 	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(widget));
@@ -854,7 +854,7 @@ gboolean on_plotWindow_enter_notify_event(GtkWidget *widget, GdkEventCrossing *e
 	return FALSE;
 }
 
-gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+G_MODULE_EXPORT gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 //	fprintf(stderr, "Mouse button released\n");
 	canvasinfo *info= canvas_info_for_widget(widget);
@@ -1080,7 +1080,7 @@ gboolean on_chartArea_button_release_event(GtkWidget *widget, GdkEventButton *ev
 }
 
 /* Handle the mouse motion in the box */
-gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data)
+G_MODULE_EXPORT gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer user_data)
 {
 	GtkWindow *window= parent_gtk_window(widget);
 
@@ -1219,7 +1219,7 @@ gboolean on_chartArea_motion_notify_event(GtkWidget *widget, GdkEventMotion *eve
 	return FALSE;
 }
 
-gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer data)
+G_MODULE_EXPORT gboolean on_chartArea_expose_event (GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
 	// erase to white.
 	GtkWindow *window= parent_gtk_window(widget);
@@ -1382,7 +1382,7 @@ static void draw_into_offscreen_buffer(GtkWidget *widget)
 	}
 }
 
-gboolean on_chartArea_configure_event (GtkWidget *widget, GdkEventConfigure *event, gpointer user_data)
+G_MODULE_EXPORT gboolean on_chartArea_configure_event (GtkWidget *widget, GdkEventConfigure *event, gpointer user_data)
 {
 	// which one are we?
 	int win_index= window_index_from_window(parent_gtk_window(widget));
@@ -2366,7 +2366,7 @@ enum {
 	NUMBER_OF_MOUSE_MODE_COLUMNS
 };
 
-void on_comboboxMouseMode_realize(GtkWidget *widget, gpointer user_data)
+G_MODULE_EXPORT void on_comboboxMouseMode_realize(GtkWidget *widget, gpointer user_data)
 {
 	// create the model for this combobox..
 	GtkListStore *store = gtk_list_store_new (NUMBER_OF_MOUSE_MODE_COLUMNS, G_TYPE_STRING, G_TYPE_INT);
@@ -2397,7 +2397,7 @@ void on_comboboxMouseMode_realize(GtkWidget *widget, gpointer user_data)
 	gtk_combo_box_set_active(GTK_COMBO_BOX(widget), info->mouse.mode);
 }
 
-void on_comboboxMouseMode_changed(GtkComboBox *widget, gpointer user_data)
+G_MODULE_EXPORT void on_comboboxMouseMode_changed(GtkComboBox *widget, gpointer user_data)
 {
 	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(widget));
 	gchar *active_plot_text= gtk_combo_box_get_active_text(widget);
@@ -2429,7 +2429,7 @@ enum {
 	NUMBER_OF_PLOT_TYPE_COLUMNS
 };
 
-void on_comboboxPlotType_realize(GtkWidget *widget, gpointer user_data)
+G_MODULE_EXPORT void on_comboboxPlotType_realize(GtkWidget *widget, gpointer user_data)
 {
 	// create the model for this combobox..
 	GtkListStore *store = gtk_list_store_new (NUMBER_OF_PLOT_TYPE_COLUMNS, G_TYPE_STRING);
@@ -2459,7 +2459,7 @@ void on_comboboxPlotType_realize(GtkWidget *widget, gpointer user_data)
 }
 
 
-void on_comboboxPlotType_changed(GtkComboBox *widget, gpointer user_data)
+G_MODULE_EXPORT void on_comboboxPlotType_changed(GtkComboBox *widget, gpointer user_data)
 {
 	canvasinfo *info= canvas_info_for_widget(GTK_WIDGET(widget));
 	gchar *active_plot_text= gtk_combo_box_get_active_text(widget);
@@ -2492,7 +2492,7 @@ enum {
 	NUMBER_OF_ACTIVE_PLOT_COLUMNS
 };
 
-void on_comboboxActivePlot_realize(GtkWidget *widget, gpointer user_data)
+G_MODULE_EXPORT void on_comboboxActivePlot_realize(GtkWidget *widget, gpointer user_data)
 {
 	// create the model for this combobox..
 	GtkListStore *store = gtk_list_store_new (NUMBER_OF_ACTIVE_PLOT_COLUMNS, G_TYPE_STRING, G_TYPE_INT);
@@ -2512,7 +2512,7 @@ void on_comboboxActivePlot_realize(GtkWidget *widget, gpointer user_data)
 // on every popdown, we should reset it (maybe?)
 
 // when it is changed..
-void on_comboboxActivePlot_changed(GtkComboBox *widget, gpointer user_data)
+G_MODULE_EXPORT void on_comboboxActivePlot_changed(GtkComboBox *widget, gpointer user_data)
 {
 	canvasinfo *can_info= canvas_info_for_widget(GTK_WIDGET(widget));
 
@@ -2590,7 +2590,7 @@ static void rebuild_active_plot_combo_list(GtkComboBox *widget)
 }
 
 // this was the old refresh.
-void on_btn_ClearAnnotations_clicked(
+G_MODULE_EXPORT void on_btn_ClearAnnotations_clicked(
 	GtkButton *button,
 	gpointer   user_data)
 {

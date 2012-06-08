@@ -246,7 +246,7 @@ void bring_rs_fric_window_to_front(struct rs_fric_window *rs_fric)
 /* ----------------- signals */
 
 /* -------------- StateVariables */
-void on_btn_TwoStateVariables_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+G_MODULE_EXPORT void on_btn_TwoStateVariables_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	if(gtk_toggle_button_get_active(togglebutton))
 	{
@@ -282,7 +282,7 @@ left_footer("Enter values for b2 and dc2.");
 */
 }
 
-void on_btn_OneStateVariable_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+G_MODULE_EXPORT void on_btn_OneStateVariable_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	if(gtk_toggle_button_get_active(togglebutton))
 	{
@@ -320,7 +320,7 @@ if ((value == 0)&&(second_set_flag == 1)) {
 }
 
 
-gboolean on_btn_StateVariables_button_release_event(
+G_MODULE_EXPORT gboolean on_btn_StateVariables_button_release_event(
 	GtkWidget *widget, 
 	GdkEventButton *event, 
 	gpointer user_data)
@@ -330,7 +330,7 @@ gboolean on_btn_StateVariables_button_release_event(
 }
 
 /* --------- Model Direction */
-void on_btn_ModelForward_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+G_MODULE_EXPORT void on_btn_ModelForward_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	if(gtk_toggle_button_get_active(togglebutton))
 	{
@@ -349,7 +349,7 @@ void on_btn_ModelForward_toggled(GtkToggleButton *togglebutton, gpointer user_da
 	}
 }
 
-void on_btn_ModelInversion_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+G_MODULE_EXPORT void on_btn_ModelInversion_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	if(gtk_toggle_button_get_active(togglebutton))
 	{
@@ -367,7 +367,7 @@ void on_btn_ModelInversion_toggled(GtkToggleButton *togglebutton, gpointer user_
 	}
 }
 
-gboolean on_btn_Model_button_release_event(
+G_MODULE_EXPORT gboolean on_btn_Model_button_release_event(
 	GtkWidget *widget, 
 	GdkEventButton *event, 
 	gpointer user_data)
@@ -377,7 +377,7 @@ gboolean on_btn_Model_button_release_event(
 }
 
 /* -------------- Weighting */
-void on_btn_WeightingNormal_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+G_MODULE_EXPORT void on_btn_WeightingNormal_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	if(gtk_toggle_button_get_active(togglebutton))
 	{
@@ -397,7 +397,7 @@ void on_btn_WeightingNormal_toggled(GtkToggleButton *togglebutton, gpointer user
 	}
 }
 
-void on_btn_WeightingAlternative_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+G_MODULE_EXPORT void on_btn_WeightingAlternative_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	if(gtk_toggle_button_get_active(togglebutton))
 	{
@@ -416,7 +416,7 @@ void on_btn_WeightingAlternative_toggled(GtkToggleButton *togglebutton, gpointer
 	}
 }
 
-gboolean on_btn_Weighting_button_release_event(
+G_MODULE_EXPORT gboolean on_btn_Weighting_button_release_event(
 	GtkWidget *widget, 
 	GdkEventButton *event, 
 	gpointer user_data)
@@ -426,7 +426,7 @@ gboolean on_btn_Weighting_button_release_event(
 }
 
 /* -------------- Weighting */
-void on_btn_VelocitySingle_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+G_MODULE_EXPORT void on_btn_VelocitySingle_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	if(gtk_toggle_button_get_active(togglebutton))
 	{
@@ -442,7 +442,7 @@ void on_btn_VelocitySingle_toggled(GtkToggleButton *togglebutton, gpointer user_
 	}
 }
 
-void on_btn_VelocityMultiple_toggled(GtkToggleButton *togglebutton, gpointer user_data)
+G_MODULE_EXPORT void on_btn_VelocityMultiple_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 {
 	if(gtk_toggle_button_get_active(togglebutton))
 	{
@@ -458,7 +458,7 @@ void on_btn_VelocityMultiple_toggled(GtkToggleButton *togglebutton, gpointer use
 	}
 }
 
-gboolean on_btn_Velocity_button_release_event(
+G_MODULE_EXPORT gboolean on_btn_Velocity_button_release_event(
 	GtkWidget *widget, 
 	GdkEventButton *event, 
 	gpointer user_data)
@@ -468,7 +468,7 @@ gboolean on_btn_Velocity_button_release_event(
 }
 
 /* -------------- focus */
-gboolean on_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
+G_MODULE_EXPORT gboolean on_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
 {
 	GtkWindow *window= parent_gtk_window(widget);
 	struct rs_fric_window *fric_window= rs_fric_window_from_gtk_window(window);
@@ -536,7 +536,7 @@ gboolean on_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer us
    concatenates the parameters into a qi command line and sends it
    to the command_handler */
 
-void on_btn_PerformQI_clicked(
+G_MODULE_EXPORT void on_btn_PerformQI_clicked(
 	GtkButton *button,
 	gpointer user_data)
 {
@@ -659,7 +659,7 @@ void on_btn_PerformQI_clicked(
 }
 
 /* ------------ close the window */
-void on_btn_CloseWindow_clicked(
+G_MODULE_EXPORT void on_btn_CloseWindow_clicked(
 	GtkButton *button,
 	gpointer user_data)
 {
@@ -668,7 +668,7 @@ void on_btn_CloseWindow_clicked(
 }
 
 
-void on_rsfricWindow_destroy(
+G_MODULE_EXPORT void on_rsfricWindow_destroy(
 	GtkObject *object,
 	gpointer   user_data)
 {
