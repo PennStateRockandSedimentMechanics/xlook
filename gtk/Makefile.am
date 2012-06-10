@@ -2,6 +2,8 @@ AUTOMAKE_OPTIONS = foreign
 
 bin_PROGRAMS = xlook
 
+xlook_LDADD= $(GTK_LIBS)
+
 xlook_SOURCES = \
         array.c \
         array.h \
