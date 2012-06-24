@@ -1,0 +1,71 @@
+Notes:
+
+Downloaded MinGW- latest (this was mingw-get-inst-20120426.exe)
+Installed it
+Opened the mingw shell
+typed:
+mingw-get upgrade
+
+To bring all the tools up to date.
+
+vim ~/.profile
+
+Add this line:
+
+PATH=$PATH:/c/Program\ Files/Git/bin:/c/MinGW/msys/gtk/bin
+
+Log out of shell, relaunch a new MinGw shell
+
+Downloaded gtk+/2.24 from:
+
+http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24
+
+Extract that to C:\MinGw\msys\gtk
+
+Log out of shell, relaunch a new MinGw shell
+
+pkg-config --cflags gtk+-2.0
+
+gtk-demo
+
+(should show a GTK Demo window)
+
+
+(assuming you used the default git install directory)
+autoscan (creates configure.scan, or rescans configure.ac)
+
+Create your sources. (Be sure to have a simple “Makefile” to help Autoconf autodetect things better.)
+Run “autoscan” to generate “configure.scan”.
+Rename “configure.scan” to “configure.ac”.
+Run “autoheader” to generate “config.h.in”.
+Make your source portable by looking at “config.h.in”. (We previously did this at a later step by reading “config.h”, but we can do it in this step by referring to “config.h.in” instead.)
+Create “Makefile.am”.
+Run “automake”.
+Fix errors and run “automake” again.
+Run “aclocal”.
+Run “autoconf”.
+Configure, make, and run!
+
+(Errors on pkg-config)
+
+(Rerun autoscan to get the latest configure.ac up to snuff)
+add configure test for GTK method (not sure which one)
+
+export LDFLAGS='-L/c/MinGW/msys/gtk/lib'
+
+aclocal -I /usr/local/share/aclocal (location of .m4 scripts for PKG_CHECK_MODULES
+
+
+
+# On mac, pkg-config is here….
+/Library/Frameworks/GTK+.framework/Resources/bin/pkg-config
+
+env PATH=$PATH:/Library/Frameworks/GTK+.framework/Resources/bin ./configure
+
+To fix this: (after aclocal, & autoconf)
+./configure: line 3685: syntax error near unexpected token `GTK,'
+./configure: line 3685: `PKG_CHECK_MODULES(GTK, gtk+-2.0)'
+
+sudo cp pkg.m4 /usr/local/share/aclocal
+aclocal
+autoconf
