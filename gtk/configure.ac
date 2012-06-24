@@ -39,15 +39,22 @@ CPPFLAGS="$CPPFLAGS -Wall $GTK_CFLAGS"
 LDFLAGS="$LDFLAGS"
 
 # Check for libraries.
-#`AC_CHECK_LIB(X11,XDrawLine,,[AC_MSG_ERROR([couldn't find X11 libraries.])])
+#AC_CHECK_LIB(X11,XDrawLine,,[AC_MSG_ERROR([couldn't find X11 libraries.])])
 #AC_CHECK_LIB(olgx,olgx_draw_box,,[AC_MSG_ERROR([couldn't find xview libraries. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])],[-lX11])
 #AC_CHECK_LIB(xview,xv_init,,[AC_MSG_ERROR([couldn't find xview libraries. Make sure xview development package is installed from http://physionet.org/physiotools/xview/])],[-lX11 -lolgx])
 AC_CHECK_LIB(m,floor,,[AC_MSG_ERROR([couldn't find m library.])])
 
+AC_CHECK_FUNCS([floor memset pow sqrt strchr strcspn])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stdint.h stdlib.h string.h strings.h sys/file.h sys/timeb.h unistd.h])
+
+AC_CHECK_HEADER_STDBOOL
+AC_FUNC_ERROR_AT_LINE
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_TYPE_UINT32_T
+
 # Check for headers.
-AC_CHECK_HEADERS(gtk/gtk.h,,
-                [AC_MSG_ERROR([couldn't find gtk header files. Make sure gtk development package is installed from http://r.research.att.com/libs/GTK_2.18.5-X11.pkg/])])
-AC_CHECK_HEADERS(arpa/inet.h)
-AC_CHECK_HEADERS(netinet/in.h)
+#AC_CHECK_HEADERS(gtk/gtk.h,,
+#                [AC_MSG_ERROR([couldn't find gtk header files. Make sure gtk development package is installed from http://r.research.att.com/libs/GTK_2.18.5-X11.pkg/])])
 
 AC_OUTPUT(Makefile)

@@ -16,9 +16,7 @@
 #include "look_funcs.h"
 #include "order32.h"
 
-typedef unsigned int uint_32;
-
-#define SWAP4(q) (((((uint_32) (q)))>>24) | ((((uint_32) (q))>>8)&0xff00) | ((((uint_32) (q))<<8)&0xff0000) | ((((uint_32) (q))<<24)&0xff000000))
+#define SWAP4(q) (((((uint32_t) (q)))>>24) | ((((uint32_t) (q))>>8)&0xff00) | ((((uint32_t) (q))<<8)&0xff0000) | ((((uint32_t) (q))<<24)&0xff000000))
 
 extern void print_msg();
 extern char msg[MSG_LENGTH];
@@ -46,6 +44,7 @@ int read_32(int *target, int count, FILE *file)
 	switch(O32_HOST_ORDER)
 	{
 		case O32_LITTLE_ENDIAN:
+fprintf(stderr, "Swapping!\n");
 			swap= 1;
 			break;
 		case O32_BIG_ENDIAN:
@@ -54,7 +53,7 @@ int read_32(int *target, int count, FILE *file)
             exit(-1); /* assert would be preferable */
 			break;
 	}
-	assert(sizeof(uint_32)==4);
+	assert(sizeof(uint32_t)==4);
 
     num_read = fread(target, 4, count, file);
 	if(swap)
@@ -95,10 +94,10 @@ int write_32(int *target, int count, FILE *file)
 		case O32_BIG_ENDIAN:
 			break;
 		case O32_PDP_ENDIAN:
-                        exit(-1);
+            exit(-1);
 			break;
 	}
-	assert(sizeof(uint_32)==4);
+	assert(sizeof(uint32_t)==4);
 
    num_written = 0;
    for (i=0; i<count; i++)
