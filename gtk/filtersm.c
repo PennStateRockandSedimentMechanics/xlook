@@ -399,7 +399,7 @@ fprintf(fp, "Reading %d doubles!\n", head.ch[i].nelem);
 				for(j=0;j<head.ch[i].nelem;j++)
 				{
 					darray[i][file1_nelem[i]+j]=*temp2;
-fprintf(fp, "%d - %f!\n", j, *temp2);
+if(i==2) fprintf(fp, "%d - %f!\n", j, *temp2);
 					temp2++;
 				}
 				/*fprintf(stderr,"nelem =%d, first rec= %g, rec2=%g\n", head.ch[i].nelem, *temp1, *(temp1+1));*/
