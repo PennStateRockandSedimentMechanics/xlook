@@ -12,6 +12,9 @@
 extern void print_msg();
 extern char msg[MSG_LENGTH];
 
+static int read_32(int *target, int count, FILE *file);
+static FILE *debug_read_fp= NULL;
+
 /** 
  * Read two-byte words (s) from the data file.
  * 
@@ -28,7 +31,7 @@ extern char msg[MSG_LENGTH];
  * 
  * @return The number of two-byte words that were successfully read from the file.
  */
-int read_32(int *target, int count, FILE *file) 
+static int read_32(int *target, int count, FILE *file) 
 {
 	int num_read, i, swap= 0;
 
@@ -46,10 +49,12 @@ int read_32(int *target, int count, FILE *file)
 	assert(sizeof(uint32_t)==4);
 
     num_read = fread(target, 4, count, file);
+if(debug_read_fp) fprintf(debug_read_fp, "fread(target, 4, %d) read %d (Swapping: %d)\n", count, num_read, swap);
 	if(swap)
 	{
 	    for (i=0; i<num_read; i++)
 	    {
+if(debug_read_fp) fprintf(debug_read_fp, "target[%d] from 0x%x to 0x%x\n", i, target[i], SWAP4(target[i]));
         	target[i] = SWAP4(target[i]);
 		}
     }
@@ -395,6 +400,13 @@ fprintf(fp, "Reading %d doubles!\n", head.ch[i].nelem);
 			else
 			{
 				temp2= temp1; 
+if(i==2) 
+{
+	debug_read_fp= fp;
+} else {
+	debug_read_fp= NULL;
+}
+	
 				read_32((int *)(temp2),head.ch[i].nelem,dfile);  
 				for(j=0;j<head.ch[i].nelem;j++)
 				{
