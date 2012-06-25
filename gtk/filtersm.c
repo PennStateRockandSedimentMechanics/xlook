@@ -48,7 +48,19 @@ static int read_32(int *target, int count, FILE *file)
 	}
 	assert(sizeof(uint32_t)==4);
 
+	// clear it to zero (avoid bogus crap) - this is mainly for debugging.
+	memset(target, 0, 4*count);
     num_read = fread(target, 4, count, file);
+	if(num_read != count)
+	{
+		int err;
+		if(feof(file))
+		{
+			fprintf(stderr, "Warning: Asked for %d items, only read %d because hit EOF.\n", count, num_read);
+		} else if(ferror(file)) {
+			fprintf(stderr, "Error: Reading returnd %d when asking for %d items (returned %d).\n", ferror(file), count, num_read);
+		}
+	}
 if(debug_read_fp) fprintf(debug_read_fp, "fread(target, 4, %d) read %d (Swapping: %d)\n", count, num_read, swap);
 	if(swap)
 	{
@@ -58,6 +70,7 @@ if(debug_read_fp) fprintf(debug_read_fp, "target[%d] from 0x%x to 0x%x\n", i, ta
         	target[i] = SWAP4(target[i]);
 		}
     }
+
     return num_read;
 }
 
