@@ -13,7 +13,7 @@ extern void print_msg();
 extern char msg[MSG_LENGTH];
 
 static int read_32(int *target, int count, FILE *file);
-static FILE *debug_read_fp= NULL;
+//static FILE *debug_read_fp= NULL;
 
 /** 
  * Read two-byte words (s) from the data file.
@@ -53,7 +53,6 @@ static int read_32(int *target, int count, FILE *file)
     num_read = fread(target, 4, count, file);
 	if(num_read != count)
 	{
-		int err;
 		if(feof(file))
 		{
 			fprintf(stderr, "Warning: Asked for %d items, only read %d because hit EOF.\n", count, num_read);
@@ -61,12 +60,12 @@ static int read_32(int *target, int count, FILE *file)
 			fprintf(stderr, "Error: Reading returnd %d when asking for %d items (returned %d).\n", ferror(file), count, num_read);
 		}
 	}
-if(debug_read_fp) fprintf(debug_read_fp, "fread(target, 4, %d) read %d (Swapping: %d)\n", count, num_read, swap);
+//	if(debug_read_fp) fprintf(debug_read_fp, "fread(target, 4, %d) read %d (Swapping: %d)\n", count, num_read, swap);
 	if(swap)
 	{
 	    for (i=0; i<num_read; i++)
 	    {
-if(debug_read_fp) fprintf(debug_read_fp, "target[%d] from 0x%x to 0x%x\n", i, target[i], SWAP4(target[i]));
+//			if(debug_read_fp) fprintf(debug_read_fp, "target[%d] from 0x%x to 0x%x\n", i, target[i], SWAP4(target[i]));
         	target[i] = SWAP4(target[i]);
 		}
     }
@@ -89,7 +88,7 @@ if(debug_read_fp) fprintf(debug_read_fp, "target[%d] from 0x%x to 0x%x\n", i, ta
 *
 * @return The number of values that were successfully written to the file.
 */
-int write_32(int *target, int count, FILE *file)
+static int write_32(int *target, int count, FILE *file)
 {
 	int num_written, written, i, swap= 0;
    int swabbed_int;
@@ -187,8 +186,8 @@ int  header_version(
 
 /***************************** examin *******************************/
 /* done */
-void examin(dfile)
-     FILE *dfile ;
+void examin(
+	FILE *dfile)
 {
   int i ;
   struct header temphead ;
@@ -258,8 +257,8 @@ void rite_lookfile(FILE *dfile)
 /* BUT: note that the header in xlook is called 'head' rather than 'lookhead' (in lv2look), so be careful w/ copy/paste!*/
 
 /*********************************** rite_lookfile *****************************/
-void rite_lookfile(dfile)
-FILE *dfile;
+void rite_lookfile(
+	FILE *dfile)
 {
   int i;
 
@@ -320,20 +319,20 @@ int reed(
 	file1_nrec = 0;
 	fread(&(title[0]),1,20,dfile) ;
 
-char dump_filename[128];
-sprintf(dump_filename, "%s.txt", title);
-FILE *fp= fopen(dump_filename, "wb+");
-fprintf(fp, "Sizes: int %ld, float: %ld, double: %ld\n", sizeof(int), sizeof(float), sizeof(double));
-fprintf(fp, "Head channels: %d\n", head_channels);
-fprintf(fp, "Title: %s\n", title);
+	char dump_filename[128];
+	sprintf(dump_filename, "%s.txt", title);
+	FILE *debug_fp= NULL; // fopen(dump_filename, "wb+");
+	if(debug_fp) fprintf(debug_fp, "Sizes: int %ld, float: %ld, double: %ld\n", sizeof(int), sizeof(float), sizeof(double));
+	if(debug_fp) fprintf(debug_fp, "Head channels: %d\n", head_channels);
+	if(debug_fp) fprintf(debug_fp, "Title: %s\n", title);
 	read_32(&(rec),1,dfile) ;
-fprintf(fp, "Rec: %d\n", rec);
+	if(debug_fp) fprintf(debug_fp, "Rec: %d\n", rec);
 	read_32(&(chan),1,dfile) ;
-fprintf(fp, "Chan: %d\n", chan);
+	if(debug_fp) fprintf(debug_fp, "Chan: %d\n", chan);
   
 	if(append == TRUE)
 	{
-fprintf(fp, "APPENDING!\n");
+		if(debug_fp) fprintf(debug_fp, "APPENDING!\n");
 		file1_nrec = head.nrec;
 		chan = (chan > head.nchan) ? chan : head.nchan;
 	}
@@ -365,22 +364,22 @@ fprintf(fp, "APPENDING!\n");
       
 		fseek(dfile, 28, SEEK_SET);	/* changed 13.2.07. This should point to begin of swp, after 20 byte title and two 4-byte ints */
 		read_32(&(head.swp),1,dfile) ;
-fprintf(fp, "Head.swp: %d\n", head.swp);
+		if(debug_fp) fprintf(debug_fp, "Head.swp: %d\n", head.swp);
 		read_32((int *)(&(head.dtime)),1,dfile) ;
-fprintf(fp, "Head.dtime: %lf\n", head.dtime);
+		if(debug_fp) fprintf(debug_fp, "Head.dtime: %lf\n", head.dtime);
 		/*fread(&(head.dtime),4,1,dfile) ;*/
 		for( i = 1; i <= head_channels; ++i )
 		{
 			fread(&(head.ch[i].name[0]),1,13,dfile) ;
-fprintf(fp, "Head.ch[%d].name: %.13s\n", i, head.ch[i].name); // TERMINATED?
+			if(debug_fp) fprintf(debug_fp, "Head.ch[%d].name: %.13s\n", i, head.ch[i].name); // TERMINATED?
 			fread(&(head.ch[i].units[0]),1,13,dfile) ;
-fprintf(fp, "Head.ch[%d].units: %.13s\n", i, head.ch[i].units); // TERMINATED?
+			if(debug_fp) fprintf(debug_fp, "Head.ch[%d].units: %.13s\n", i, head.ch[i].units); // TERMINATED?
 			read_32((int *)&(head.ch[i].gain),1,dfile) ;
-fprintf(fp, "Head.ch[%d].gain: %lf\n", i, head.ch[i].gain);
+			if(debug_fp) fprintf(debug_fp, "Head.ch[%d].gain: %lf\n", i, head.ch[i].gain);
 			fread(&(head.ch[i].comment[0]),1,50,dfile) ;
-fprintf(fp, "Head.ch[%d].comment: %.50s\n", i, head.ch[i].comment); // TERMINATED?
+			if(debug_fp) fprintf(debug_fp, "Head.ch[%d].comment: %.50s\n", i, head.ch[i].comment); // TERMINATED?
 			read_32(&(head.ch[i].nelem),1,dfile) ;
-fprintf(fp, "Head.ch[%d].nelem: %d\n", i, head.ch[i].nelem);
+			if(debug_fp) fprintf(debug_fp, "Head.ch[%d].nelem: %d\n", i, head.ch[i].nelem);
 			file1_nelem[i] = 0;
 		}
 	}
@@ -407,24 +406,21 @@ fprintf(fp, "Head.ch[%d].nelem: %d\n", i, head.ch[i].nelem);
 
 			if(head_version == 64)
 			{
-fprintf(fp, "Reading %d doubles!\n", head.ch[i].nelem);
+				if(debug_fp) fprintf(debug_fp, "Reading %d doubles!\n", head.ch[i].nelem);
 				fread(&darray[i][file1_nelem[i]],sizeof(double),head.ch[i].nelem,dfile) ;
 			}
 			else
 			{
 				temp2= temp1; 
-if(i==2) 
-{
-	debug_read_fp= fp;
-} else {
-	debug_read_fp= NULL;
-}
+
+				// this is where the bug was, so we only were echoing this one it here...
+//				debug_read_fp= ((i==2) ? debug_fp : NULL) ;
 	
 				read_32((int *)(temp2),head.ch[i].nelem,dfile);  
 				for(j=0;j<head.ch[i].nelem;j++)
 				{
 					darray[i][file1_nelem[i]+j]=*temp2;
-if(i==2) fprintf(fp, "%d - %f!\n", j, *temp2);
+					if(i==2 && debug_fp) fprintf(debug_fp, "%d - %f!\n", j, *temp2);
 					temp2++;
 				}
 				/*fprintf(stderr,"nelem =%d, first rec= %g, rec2=%g\n", head.ch[i].nelem, *temp1, *(temp1+1));*/
@@ -432,7 +428,8 @@ if(i==2) fprintf(fp, "%d - %f!\n", j, *temp2);
 				/*read_32((int *)(&darray[i][file1_nelem[i]]),head.ch[i].nelem,dfile) ;  */
 			}
 			head.ch[i].nelem += file1_nelem[i];
-fprintf(fp, "head.ch[%d].nelem= %d\n", i, head.ch[i].nelem);
+			
+			if(debug_fp) fprintf(debug_fp, "head.ch[%d].nelem= %d\n", i, head.ch[i].nelem);
 		}
 	}
 	
@@ -448,8 +445,11 @@ fprintf(fp, "head.ch[%d].nelem= %d\n", i, head.ch[i].nelem);
 		}
 	}
 	
-fprintf(fp, "DONE!\n");
-fclose(fp);
+	if(debug_fp)
+	{
+		fprintf(debug_fp, "DONE!\n");
+		fclose(debug_fp);
+	}
 	
 	return 1 ;
 }
