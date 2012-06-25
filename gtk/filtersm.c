@@ -304,7 +304,7 @@ int reed(
 
 char dump_filename[128];
 sprintf(dump_filename, "%s.txt", title);
-FILE *fp= fopen(dump_filename, "w+");
+FILE *fp= fopen(dump_filename, "wb+");
 fprintf(fp, "Sizes: int %ld, float: %ld, double: %ld\n", sizeof(int), sizeof(float), sizeof(double));
 fprintf(fp, "Head channels: %d\n", head_channels);
 fprintf(fp, "Title: %s\n", title);
