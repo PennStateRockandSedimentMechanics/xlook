@@ -491,7 +491,7 @@ static gboolean open_filter_function(
 static FileType file_type_with_path(const char *path)
 {
 	FileType type= _file_type_unrecognized;
-	FILE *fp= fopen(path, "r");
+	FILE *fp= fopen(path, "rb");
 	if(fp)
 	{
 		char *key= "begin";

@@ -582,7 +582,7 @@ void write_proc(arg)
   
   strcpy(new_file, arg);
 
-  if ((new = fopen(new_file, "a")) == NULL)
+  if ((new = fopen(new_file, "ab")) == NULL)
     {
       sprintf(msg, "Can't open file: %s. fopen in write_proc() failed. See cmds1.c\n", new_file);
       print_msg(msg);
@@ -607,7 +607,7 @@ void write_proc(arg)
 	    }
 	  else
 	    {
-	      if ((new = fopen(new_file, "w")) == NULL)
+	      if ((new = fopen(new_file, "wb")) == NULL)
 		{
 		  sprintf(msg, "Can't open file: %s.\n", new_file);
 		  print_msg(msg);
@@ -652,7 +652,7 @@ void read_proc(const char cmd[256])
 
 	sscanf(cmd, "%s %s", dummy, data_file);
 
-	if ((data = fopen(data_file, "r")) == NULL)
+	if ((data = fopen(data_file, "rb")) == NULL)
 	{
 		sprintf(msg, "Can't open data file: %s. fopen in read_proc() failed. Check filename, see cmds1.c\n", data_file);
 		print_msg(msg);

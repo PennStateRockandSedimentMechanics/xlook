@@ -3124,7 +3124,7 @@ void do_getaschead(arg)
 void do_examin(arg)
      char arg[256];
 {
-  if ((data = fopen(arg, "r")) == NULL)
+  if ((data = fopen(arg, "rb")) == NULL)
     {
       sprintf(msg, "Can't open data file: %s.\n", arg);
       print_msg(msg);
