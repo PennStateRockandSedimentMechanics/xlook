@@ -1,14 +1,15 @@
 .deps
 Makefile
-Makefile.in
 aclocal.m4
 asc2look
 autom4te.cache
 config.h
-config.h.in
+configure
+Makefile.in
 config.log
 config.status
 stamp-h1
 *.o
 xlook
+xlook.exe
 !mac-installer/xlook
