@@ -1,5 +1,7 @@
 Notes:
 
+####### BUILDING ON THE PC
+
 Downloaded MinGW- latest (this was mingw-get-inst-20120426.exe)
 Installed it
 Opened the mingw shell
@@ -30,6 +32,46 @@ gtk-demo
 
 (should show a GTK Demo window)
 
+# You have to setup a github account, and have Chris or I add you to the Users so you can see the repo.
+# You have to setup your shared keys within the git repo
+
+# Pull down the code....
+git clone git@github.com:PennStateRockandSedimentMechanics/xlook.git
+
+# Change into the "new" directory
+cd xlook/gtk
+
+# Copy the pkg.m4 script to the aclocal location...
+cp pkg.m4 `aclocal --print-ac-dir`
+
+# You should be able to just:
+make
+
+############### On the Macintosh
+# You have to setup a github account, and have Chris or I add you to the Users so you can see the repo.
+# You have to setup your shared keys within the git repo
+
+# Pull down the code....
+git clone git@github.com:PennStateRockandSedimentMechanics/xlook.git
+
+# Install GTK from the .pkg at 
+xlook/gtk/GTK_2...
+
+# (If this isn't in your path, make sure it is...)
+export PATH=$PATH:/Library/Frameworks/GTK+.framework/Resources/bin
+
+# If you get this issue:
+#./configure: line 3685: syntax error near unexpected token `GTK,'
+#./configure: line 3685: `PKG_CHECK_MODULES(GTK, gtk+-2.0)'
+
+# Do this:
+sudo cp pkg.m4 `aclocal --print-ac-dir`
+
+You should be able to build cleanly with just make at this point.
+
+
+/*---- My notes below */
+
 
 (assuming you used the default git install directory)
 autoscan (creates configure.scan, or rescans configure.ac)
@@ -54,18 +96,3 @@ add configure test for GTK method (not sure which one)
 export LDFLAGS='-L/c/MinGW/msys/gtk/lib'
 
 aclocal -I /usr/local/share/aclocal (location of .m4 scripts for PKG_CHECK_MODULES
-
-
-
-# On mac, pkg-config is here….
-/Library/Frameworks/GTK+.framework/Resources/bin/pkg-config
-
-env PATH=$PATH:/Library/Frameworks/GTK+.framework/Resources/bin ./configure
-
-To fix this: (after aclocal, & autoconf)
-./configure: line 3685: syntax error near unexpected token `GTK,'
-./configure: line 3685: `PKG_CHECK_MODULES(GTK, gtk+-2.0)'
-
-sudo cp pkg.m4 /usr/local/share/aclocal
-aclocal
-autoconf
