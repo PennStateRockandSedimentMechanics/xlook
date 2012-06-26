@@ -36,7 +36,8 @@ AC_CHECK_LIB(m,floor,,[AC_MSG_ERROR([couldn't find m library.])])
 AC_CHECK_FUNCS([floor memset pow sqrt strchr strcspn])
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stdint.h stdlib.h string.h strings.h sys/file.h sys/timeb.h unistd.h])
 
-AC_CHECK_HEADER_STDBOOL
+# PC version of AUtomake has issue with this.
+# AC_CHECK_HEADER_STDBOOL
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
