@@ -13,3 +13,5 @@ stamp-h1
 xlook
 xlook.exe
 !mac-installer/xlook
+docs
+gtk/tmp
