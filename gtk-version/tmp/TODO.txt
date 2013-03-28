@@ -1,0 +1,19 @@
+
+Hi Ryan-  Here are my notes from phone chat on 13 Oct. It seemed like you were taking your own notes, so this is probably old news.  Cheers, Chris
+
+
+
+
+DONE:
+Align text for col names and units (Used Monospace 9 for this	)
+Program should quit when window closes
+Color for active plot (blue/red?).
+Distance tool: x-hair w/ x,y coordinates at ends of line
+Toggling from Normal to Draw line seems to lose cursor-data tracking. 
+Add row below current X/Y to show 'last click'
+Right click: show x/y and draw crosshair on canvas at click position
+left click: show x/y location on active graph at closest point to click; report x, y, row as "last click" in header
+
+Questions:
+
+Line and Normal mode are essentially the same- if you click and don't drag, it could create a point annotation- would you like to combine them?
