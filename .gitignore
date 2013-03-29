@@ -7,7 +7,6 @@ config.log
 config.status
 stamp-h1
 *.o
-xlook
 xlook.exe
 !mac-installer/xlook
 docs
