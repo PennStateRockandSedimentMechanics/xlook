@@ -4,7 +4,6 @@ aclocal.m4
 asc2look
 autom4te.cache
 config.h
-configure
 Makefile.in
 config.log
 config.status
