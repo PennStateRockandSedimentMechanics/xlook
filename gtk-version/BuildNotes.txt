@@ -1,4 +1,4 @@
-Notes:
+acNotes:
 
 ####### BUILDING ON THE PC
 
@@ -96,3 +96,41 @@ add configure test for GTK method (not sure which one)
 export LDFLAGS='-L/c/MinGW/msys/gtk/lib'
 
 aclocal -I /usr/local/share/aclocal (location of .m4 scripts for PKG_CHECK_MODULES
+
+
+
+=======================================================================================
+Fresh Build, new Machine, Mountain Lion
+=======================================================================================
+
+Building fresh:
+
+After checking out the repo (on Mountain Lion 10.8)
+
+Double clicked on the GTK 2.18.5 (X11 build) Installer
+PATH=/Library/Frameworks/GTK+.framework/Resources/bin:$PATH
+
+env PATH=$PATH:/Library/Frameworks/GTK+.framework/Versions/2.18.X11/Resources/bin ./configure
+
+No autoreconf; had to install brew to get it:
+
+ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+
+Then:
+brew install automake
+
+
+Lots of errors; just punted and pushed in configure to project.
+
+Now, ./configure:
+
+configure: error: ** No pkg-config found.  See README.txt for troubleshooting tips.
+
+
+
+
+Note that if configure is in the project, the above is not required.
+
+
+(I punted, and added the binary to the project for now.  Need to fix errors using new
+automake and do it correctly)
