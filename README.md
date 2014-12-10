@@ -40,7 +40,7 @@ Other dependencies can be handled from Macports, Brew, etc.
 - Launch Terminal
 - Change to directory you want xlook to live
 - *git clone https<nolink>://github.com/PennStateRockandSedimentMechanics/xlook.git*
-- *cd xlook/gtk-version
+- *cd xlook/gtk-version*
 - *./create_static_ui.sh*
 - *./configure*
 - *make*
