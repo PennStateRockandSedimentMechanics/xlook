@@ -33,19 +33,20 @@ Other dependencies can be handled from Macports, Brew, etc.
 - Open a terminal in the bash shell
 - Install [homebrew](http://brew.sh): *ruby -e "$(curl -fsSL https<nolink>://raw.githubusercontent.com/Homebrew/install/master/install)"*
 - Setup and update brew
-brew doctor
-brew update
+
+    brew doctor
+    brew update
 
 - Install packages with the following:
 
-brew install pkgconfig
-brew install gtk
-brew install autoconf
-brew install automake
+    brew install pkgconfig
+    brew install gtk
+    brew install autoconf
+    brew install automake
 
 - Because of a gtk installation issue, we need to export a path.
 
-export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
+    export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
 
 #### Compiling
 - Launch Terminal
@@ -63,9 +64,9 @@ export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
 
 First, try compiling xlook from scratch using the following commands:
 
-autoreconf
-./configure
-make
+    autoreconf
+    ./configure
+    make
 
 With any luck, that should leave you with an xlook executable in the current
 directory.
@@ -79,22 +80,22 @@ If you are compiling on a 64-bit operating system (such as MacOS 10.6 or
 
     ./configure CFLAGS=-m32
 
-    We can't build a 64-bit version of xlook because the xview libraries are only
-    available in 32-bit, and
-    [apparently](http://www.physionet.org/physiotools/xview/#64-bit) it would be
-    quite a bit of effort to convert those to 64-bit, so it's unlikely to happen.
+We can't build a 64-bit version of xlook because the xview libraries are only
+available in 32-bit, and
+[apparently](http://www.physionet.org/physiotools/xview/#64-bit) it would be
+quite a bit of effort to convert those to 64-bit, so it's unlikely to happen.
 
-    ## Running
+## Running
 
-    Run the resulting executable directly:
+Run the resulting executable directly:
 
     ./xlook
 
-    Sample data is included under the `example` subdirectory.
+Sample data is included under the `example` subdirectory.
 
-    It is recommended that you add xlook to your system path.
+It is recommended that you add xlook to your system path.
 
-    ## Contributors
-    - [West Arete](http://westarete.com/)
-    - [Ryan Martell](http://www.martellventures.com)
-    - [John Leeman](http://www.johnrleeman.com)
+## Contributors
+- [West Arete](http://westarete.com/)
+- [Ryan Martell](http://www.martellventures.com)
+- [John Leeman](http://www.johnrleeman.com)
