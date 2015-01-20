@@ -33,7 +33,7 @@ Other dependencies can be handled from Macports, Brew, etc.
 - Open a terminal in the bash shell
 - Install [homebrew](http://brew.sh):
 ```
-ruby -e "$(curl -fsSL https<nolink>://raw.githubusercontent.com/Homebrew/install/master/install)"
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
 - Setup and update brew
 
@@ -59,11 +59,20 @@ export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
 #### Compiling
 - Launch Terminal
 - Change to directory you want xlook to live
-- *git clone https<nolink>://github.com/PennStateRockandSedimentMechanics/xlook.git*
-- *cd xlook/gtk-version*
-- *./create_static_ui.sh*
-- *./configure*
-- *make*
+- Clone into the git repo:
+
+```
+git clone https://github.com/PennStateRockandSedimentMechanics/xlook.git
+```
+
+- Go into the gtk-version directory and compile:
+
+```
+cd xlook/gtk-version
+./create_static_ui.sh
+./configure
+make
+```
 
 ### Ubuntu
 - Update apt-get
