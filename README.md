@@ -52,7 +52,9 @@ brew install automake
 ```
 - Because of a gtk installation issue, we need to export a path.
 
-    export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
+```
+export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
+```
 
 #### Compiling
 - Launch Terminal
@@ -62,6 +64,12 @@ brew install automake
 - *./create_static_ui.sh*
 - *./configure*
 - *make*
+
+### Ubuntu
+- Update apt-get
+- Install git
+- clone repo
+- install libgtk2.0-dev,autoconf,pkgconf
 
 ### Problems
 - Did you set the GTK path if necessary? *export PATH=/Library/Frameworks/GTK+.framework/Resources/bin:$PATH*
