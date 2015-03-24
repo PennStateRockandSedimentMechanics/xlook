@@ -49,6 +49,7 @@ brew install pkgconfig
 brew install gtk
 brew install autoconf
 brew install automake
+brew install xz
 ```
 - Because of a gtk installation issue, we need to export a path.
 
