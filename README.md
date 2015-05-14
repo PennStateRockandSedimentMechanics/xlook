@@ -24,40 +24,75 @@ below
 #### Pre-Requisites
 
 - From App Store, buy (free) XCode
+- Start XCode and accept the agreement, quit XCode
+- Download and install [http://xquartz.macosforge.org/landing/](XQuartz)
 
 Other dependencies can be handled from Macports, Brew, etc.
 
-##### Macports
-- Install macports [http://www.macports.org/install.php](http://www.macports.org/install.php)
-- Restart terminal
-- *sudo port install pkgconfig*
-
 ##### Brew
 - Open a terminal in the bash shell
-- Install [homebrew](http://brew.sh): *ruby -e "$(curl -fsSL https<nolink>://raw.githubusercontent.com/Homebrew/install/master/install)"*
+- Install [homebrew](http://brew.sh):
+```
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+- Setup and update brew
+
+```
+brew doctor
+brew update
+```
+
+- Install packages with the following:
+
+```
+brew install pkgconfig
+brew install gtk
+brew install autoconf
+brew install automake
+brew install xz
+```
+- Because of a gtk installation issue, we need to export a path.
+
+```
+export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
+```
 
 #### Compiling
 - Launch Terminal
 - Change to directory you want xlook to live
-- *git clone https<nolink>://github.com/PennStateRockandSedimentMechanics/xlook.git*
-- *cd xlook/gtk-version*
-- *./create_static_ui.sh*
-- *./configure*
-- *make*
+- Clone into the git repo:
+
+```
+git clone https://github.com/PennStateRockandSedimentMechanics/xlook.git
+```
+
+- Go into the gtk-version directory and compile:
+
+```
+cd xlook/gtk-version
+./create_static_ui.sh
+./configure
+make
+```
+
+### Ubuntu
+- Update apt-get
+- Install git
+- clone repo
+- install libgtk2.0-dev,autoconf,pkgconf
 
 ### Problems
 - Did you set the GTK path if necessary? *export PATH=/Library/Frameworks/GTK+.framework/Resources/bin:$PATH*
-
-
-
 
 ### General Compiling Instructions
 
 First, try compiling xlook from scratch using the following commands:
 
-    autoreconf
-    ./configure
-    make
+```
+autoreconf
+./configure
+make
+```
 
 With any luck, that should leave you with an xlook executable in the current
 directory.
@@ -65,11 +100,13 @@ directory.
 #### 64-Bit
 
 If you are compiling on a 64-bit operating system (such as MacOS 10.6 or
-greater), you will probably need to set environment variables to
-force the compiler to create a 32-bit executable. On MacOS this can be
-accomplished with:
+    greater), you will probably need to set environment variables to
+    force the compiler to create a 32-bit executable. On MacOS this can be
+    accomplished with:
 
-    ./configure CFLAGS=-m32
+```
+./configure CFLAGS=-m32
+```
 
 We can't build a 64-bit version of xlook because the xview libraries are only
 available in 32-bit, and
@@ -80,11 +117,13 @@ quite a bit of effort to convert those to 64-bit, so it's unlikely to happen.
 
 Run the resulting executable directly:
 
-    ./xlook
+```
+./xlook
+```
 
 Sample data is included under the `example` subdirectory.
 
-It is recommended to add xlook to your system path.
+It is recommended that you add xlook to your system path.
 
 ## Contributors
 - [West Arete](http://westarete.com/)
