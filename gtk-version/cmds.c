@@ -2710,9 +2710,9 @@ void do_name(arg)
 void do_r_col(col)
      int col;
 {
-  if (col > max_col)
+  if (col > max_col ||    (strncmp(head.ch[col].name,"no_val",6) == 0) )
     {
-      coe();
+      coe();		//in messages.c
     }
   else
     {
