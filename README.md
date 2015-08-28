@@ -25,7 +25,7 @@ below
 
 - From App Store, buy (free) XCode
 - Start XCode and accept the agreement, quit XCode
-- Download and install [http://xquartz.macosforge.org/landing/](XQuartz)
+- Download and install [XQuartz](http://xquartz.macosforge.org/landing/)
 
 Other dependencies can be handled from Macports, Brew, etc.
 
