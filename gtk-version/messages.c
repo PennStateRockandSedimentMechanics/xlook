@@ -208,7 +208,7 @@ void ne()
 void coe()
 {
   global_error=TRUE;
-  sprintf(msg, "Error! Column not allocated. Use the \"all\" command. Note: you can use up to 17 columns.\n");
+  sprintf(msg, "Error! Column not allocated. Use the \"all\" command. Note: you can use up to %d columns.\n", MAX_COL);
   print_msg(msg);
 }
 

@@ -20,7 +20,7 @@ extern char plot_cmd[256]; // FIXME: move to globals.h
 #define GET_CANVAS_INDEX(d) (d>>4)
 #define GET_PLOT_NUMBER(d) (d&0xf)
 #define CLEAR_ALL_PLOTS_CONSTANT (0xf) // NOTE: If we have more than 10 plots, this will need to change.
-#define MINIMUM_MOUSE_DELTA_TO_DRAW_LINE 3 // This is the minimum amount to convert from a point mode to a line mode.
+#define MINIMUM_MOUSE_DELTA_TO_DRAW_LINE 1 // This is the minimum amount to convert from a point mode to a line mode.
 
 typedef enum {
 	PLOT_LABEL_LEFT_FOOTER= 0,
@@ -43,8 +43,8 @@ enum
 #define DATA_TO_SCREEN_X(x, ddd, ccc) ((ccc)->start_x + ((x) - (ddd)->xmin)*(ddd)->scale_x)
 #define DATA_TO_SCREEN_Y(y, ddd, ccc) ((ccc)->start_y + ((y) - (ddd)->ymin)*(ddd)->scale_y)
 
-#define SCREEN_TO_DATA_X(x, ddd, ccc) ((float)((x) - (ccc)->start_x)/(ddd)->scale_x + (ddd)->xmin)
-#define SCREEN_TO_DATA_Y(y, ddd, ccc) ((float)((y) - (ccc)->start_y)/(ddd)->scale_y + (ddd)->ymin)
+#define SCREEN_TO_DATA_X(x, ddd, ccc) (((float)((x) - (ccc)->start_x))/(ddd)->scale_x + (ddd)->xmin)
+#define SCREEN_TO_DATA_Y(y, ddd, ccc) (((float)((y) - (ccc)->start_y))/(ddd)->scale_y + (ddd)->ymin)
 
 #define SCALE_X(ddd, ccc)	 (float)(((ccc)->end_x - (ccc)->start_x)/((ddd)->xmax - (ddd)->xmin))
 #define SCALE_Y(ddd, ccc)	 (float)(((ccc)->end_y - (ccc)->start_y)/((ddd)->ymax - (ddd)->ymin))
@@ -64,9 +64,11 @@ static void adjust_canvas_size(int index);
 static void rebuild_active_plot_combo_list(GtkComboBox *widget);
 static void invalidate_plot(GtkWindow *window, gboolean clear_annotations);
 static gint clear_Plots_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data);
+/*cjm, this is related to the text box that goes w/ the crosshair and moves with the mouse, cjm*/
 static gint mouse_and_zoom_PopupHandler (GtkWidget *widget, GdkEvent *event, gpointer user_data);
 static void adjust_clear_plots_menu(GtkWidget *widget, GtkMenu *menu);
 static void on_clear_plot_menu_item(GtkObject *object, gpointer user_data);
+/*cjm, next two lines are related to the text box that goes w/ the crosshair and moves with the mouse, cjm*/
 static void on_zoom_menu_item(GtkObject *object, gpointer user_data);
 static void on_mouse_menu_item(GtkObject *object, gpointer user_data);
 static void set_mouse_message_for_mode(GtkWindow *window, int mode);
@@ -679,6 +681,7 @@ G_MODULE_EXPORT void on_chartArea_realize(GtkWidget *widget, gpointer user_data)
 
 static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y)
 {
+
 	canvasinfo *info= canvas_info_for_widget(widget);
 	if(info->active_plot>=0)
 	{
@@ -692,9 +695,12 @@ static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y)
 		get_color_for_type(PLOT_LABEL_COLOR, &color);
 		gdk_gc_set_rgb_fg_color(gc, &color);
 
+/*this never gets called as far as I can tell*/
 		/* get the x and y (data) values */ 
 		float xval= SCREEN_TO_DATA_X(info->mouse.start.x, data, info);
 		float yval= SCREEN_TO_DATA_Y(info->mouse.start.y, data, info);
+
+/*this is for points picked on the canvas, not on the data curve*/
 
 		sprintf(msg, "X: %.5g Y: %.5g", xval, yval);
 		PangoLayout *pango_layout= info->offscreen_buffer->pango_layout;
@@ -711,6 +717,7 @@ static void draw_crosshair_with_coordinates(GtkWidget *widget, float x, float y)
 
 G_MODULE_EXPORT gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
+
 	canvasinfo *info= canvas_info_for_widget(widget);
 	GtkWindow *window= GTK_WINDOW(info->plot_window->window);
 
@@ -741,7 +748,9 @@ G_MODULE_EXPORT gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkE
 		
 		invalidate_plot(window, FALSE);
 	} 
-/*
+
+#if FALSE  
+//This goes down ~ 70 lines
 	else if(info->mouse.mode==_mouse_mode_normal)
 	{
 		char last_clicked_buffer[200];
@@ -808,13 +817,16 @@ G_MODULE_EXPORT gboolean on_chartArea_button_press_event(GtkWidget *widget, GdkE
 			strcat(msg, "\n");
 			print_msg(msg);
 
-			sprintf(last_clicked_buffer, "Last Click: X: %.5g Y: %.5g", xval, yval); 
+			sprintf(last_clicked_buffer, "Last Click: Xpp: %.5g Y: %.5g", xval, yval); 
 			set_plot_label_message(window, LABEL_LAST_EVENT, last_clicked_buffer);
 		}
 		
 		// and update.
 		invalidate_plot(window, FALSE);
-*/
+}
+//this goes up ~ 70 lines
+#endif 
+
 	else 
 	{
 		/* print row num on info panel only */
@@ -874,6 +886,7 @@ G_MODULE_EXPORT gboolean on_chartArea_button_release_event(GtkWidget *widget, Gd
 		info->mouse.end.x= event->x;
 		info->mouse.end.y= event->y;
 
+/*this is a control-down click */
 		/* get the x and y (data) values */ 
 		float xval= SCREEN_TO_DATA_X(info->mouse.end.x, data, info);
 		float yval= SCREEN_TO_DATA_Y(info->mouse.end.y, data, info);
@@ -897,8 +910,9 @@ G_MODULE_EXPORT gboolean on_chartArea_button_release_event(GtkWidget *widget, Gd
 				
 			case _mouse_mode_draw_line:
 			case _mouse_mode_distance:
+//cjm 20150701 changed to 1 pixel and made it OR rather than AND; current approach doesn't work well.
 				// treat this as "normal" mode if you don't move the mouse more than 3 pixels
-				if(abs(info->mouse.start.x - info->mouse.end.x)>=MINIMUM_MOUSE_DELTA_TO_DRAW_LINE && 
+				if(abs(info->mouse.start.x - info->mouse.end.x)>=MINIMUM_MOUSE_DELTA_TO_DRAW_LINE || 
 					abs(info->mouse.start.y - info->mouse.end.y)>=MINIMUM_MOUSE_DELTA_TO_DRAW_LINE)
 				{
 					float slope, intercept, x1, x2, y1, y2;
@@ -907,6 +921,7 @@ G_MODULE_EXPORT gboolean on_chartArea_button_release_event(GtkWidget *widget, Gd
 					gdk_draw_line(info->offscreen_buffer->pixmap, info->offscreen_buffer->gc,
 						info->mouse.start.x, info->mouse.start.y, info->mouse.end.x, info->mouse.end.y);
 						
+/*the labels for these points are not done properly, but the points are ok*/
 					// draw the points on both ends..
 					draw_crosshair_with_coordinates(widget, info->mouse.start.x, info->mouse.start.y);
 					draw_crosshair_with_coordinates(widget, info->mouse.end.x, info->mouse.end.y);
@@ -1009,6 +1024,7 @@ G_MODULE_EXPORT gboolean on_chartArea_button_release_event(GtkWidget *widget, Gd
 							sprintf(last_clicked_buffer, "Last Click (Not on Curve): X: %.5g Y: %.5g Row Number: NONE", xval, yval); 
 						}
 
+/*this is for right click or Command click*/
 						sprintf(msg, "X: %.5g", xval); 
 						set_plot_label_message(window, LABEL_X, msg);
 						sprintf(msg, "Y: %.5g", yval); 
@@ -1111,8 +1127,11 @@ G_MODULE_EXPORT gboolean on_chartArea_motion_notify_event(GtkWidget *widget, Gdk
 		data = can_info->plots[can_info->active_plot];
 //		draw_crosshair(widget, xloc, yloc);
 
+/* 20150701: why do we use this here but the def: SCREEN_TO_DATA_X everywhere else?  cjm: I axed it, and that killed things*/
 		xval = (xloc - can_info->start_x)/data->scale_x + data->xmin;
-		yval = (can_info->start_y - yloc)/data->scale_y + data->ymin;
+		yval = (yloc - can_info->start_y)/data->scale_y + data->ymin;
+/*duh, this is the problem. Note reversal of yloc...
+		yval = (can_info->start_y - yloc)/data->scale_y + data->ymin; */
 
 		// we got a notify before the buffer was setup.
 		if(can_info->tracking_buffer==NULL) return FALSE;
@@ -1169,6 +1188,8 @@ G_MODULE_EXPORT gboolean on_chartArea_motion_notify_event(GtkWidget *widget, Gdk
 			sprintf(rowstring, "Row Number: %d", row_num);
 			set_plot_label_message(window, LABEL_ROW_NUMBER, rowstring);
 
+/*this is the normal mouse tracking info, with no button clicks*/
+
 			/*  print the x and y coord on the panels */
 			sprintf(xstring, "X: %.5g (Data: %.5g)", xval, xmatch); 
 			set_plot_label_message(window, LABEL_X, xstring);
@@ -1183,7 +1204,8 @@ G_MODULE_EXPORT gboolean on_chartArea_motion_notify_event(GtkWidget *widget, Gdk
 				pt.x = DATA_TO_SCREEN_X(xmatch, data, can_info); // can_info->start_x + (xmatch - data->xmin)*data->scale_x;
 				pt.y = DATA_TO_SCREEN_Y(ymatch, data, can_info); // can_info->start_y - (ymatch - data->ymin)*data->scale_y;
 
-				sprintf(xstring, "X: %.5g  Y: %.5g\nRow: %d", xmatch, ymatch, row_num);
+				sprintf(xstring, "X: %.5g  Y: %.5g\nRow: %d", xmatch, ymatch, row_num); 
+			/*	sprintf(xstring, "X: %.5g  Y: %.5g\nRow: %d", xmatch, ymatch, row_num); this is annoying, remove box_annotation_over_mouse cjm 20150518*/
 				draw_data_crosshair(can_info->tracking_buffer, xstring, pt.x, pt.y);
 			}
 		}
@@ -1816,7 +1838,9 @@ static void draw_data_crosshair(
 	int x_pos= xloc + 5;
 
 	gdk_gc_set_rgb_fg_color(gc, &white);
-	gdk_draw_rectangle(drawable, gc, 
+
+/*cjm, this is the text box that goes w/ the crosshair and moves with the mouse, cjm*/
+	/*gdk_draw_rectangle(drawable, gc, 
 		TRUE, 
 		x_pos, 
 		y_pos, 
@@ -1824,18 +1848,20 @@ static void draw_data_crosshair(
 		PANGO_PIXELS(text_height)+2);
 
 	gdk_gc_set_rgb_fg_color(gc, &black);
-	gdk_draw_rectangle(drawable, gc, 
+*/
+	/*gdk_draw_rectangle(drawable, gc, 
 		FALSE, 
 		x_pos, 
 		y_pos, 
 		PANGO_PIXELS(text_width)+2, 
 		PANGO_PIXELS(text_height)+2);
-
+*/
+/*
 	gdk_draw_layout(drawable, gc, 
 		x_pos+1,
 		y_pos+2,
 		pango_layout);
-
+*/
 	// crosshair, with a box in t
 	gdk_gc_set_foreground(gc, &original_values.foreground);
 }
