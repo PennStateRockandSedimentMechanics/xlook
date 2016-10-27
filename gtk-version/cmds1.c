@@ -811,7 +811,7 @@ void doit_proc(const char arg[256])
 
 			if (strncmp(cmd, "end", 3) == 0)
 			{
-				sprintf(msg, "Closing doit file %s.\n",pathname[doit_f_open]);
+				sprintf(msg, "Closing doit File %s\n",pathname[doit_f_open]);
 				print_msg(msg);
 				fclose(com_file[doit_f_open]);
 				if (--doit_f_open < 0)

@@ -3,7 +3,7 @@
   <requires lib="gtk+" version="2.16"/>
   <!-- interface-naming-policy project-wide -->
   <object class="GtkWindow" id="mainWindow">
-    <property name="title" translatable="yes">XLook 2</property>
+    <property name="title" translatable="yes">XLook 2.1</property>
     <property name="default_width">700</property>
     <property name="default_height">500</property>
     <signal name="destroy_event" handler="on_mainWindow_destroy_event"/>

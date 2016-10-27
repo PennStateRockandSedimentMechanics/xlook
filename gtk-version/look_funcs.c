@@ -239,45 +239,100 @@ int act_col()
 
 
 /*------------------------------------------------------------------------*/
-void review(file)
-     FILE *file ;
+  /*changes to formats, cjm 20150517 & 20150628*/
+void review(file, firstcol, lastcol)
+FILE *file ;
+int *firstcol, *lastcol;
 {
   int i ;
   if (file == stderr) 
     fprintf(file,"ALLOCATION: max_col = %d , max_row = %d\t",max_col,max_row);
-  fprintf(file,"number of records = %d\n     ",head.nrec) ;
-  for( i = 1; i < max_col ; ++i )
+  /*`printf(file,"number of records = %d\n     ",head.nrec) ;*/
+/*
+  for( i = *firstcol; i <= *lastcol; ++i )
     {
       if ( strncmp(&(head.ch[i].name[0]),"no_val",6) != 0)
 	{
-	  fprintf(file,"       col %1d",i) ;
+	  fprintf(file,"     col %1d",i) ;
 	}
     }
   fprintf(file,"\n     ") ;
-  for( i = 1; i < max_col ; ++i )
+*/
+
+  fprintf(file,"%7s","RecNum") ;
+  for( i = *firstcol; i <= *lastcol; ++i )
     {
       if ( strncmp(&(head.ch[i].name[0]),"no_val",6) != 0)
 	{
-	  fprintf(file,"%12s",head.ch[i].name) ;
+	  fprintf(file,"%15s",head.ch[i].name) ;
 	}
     }
   fprintf(file,"\n     ") ;
-  for( i = 1; i < max_col ; ++i )
+
+  fprintf(file,".") ;
+  for( i = *firstcol; i <= *lastcol; ++i )
     {
       if ( strncmp(&(head.ch[i].name[0]),"no_val",6) != 0)
 	{
-	  fprintf(file,"%12s",head.ch[i].units) ;
+	  fprintf(file,"%15s",head.ch[i].units) ;
 	}
     }
-  fprintf(file,"\n     ");
-  for( i = 1; i < max_col ; ++i )
+  fprintf(file,"\n");
+
+  if (file == stderr) 
+  {
+  for( i = *firstcol; i <= *lastcol; ++i )
     {
       if ( strncmp(&(head.ch[i].name[0]),"no_val",6) != 0)
 	{
 	  fprintf(file,"%7d recs",head.ch[i].nelem) ;
 	}
     }
+   fprintf(file,"\n") ;
+  }
+}
+
+/*------------------------------------------------------------------------*/
+  /*added this so that we can have csv format, cjm 20150628*/
+void p_review(file, firstcol, lastcol)
+FILE *file ;
+int *firstcol, *lastcol;
+{
+  int i ;
+  if (file == stderr) 
+    fprintf(file,"ALLOCATION: max_col = %d , max_row = %d\t",max_col,max_row);
+
+  fprintf(file,"%s","RecNum") ;
+  for( i = *firstcol; i <= *lastcol; ++i )
+    {
+      if ( strncmp(&(head.ch[i].name[0]),"no_val",6) != 0)
+	{
+	  fprintf(file,", %s",head.ch[i].name) ;
+	}
+    }
   fprintf(file,"\n") ;
+
+  fprintf(file,".") ;
+  for( i = *firstcol; i <= *lastcol; ++i )
+    {
+      if ( strncmp(&(head.ch[i].name[0]),"no_val",6) != 0)
+	{
+	  fprintf(file,", %s",head.ch[i].units) ;
+	}
+    }
+  fprintf(file,"\n");
+
+  if (file == stderr) 
+  {
+  for( i = *firstcol; i <= *lastcol; ++i )
+    {
+      if ( strncmp(&(head.ch[i].name[0]),"no_val",6) != 0)
+	{
+	  fprintf(file,"%d recs",head.ch[i].nelem) ;
+	}
+    }
+   fprintf(file,"\n") ;
+  }
 }
 
 
@@ -287,15 +342,15 @@ void vision(file,firstrow,lastrow,firstcol,lastcol)
      FILE *file ;
 {
   int i , j ;
-  review(file) ;
+  review(file, firstcol, lastcol) ;
   for ( i = *firstrow; i <= *lastrow ; ++i)
     {
-      fprintf(file," %4d ",i) ;
+      fprintf(file,"%5d",i) ;
       for ( j = *firstcol; j <= *lastcol; ++j)
 	{
 	  if(strncmp(&(head.ch[j].name[0]),"no_val",5) != 0)
 	    {
-	      fprintf(file,"  %10.6g",darray[j][i]) ;
+	      fprintf(file,"  %.10f",darray[j][i]) ;
 	    }
 	}
       fprintf(file,"\n") ;
@@ -311,12 +366,12 @@ void msg_vision(firstrow,lastrow,firstcol,lastcol)
   
   for ( i = *firstrow; i <= *lastrow ; ++i)
     {
-      sprintf(msg, " %4d ", i);
+      sprintf(msg, "%5d", i);
       for ( j = *firstcol; j <= *lastcol; ++j)
 	{
 	  if(strncmp(&(head.ch[j].name[0]),"no_val",5) != 0)
 	    {
-	      sprintf(tmp_msg, "  %10.6g",darray[j][i]);
+	      sprintf(tmp_msg, "  %.10f",darray[j][i]) ;
 	      strcat(msg, tmp_msg);
 	    }
 	}
@@ -332,13 +387,15 @@ void p_vision(file,firstrow,lastrow,firstcol,lastcol)
      FILE *file ;
 {
   int i , j ;
+  p_review(file, firstcol, lastcol) ;
   for ( i = *firstrow; i <= *lastrow ; ++i)
     {
+      fprintf(file,"%d",i) ;
       for ( j = *firstcol; j <= *lastcol; ++j)
 	{
 	  if(strncmp(&(head.ch[j].name[0]),"no_val",5) != 0)
 	    {
-	      fprintf(file,"  %f",darray[j][i]) ;
+	      fprintf(file,", %.9g",darray[j][i]) ;
 	    }
 	}
       fprintf(file,"\n") ;
@@ -354,12 +411,12 @@ void msg_p_vision(firstrow,lastrow,firstcol,lastcol)
 
   for ( i = *firstrow; i <= *lastrow ; ++i)
     {
-      msg[0] = '\0';
+      sprintf(msg, "%d", i);
       for ( j = *firstcol; j <= *lastcol; ++j)
 	{
 	  if(strncmp(&(head.ch[j].name[0]),"no_val",5) != 0)
 	    {
-	      sprintf(tmp_msg, "  %f",darray[j][i]) ;
+	      sprintf(tmp_msg, ", %.9g",darray[j][i]);
 	      strcat(msg, tmp_msg);
 	    }
 	}

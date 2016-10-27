@@ -16,16 +16,17 @@
 
 char tmp_cmd[1024];
 /* cjm 14.5.07; to solve problem with doit files: increased the size of path names. 1024's used to be 80, 512 used to be 32 */
-char pathname[10][1024];
-char default_path[1024];
-char metapath[1024];
-char data_file[512];
-char new_file[512];
-char headline[512];
+/*cjm 20150518: I commented out these lines (the next 6, plus the FILE *data, *new), b/c they seem to be re-definitions of global variables with the same names (see e.g., cmds1.c*/
+//char pathname[10][1024];
+//char default_path[1024];
+//char metapath[1024];
+//char data_file[512];
+//char new_file[512];
+//char headline[512];
 
 char qiparams[1024];
 
-FILE *data, *new;
+//FILE *data, *new;
 
 char plot_cmd[16], trig_cmd[16], qi_cmd[16], type_cmd[16];
 
