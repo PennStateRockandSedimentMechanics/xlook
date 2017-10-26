@@ -1,4 +1,0 @@
-suppress 560 
-/* Assignment within conditional */
-suppress 701 
-/* Function redeclared */

@@ -5,19 +5,9 @@ This is the source code for xlook, a tool developed by Chris Marone
 Lab](http://rockmechanics.psu.edu) and others.
 
 ## Installation
-To compile xlook, you'll need to have the xview and olgx libraries and headers
-installed.
-
-As of this writing, xview is included as part of the standard packages
-for modern Linux distributions.
-
-Windows users will need to have [Cygwin](http://www.cygwin.com/) installed,
-including its compilers and X server. The xview libraries for cygwin are
-included here under `xview/binary/cygwin/`.
-
-xlook also requires X11 to run. Linux users will already have it, Windows users
-should use the version provided by cygwin. Mac users should follow the instructions
-below
+xlook requires X11/XQuartz to run. Linux users will already have it, Windows
+users should use the version provided by cygwin. Mac users should follow the
+instructions below
 
 ### Mac
 
@@ -27,7 +17,7 @@ below
 - Start XCode and accept the agreement, quit XCode
 - Download and install [XQuartz](http://xquartz.macosforge.org/landing/)
 
-Other dependencies can be handled from Macports, Brew, etc.
+Other dependencies can be handled from Homebrew.
 
 ##### Brew
 - Open a terminal in the bash shell
@@ -45,16 +35,13 @@ brew update
 - Install packages with the following:
 
 ```
-brew install pkgconfig
-brew install gtk
-brew install autoconf
-brew install automake
-brew install xz
+brew install pkgconfig gtk autoconf automake xz
 ```
-- Because of a gtk installation issue, we need to export a path.
+- Because of a gtk installation issue, we need to export a path. Your version
+  number may be different, so **do not just copy and paste this**.
 
 ```
-export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
+export PKG_CONFIG_PATH='/usr/local/Cellar/gtk+/2.24.31_1/lib/pkgconfig/'
 ```
 
 #### Compiling
@@ -66,43 +53,36 @@ export PKG_CONFIG_PATH='/opt/X11/lib/pkgconfig'
 git clone https://github.com/PennStateRockandSedimentMechanics/xlook.git
 ```
 
-- Go into the gtk-version directory and compile:
+- Go into the `src` directory and compile:
 
 ```
-cd xlook/gtk-version
+cd xlook/src
 ./create_static_ui.sh
 ./configure
 make
 ```
 
 ### Ubuntu
-- Update apt-get
-- Install git
-- clone repo
-- install libgtk2.0-dev,autoconf,pkgconf
+- Open a terminal and run the following commands.
+- `sudo apt-get update`
+- `sudo apt-get install git`
+- `git clone https://github.com/PennStateRockandSedimentMechanics/xlook.git`
+- `sudo apt-get install libgtk2.0-dev autoconf pkgconf gcc`
+- `cd xlook/src`
+- `touch ./missing`
+- `touch ./compile`
+- `./create_static_ui.sh`
+- `autoreconf`
+- `./configure`
+- `make`
 
 ### Problems
 - Did you set the GTK path if necessary? *export PATH=/Library/Frameworks/GTK+.framework/Resources/bin:$PATH*
 
-### General Compiling Instructions
-
-First, try compiling xlook from scratch using the following commands:
-
-```
-autoreconf
-./configure
-make
-```
-
-With any luck, that should leave you with an xlook executable in the current
-directory.
-
 #### 64-Bit
 
-If you are compiling on a 64-bit operating system (such as MacOS 10.6 or
-    greater), you will probably need to set environment variables to
-    force the compiler to create a 32-bit executable. On MacOS this can be
-    accomplished with:
+If you are compiling on a 64-bit operating system you may need to set a compiler
+flag, though this has not been necessary on any recent Mac or Linux version.
 
 ```
 ./configure CFLAGS=-m32
