@@ -1,6 +1,0 @@
-?package(olvwm):needs="wm" section="WindowManagers" \
-                title="Olvwm"\
-                command="/usr/X11R6/bin/olvwm"\
-		longtitle="OpenLook virtual window manager"\
-		description="Olvwm: extended version of olwm, the original\
- OpenLook window manager, enhanced for handling of virtual desktops."

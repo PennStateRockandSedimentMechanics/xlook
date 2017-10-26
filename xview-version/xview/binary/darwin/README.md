@@ -1,1 +1,0 @@
-Downloaded from http://www.yorku.ca/logand/macosx/ on 2011-05-25.

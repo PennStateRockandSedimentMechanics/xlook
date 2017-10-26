@@ -1,4 +1,0 @@
-?package(xview-clients):needs="X11" section="Apps/Editors" title="Textedit" command="/usr/X11R6/bin/textedit"
-?package(xview-clients):needs="X11" section="XShells" title="Command Tool" command="/usr/X11R6/bin/cmdtool"
-?package(xview-clients):needs="X11" section="XShells" title="Shell Tool" command="/usr/X11R6/bin/shelltool"
-?package(xview-clients):needs="X11" section="Screen" title="Property Editor" command="/usr/X11R6/bin/props"

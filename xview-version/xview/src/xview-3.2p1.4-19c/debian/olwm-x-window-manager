@@ -1,8 +1,0 @@
-#!/bin/sh
-
-# Running olwm directly through the x-window-manager link seems to cause
-# problems, because the program name is used to find certain resources.
-# So we let x-window-manager point to this wrapper and then exec olwm with
-# it real name.
-
-exec /usr/X11R6/bin/olwm "$@"
